@@ -201,6 +201,357 @@ export const CITIZENSHIP_VOCABULARY = [
     "example_de": "Die Nationalsozialisten errichteten 1933 eine Diktatur.",
     "example_en": "The Nazis established a dictatorship in 1933."
   },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government & Politics",
+    "de": "der Bundesrat",
+    "en": "Federal Council",
+    "example_de": "Der Bundesrat vertritt die Interessen der Bundesländer.",
+    "example_en": "The Federal Council represents the interests of the federal states."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government & Politics",
+    "de": "die Bundesregierung",
+    "en": "Federal Government",
+    "example_de": "Die Bundesregierung besteht aus dem Bundeskanzler und den Ministern.",
+    "example_en": "The Federal Government consists of the Federal Chancellor and the ministers."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government & Politics",
+    "de": "der Bundeskanzler",
+    "en": "Federal Chancellor",
+    "example_de": "Der Bundeskanzler wird vom Bundestag gewählt.",
+    "example_en": "The Federal Chancellor is elected by the Bundestag."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government & Politics",
+    "de": "die Bundeskanzlerin",
+    "en": "Federal Chancellor (female)",
+    "example_de": "Angela Merkel war deutsche Bundeskanzlerin.",
+    "example_en": "Angela Merkel was the German Federal Chancellor."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government & Politics",
+    "de": "der Bundespräsident",
+    "en": "Federal President",
+    "example_de": "Der Bundespräsident ist das Staatsoberhaupt der Bundesrepublik Deutschland.",
+    "example_en": "The Federal President is the head of state of the Federal Republic of Germany."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government & Politics",
+    "de": "die Bundespräsidentin",
+    "en": "Federal President (female)",
+    "example_de": "Die Bundespräsidentin repräsentiert Deutschland im In- und Ausland.",
+    "example_en": "The Federal President represents Germany at home and abroad."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government & Politics",
+    "de": "der Abgeordnete",
+    "en": "Member of Parliament",
+    "example_de": "Die Abgeordneten im Bundestag vertreten das Volk.",
+    "example_en": "The members of parliament in the Bundestag represent the people."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government & Politics",
+    "de": "die Abgeordnete",
+    "en": "Member of Parliament (female)",
+    "example_de": "Jede Abgeordnete hat eine Stimme im Parlament.",
+    "example_en": "Each member of parliament has a vote in parliament."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government & Politics",
+    "de": "die Opposition",
+    "en": "opposition",
+    "example_de": "Die Opposition im Bundestag kontrolliert die Regierung.",
+    "example_en": "The opposition in the Bundestag monitors the government."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government & Politics",
+    "de": "die Koalition",
+    "en": "coalition",
+    "example_de": "Die Regierungsparteien bilden eine Koalition.",
+    "example_en": "The governing parties form a coalition."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government & Politics",
+    "de": "die Fraktion",
+    "en": "parliamentary group",
+    "example_de": "Jede Partei im Bundestag bildet eine Fraktion.",
+    "example_en": "Each party in the Bundestag forms a parliamentary group."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Law & Rights",
+    "de": "der Rechtsstaat",
+    "en": "constitutional state / rule of law",
+    "example_de": "Deutschland ist ein Rechtsstaat. Alle müssen sich an die Gesetze halten.",
+    "example_en": "Germany is a constitutional state. Everyone must comply with the laws."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Law & Rights",
+    "de": "die Grundrechte",
+    "en": "fundamental rights",
+    "example_de": "Die Grundrechte stehen im Grundgesetz.",
+    "example_en": "The fundamental rights are in the Basic Law."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Law & Rights",
+    "de": "die Meinungsfreiheit",
+    "en": "freedom of speech",
+    "example_de": "In Deutschland gibt es Meinungsfreiheit.",
+    "example_en": "There is freedom of speech in Germany."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Law & Rights",
+    "de": "die Religionsfreiheit",
+    "en": "freedom of religion",
+    "example_de": "Religionsfreiheit bedeutet, dass jeder seine Religion frei wählen kann.",
+    "example_en": "Freedom of religion means that everyone can freely choose their religion."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Law & Rights",
+    "de": "die Versammlungsfreiheit",
+    "en": "freedom of assembly",
+    "example_de": "Die Versammlungsfreiheit erlaubt friedliche Demonstrationen.",
+    "example_en": "Freedom of assembly allows peaceful demonstrations."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Law & Rights",
+    "de": "die Gleichberechtigung",
+    "en": "equal rights / equality",
+    "example_de": "Männer und Frauen haben in Deutschland Gleichberechtigung.",
+    "example_en": "Men and women have equal rights in Germany."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Law & Rights",
+    "de": "die Diskriminierung",
+    "en": "discrimination",
+    "example_de": "Diskriminierung aufgrund der Religion ist verboten.",
+    "example_en": "Discrimination based on religion is prohibited."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Law & Rights",
+    "de": "die Gewaltenteilung",
+    "en": "separation of powers",
+    "example_de": "Die Gewaltenteilung teilt die Macht zwischen Legislative, Exekutive und Judikative.",
+    "example_en": "The separation of powers divides power between legislative, executive, and judiciary."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Elections & Voting",
+    "de": "das Wahlrecht",
+    "en": "right to vote",
+    "example_de": "Mit 18 Jahren hat man in Deutschland das Wahlrecht.",
+    "example_en": "At 18 years old, you have the right to vote in Germany."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Elections & Voting",
+    "de": "die Bundestagswahl",
+    "en": "federal election",
+    "example_de": "Bei der Bundestagswahl wählen die Bürger den Bundestag.",
+    "example_en": "In the federal election, citizens elect the Bundestag."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Elections & Voting",
+    "de": "die Landtagswahl",
+    "en": "state election",
+    "example_de": "Bei der Landtagswahl wird der Landtag eines Bundeslandes gewählt.",
+    "example_en": "In the state election, the state parliament of a federal state is elected."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Elections & Voting",
+    "de": "die Kommunalwahl",
+    "en": "local election",
+    "example_de": "Bei der Kommunalwahl wählt man den Gemeinderat.",
+    "example_en": "In the local election, you elect the municipal council."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Elections & Voting",
+    "de": "die Europawahl",
+    "en": "European election",
+    "example_de": "Bei der Europawahl wählen EU-Bürger das Europäische Parlament.",
+    "example_en": "In the European election, EU citizens elect the European Parliament."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Elections & Voting",
+    "de": "die Wahlkabine",
+    "en": "voting booth",
+    "example_de": "In der Wahlkabine füllt man geheim den Stimmzettel aus.",
+    "example_en": "In the voting booth, you fill out the ballot secretly."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Elections & Voting",
+    "de": "der Stimmzettel",
+    "en": "ballot paper",
+    "example_de": "Der Stimmzettel wird in die Wahlurne geworfen.",
+    "example_en": "The ballot paper is put into the ballot box."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Elections & Voting",
+    "de": "die Briefwahl",
+    "en": "postal voting",
+    "example_de": "Mit der Briefwahl kann man von zu Hause aus wählen.",
+    "example_en": "With postal voting, you can vote from home."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Elections & Voting",
+    "de": "das Wahlgeheimnis",
+    "en": "secret ballot",
+    "example_de": "Das Wahlgeheimnis schützt die Privatsphäre der Wähler.",
+    "example_en": "The secret ballot protects the privacy of voters."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Elections & Voting",
+    "de": "wahlberechtigt",
+    "en": "eligible to vote",
+    "example_de": "Alle deutschen Staatsbürger ab 18 sind wahlberechtigt.",
+    "example_en": "All German citizens from 18 years old are eligible to vote."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government Structure",
+    "de": "das Bundesland",
+    "en": "federal state",
+    "example_de": "Deutschland hat 16 Bundesländer.",
+    "example_en": "Germany has 16 federal states."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government Structure",
+    "de": "die Kommune",
+    "en": "municipality",
+    "example_de": "Die Kommune ist für lokale Angelegenheiten zuständig.",
+    "example_en": "The municipality is responsible for local affairs."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government Structure",
+    "de": "die Gemeinde",
+    "en": "community / municipality",
+    "example_de": "Jede Gemeinde hat einen Bürgermeister.",
+    "example_en": "Every municipality has a mayor."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government Structure",
+    "de": "der Landtag",
+    "en": "state parliament",
+    "example_de": "Der Landtag ist das Parlament eines Bundeslandes.",
+    "example_en": "The Landtag is the parliament of a federal state."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government Structure",
+    "de": "der Ministerpräsident",
+    "en": "Minister-President / state premier",
+    "example_de": "Der Ministerpräsident leitet die Landesregierung.",
+    "example_en": "The Minister-President leads the state government."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government Structure",
+    "de": "die Ministerpräsidentin",
+    "en": "Minister-President (female)",
+    "example_de": "Die Ministerpräsidentin wird vom Landtag gewählt.",
+    "example_en": "The Minister-President is elected by the state parliament."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government Structure",
+    "de": "der Bürgermeister",
+    "en": "mayor",
+    "example_de": "Der Bürgermeister leitet die Gemeindeverwaltung.",
+    "example_en": "The mayor leads the municipal administration."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government Structure",
+    "de": "die Bürgermeisterin",
+    "en": "mayor (female)",
+    "example_de": "Die Bürgermeisterin wurde von den Bürgern gewählt.",
+    "example_en": "The mayor was elected by the citizens."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government Structure",
+    "de": "die Verwaltung",
+    "en": "administration",
+    "example_de": "Die Verwaltung kümmert sich um öffentliche Aufgaben.",
+    "example_en": "The administration takes care of public tasks."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Government Structure",
+    "de": "die Behörde",
+    "en": "authority / government office",
+    "example_de": "Die Ausländerbehörde ist für Aufenthaltserlaubnisse zuständig.",
+    "example_en": "The immigration office is responsible for residence permits."
+  },
 
   // ============================================
   // TIER 2: IMPORTANT - SHOULD KNOW
@@ -430,6 +781,321 @@ export const CITIZENSHIP_VOCABULARY = [
     "en": "equal",
     "example_de": "Wahlen in Deutschland sind gleich und geheim.",
     "example_en": "Elections in Germany are equal and secret."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Society & Integration",
+    "de": "die Einbürgerung",
+    "en": "naturalization",
+    "example_de": "Für die Einbürgerung muss man einen Test bestehen.",
+    "example_en": "For naturalization, you must pass a test."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Society & Integration",
+    "de": "die Staatsbürgerschaft",
+    "en": "citizenship / nationality",
+    "example_de": "Mit der deutschen Staatsbürgerschaft kann man wählen.",
+    "example_en": "With German citizenship, you can vote."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Society & Integration",
+    "de": "die Aufenthaltserlaubnis",
+    "en": "residence permit",
+    "example_de": "Eine Aufenthaltserlaubnis braucht man zum Arbeiten in Deutschland.",
+    "example_en": "You need a residence permit to work in Germany."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Society & Integration",
+    "de": "die Niederlassungserlaubnis",
+    "en": "permanent residence permit",
+    "example_de": "Die Niederlassungserlaubnis ist unbefristet.",
+    "example_en": "The permanent residence permit is unlimited."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Society & Integration",
+    "de": "die Integration",
+    "en": "integration",
+    "example_de": "Integration bedeutet, Teil der Gesellschaft zu werden.",
+    "example_en": "Integration means becoming part of society."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Society & Integration",
+    "de": "der Einwanderer",
+    "en": "immigrant",
+    "example_de": "Einwanderer bereichern die deutsche Gesellschaft.",
+    "example_en": "Immigrants enrich German society."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Society & Integration",
+    "de": "die Einwanderin",
+    "en": "immigrant (female)",
+    "example_de": "Die Einwanderin hat einen Integrationskurs besucht.",
+    "example_en": "The immigrant attended an integration course."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Society & Integration",
+    "de": "das Asyl",
+    "en": "asylum",
+    "example_de": "Menschen in Gefahr können in Deutschland Asyl beantragen.",
+    "example_en": "People in danger can apply for asylum in Germany."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Society & Integration",
+    "de": "der Asylbewerber",
+    "en": "asylum seeker",
+    "example_de": "Asylbewerber warten auf die Entscheidung über ihren Antrag.",
+    "example_en": "Asylum seekers wait for the decision on their application."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Society & Integration",
+    "de": "die Asylbewerberin",
+    "en": "asylum seeker (female)",
+    "example_de": "Die Asylbewerberin lebt in einer Gemeinschaftsunterkunft.",
+    "example_en": "The asylum seeker lives in a shared accommodation."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Society & Integration",
+    "de": "der Flüchtling",
+    "en": "refugee",
+    "example_de": "Flüchtlinge haben ihr Land wegen Krieg verlassen.",
+    "example_en": "Refugees have left their country because of war."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Law & Justice",
+    "de": "das Gericht",
+    "en": "court",
+    "example_de": "Ein Gericht entscheidet über Rechtsstreitigkeiten.",
+    "example_en": "A court decides on legal disputes."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Law & Justice",
+    "de": "der Richter",
+    "en": "judge",
+    "example_de": "Der Richter spricht das Urteil.",
+    "example_en": "The judge pronounces the verdict."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Law & Justice",
+    "de": "die Richterin",
+    "en": "judge (female)",
+    "example_de": "Die Richterin ist unabhängig und unparteiisch.",
+    "example_en": "The judge is independent and impartial."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Law & Justice",
+    "de": "der Staatsanwalt",
+    "en": "prosecutor",
+    "example_de": "Der Staatsanwalt vertritt den Staat vor Gericht.",
+    "example_en": "The prosecutor represents the state in court."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Law & Justice",
+    "de": "die Staatsanwältin",
+    "en": "prosecutor (female)",
+    "example_de": "Die Staatsanwältin erhebt Anklage gegen den Verdächtigen.",
+    "example_en": "The prosecutor files charges against the suspect."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Law & Justice",
+    "de": "die Polizei",
+    "en": "police",
+    "example_de": "Die Polizei schützt die öffentliche Sicherheit.",
+    "example_en": "The police protect public safety."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Law & Justice",
+    "de": "das Gesetz",
+    "en": "law",
+    "example_de": "Der Bundestag beschließt neue Gesetze.",
+    "example_en": "The Bundestag passes new laws."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Law & Justice",
+    "de": "die Straftat",
+    "en": "criminal offense",
+    "example_de": "Diebstahl ist eine Straftat.",
+    "example_en": "Theft is a criminal offense."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Law & Justice",
+    "de": "das Verbrechen",
+    "en": "crime",
+    "example_de": "Mord ist ein schweres Verbrechen.",
+    "example_en": "Murder is a serious crime."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Law & Justice",
+    "de": "die Strafe",
+    "en": "punishment / penalty",
+    "example_de": "Die Strafe für Diebstahl kann Gefängnis sein.",
+    "example_en": "The punishment for theft can be prison."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Law & Justice",
+    "de": "das Urteil",
+    "en": "judgment / verdict",
+    "example_de": "Das Gericht hat ein Urteil gesprochen.",
+    "example_en": "The court has pronounced a verdict."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Law & Justice",
+    "de": "die Klage",
+    "en": "lawsuit / complaint",
+    "example_de": "Man kann vor Gericht eine Klage einreichen.",
+    "example_en": "You can file a lawsuit in court."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Political Participation",
+    "de": "das Mitglied",
+    "en": "member",
+    "example_de": "Er ist Mitglied einer politischen Partei.",
+    "example_en": "He is a member of a political party."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Political Participation",
+    "de": "die Demonstration",
+    "en": "demonstration / protest",
+    "example_de": "Menschen haben das Recht auf friedliche Demonstrationen.",
+    "example_en": "People have the right to peaceful demonstrations."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Political Participation",
+    "de": "die Petition",
+    "en": "petition",
+    "example_de": "Mit einer Petition kann man sich an den Bundestag wenden.",
+    "example_en": "With a petition, you can address the Bundestag."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Political Participation",
+    "de": "die Gewerkschaft",
+    "en": "trade union",
+    "example_de": "Gewerkschaften vertreten die Interessen der Arbeitnehmer.",
+    "example_en": "Trade unions represent the interests of employees."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Political Participation",
+    "de": "der Streik",
+    "en": "strike",
+    "example_de": "Die Arbeitnehmer haben das Recht zu streiken.",
+    "example_en": "Employees have the right to strike."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Education & Culture",
+    "de": "die Schulpflicht",
+    "en": "compulsory education",
+    "example_de": "In Deutschland gibt es eine Schulpflicht bis 16 Jahre.",
+    "example_en": "In Germany, there is compulsory education until age 16."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Education & Culture",
+    "de": "der Religionsunterricht",
+    "en": "religious education",
+    "example_de": "Eltern können entscheiden, ob ihr Kind am Religionsunterricht teilnimmt.",
+    "example_en": "Parents can decide whether their child participates in religious education."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Education & Culture",
+    "de": "der Kindergarten",
+    "en": "kindergarten / preschool",
+    "example_de": "Viele Kinder gehen vor der Schule in den Kindergarten.",
+    "example_en": "Many children go to kindergarten before school."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Education & Culture",
+    "de": "die Ausbildung",
+    "en": "vocational training / apprenticeship",
+    "example_de": "Nach der Schule beginnen viele eine Ausbildung.",
+    "example_en": "After school, many begin vocational training."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Education & Culture",
+    "de": "die Hochschule",
+    "en": "university / college",
+    "example_de": "An der Hochschule kann man studieren.",
+    "example_en": "You can study at a university."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Education & Culture",
+    "de": "der Abschluss",
+    "en": "degree / qualification",
+    "example_de": "Ein guter Abschluss hilft bei der Jobsuche.",
+    "example_en": "A good degree helps in job searching."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Education & Culture",
+    "de": "das Zeugnis",
+    "en": "certificate / report card",
+    "example_de": "Das Zeugnis zeigt die schulischen Leistungen.",
+    "example_en": "The report card shows academic performance."
   },
 
   // ============================================
@@ -768,6 +1434,312 @@ export const CITIZENSHIP_VOCABULARY = [
     "en": "to forbid / to prohibit",
     "example_de": "Das deutsche Grundgesetz verbietet Zwangsarbeit.",
     "example_en": "The German constitution prohibits forced labor."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Historical Terms",
+    "de": "der Nationalsozialismus",
+    "en": "National Socialism / Nazism",
+    "example_de": "Der Nationalsozialismus war eine Diktatur von 1933 bis 1945.",
+    "example_en": "National Socialism was a dictatorship from 1933 to 1945."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Historical Terms",
+    "de": "der Holocaust",
+    "en": "Holocaust",
+    "example_de": "Im Holocaust wurden Millionen Juden ermordet.",
+    "example_en": "Millions of Jews were murdered in the Holocaust."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Historical Terms",
+    "de": "die Wiedervereinigung",
+    "en": "reunification",
+    "example_de": "Die Wiedervereinigung Deutschlands war 1990.",
+    "example_en": "The reunification of Germany was in 1990."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Historical Terms",
+    "de": "der Mauerfall",
+    "en": "fall of the Berlin Wall",
+    "example_de": "Der Mauerfall war am 9. November 1989.",
+    "example_en": "The fall of the Berlin Wall was on November 9, 1989."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Historical Terms",
+    "de": "die DDR",
+    "en": "GDR (East Germany)",
+    "example_de": "Die DDR war die Deutsche Demokratische Republik.",
+    "example_en": "The GDR was the German Democratic Republic."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Historical Terms",
+    "de": "die BRD",
+    "en": "FRG (West Germany)",
+    "example_de": "Die BRD war die Bundesrepublik Deutschland.",
+    "example_en": "The FRG was the Federal Republic of Germany."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Social Welfare",
+    "de": "die Sozialversicherung",
+    "en": "social insurance",
+    "example_de": "Die Sozialversicherung schützt gegen Risiken.",
+    "example_en": "Social insurance protects against risks."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Social Welfare",
+    "de": "die Krankenversicherung",
+    "en": "health insurance",
+    "example_de": "In Deutschland ist die Krankenversicherung Pflicht.",
+    "example_en": "Health insurance is mandatory in Germany."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Social Welfare",
+    "de": "die Rentenversicherung",
+    "en": "pension insurance",
+    "example_de": "Die Rentenversicherung zahlt im Alter eine Rente.",
+    "example_en": "Pension insurance pays a pension in old age."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Social Welfare",
+    "de": "die Arbeitslosenversicherung",
+    "en": "unemployment insurance",
+    "example_de": "Die Arbeitslosenversicherung unterstützt bei Arbeitslosigkeit.",
+    "example_en": "Unemployment insurance provides support during unemployment."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Social Welfare",
+    "de": "das Kindergeld",
+    "en": "child benefit",
+    "example_de": "Eltern erhalten monatlich Kindergeld vom Staat.",
+    "example_en": "Parents receive monthly child benefit from the state."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Social Welfare",
+    "de": "die Sozialhilfe",
+    "en": "social welfare",
+    "example_de": "Sozialhilfe bekommen Menschen in Not.",
+    "example_en": "People in need receive social welfare."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Social Welfare",
+    "de": "das Arbeitslosengeld",
+    "en": "unemployment benefit",
+    "example_de": "Arbeitslose können Arbeitslosengeld beantragen.",
+    "example_en": "Unemployed people can apply for unemployment benefit."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Employment",
+    "de": "der Arbeitgeber",
+    "en": "employer",
+    "example_de": "Der Arbeitgeber zahlt den Lohn.",
+    "example_en": "The employer pays the wages."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Employment",
+    "de": "die Arbeitgeberin",
+    "en": "employer (female)",
+    "example_de": "Die Arbeitgeberin stellt neue Mitarbeiter ein.",
+    "example_en": "The employer hires new employees."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Employment",
+    "de": "der Arbeitnehmer",
+    "en": "employee",
+    "example_de": "Arbeitnehmer haben Rechte und Pflichten.",
+    "example_en": "Employees have rights and duties."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Employment",
+    "de": "die Arbeitnehmerin",
+    "en": "employee (female)",
+    "example_de": "Die Arbeitnehmerin hat Anspruch auf Urlaub.",
+    "example_en": "The employee is entitled to vacation."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Employment",
+    "de": "der Arbeitsvertrag",
+    "en": "employment contract",
+    "example_de": "Im Arbeitsvertrag stehen die Arbeitsbedingungen.",
+    "example_en": "The employment contract contains the working conditions."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Employment",
+    "de": "die Kündigungsfrist",
+    "en": "notice period",
+    "example_de": "Die Kündigungsfrist beträgt meist vier Wochen.",
+    "example_en": "The notice period is usually four weeks."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Employment",
+    "de": "der Mindestlohn",
+    "en": "minimum wage",
+    "example_de": "In Deutschland gibt es einen gesetzlichen Mindestlohn.",
+    "example_en": "There is a statutory minimum wage in Germany."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Employment",
+    "de": "der Betriebsrat",
+    "en": "works council",
+    "example_de": "Der Betriebsrat vertritt die Arbeitnehmer im Betrieb.",
+    "example_en": "The works council represents employees in the company."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Family & Personal",
+    "de": "volljährig",
+    "en": "of legal age / adult",
+    "example_de": "Mit 18 Jahren ist man in Deutschland volljährig.",
+    "example_en": "At 18 years old, you are of legal age in Germany."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Family & Personal",
+    "de": "minderjährig",
+    "en": "minor / underage",
+    "example_de": "Minderjährige brauchen die Erlaubnis der Eltern.",
+    "example_en": "Minors need their parents' permission."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Family & Personal",
+    "de": "der Ehepartner",
+    "en": "spouse",
+    "example_de": "Der Ehepartner hat Anspruch auf Unterhalt.",
+    "example_en": "The spouse is entitled to maintenance."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Family & Personal",
+    "de": "die Ehepartnerin",
+    "en": "spouse (female)",
+    "example_de": "Die Ehepartnerin kann bei der Einbürgerung helfen.",
+    "example_en": "The spouse can help with naturalization."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Family & Personal",
+    "de": "das Sorgerecht",
+    "en": "custody",
+    "example_de": "Beide Eltern haben normalerweise das Sorgerecht.",
+    "example_en": "Both parents normally have custody."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Family & Personal",
+    "de": "der Unterhalt",
+    "en": "maintenance / alimony",
+    "example_de": "Eltern müssen Unterhalt für ihre Kinder zahlen.",
+    "example_en": "Parents must pay maintenance for their children."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Religious & Cultural",
+    "de": "der Feiertag",
+    "en": "holiday / public holiday",
+    "example_de": "Weihnachten ist ein gesetzlicher Feiertag.",
+    "example_en": "Christmas is a statutory holiday."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Religious & Cultural",
+    "de": "die Religionsgemeinschaft",
+    "en": "religious community",
+    "example_de": "Jede Religionsgemeinschaft hat ihre eigenen Traditionen.",
+    "example_en": "Each religious community has its own traditions."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Religious & Cultural",
+    "de": "die Kirche",
+    "en": "church",
+    "example_de": "Die Kirche ist ein Ort für christliche Gottesdienste.",
+    "example_en": "The church is a place for Christian services."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Religious & Cultural",
+    "de": "die Moschee",
+    "en": "mosque",
+    "example_de": "Muslime beten in der Moschee.",
+    "example_en": "Muslims pray in the mosque."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Religious & Cultural",
+    "de": "die Synagoge",
+    "en": "synagogue",
+    "example_de": "Die Synagoge ist das Gotteshaus der Juden.",
+    "example_en": "The synagogue is the house of worship for Jews."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Religious & Cultural",
+    "de": "das Kopftuch",
+    "en": "headscarf",
+    "example_de": "Muslimische Frauen tragen manchmal ein Kopftuch.",
+    "example_en": "Muslim women sometimes wear a headscarf."
+  },
+  {
+    "tier": 3,
+    "tier_name": "USEFUL",
+    "category": "Religious & Cultural",
+    "de": "die Weltanschauung",
+    "en": "worldview / philosophy",
+    "example_de": "Jeder hat das Recht auf seine eigene Weltanschauung.",
+    "example_en": "Everyone has the right to their own worldview."
   },
 
   // ============================================
