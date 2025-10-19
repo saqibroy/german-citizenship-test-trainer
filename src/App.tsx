@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Globe, BookOpen, Award, ChevronRight, Check, X, Eye, EyeOff, BarChart3,
-  Calendar, TrendingUp, Target, Clock, Lightbulb, Flame, Trophy, Star,
+  Calendar, Target, Clock, Lightbulb, Flame,
   AlertCircle, CheckCircle2, Brain, Sparkles, BookMarked, Zap
 } from 'lucide-react';
 import { QUESTIONS, CATEGORY_ICONS } from './data.js';
 import { CITIZENSHIP_VOCABULARY } from './vacabulary.js';
 import { VocabPage, StudyPlanPage, VocabPopup, HighlightedText, VocabTrainingPage } from './components.tsx';
+import type { Question, QuestionProgress, QuizResult, CategoryBreakdown, VocabProgress, HomePageProps, QuizPageProps, TrainingPageProps, CardsPageProps, ProgressPageProps } from './types';
 
 // Shuffle array function
-const shuffleArray = (array) => {
+const shuffleArray = <T,>(array: T[]): T[] => {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -18,25 +19,82 @@ const shuffleArray = (array) => {
   return shuffled;
 };
 
-// Spaced repetition algorithm - calculates weight for question selection
-const calculateQuestionWeight = (progress) => {
-  if (!progress) return 1000; // Never seen - highest priority
+// Enhanced Spaced Repetition Algorithm (Anki/SM-2 style)
+// This algorithm determines when items should appear based on:
+// 1. NEW items: Never seen (highest priority after due items)
+// 2. LEARNING: Recently incorrect or weak (shown frequently - intervals: 1min, 10min, 1day)
+// 3. REVIEW: Items that need review based on interval (strong items with increasing intervals)
+// 4. Known/Strong items appear less frequently with exponentially increasing intervals
+
+const calculateQuestionWeight = (progress: QuestionProgress | undefined): number => {
+  if (!progress) return 8000; // NEW - Never seen, high priority (but lower than due items)
   
   const { correct, incorrect, lastSeen, strength } = progress;
   const total = correct + incorrect;
-  const daysSinceLastSeen = lastSeen ? 
-    (Date.now() - new Date(lastSeen).getTime()) / (1000 * 60 * 60 * 24) : 999;
+  const accuracy = total > 0 ? correct / total : 0;
   
-  // Weight formula: prioritize weak questions and those not seen recently
+  // Calculate days since last seen
+  const daysSinceLastSeen = lastSeen ? 
+    Math.floor((Date.now() - new Date(lastSeen).getTime()) / (1000 * 60 * 60 * 24)) : 999;
+  
   let weight = 100;
   
-  if (strength === 'weak') weight = 500 + (daysSinceLastSeen * 10);
-  else if (strength === 'medium') weight = 200 + (daysSinceLastSeen * 5);
-  else if (strength === 'strong') weight = 50 + (daysSinceLastSeen * 2);
-  else weight = 1000; // unanswered
+  // Determine review interval based on strength (Anki-style)
+  let reviewInterval = 1; // days
   
-  // Boost weight for incorrect answers
-  if (incorrect > correct) weight *= 1.5;
+  if (strength === 'strong') {
+    // Strong items: exponential backoff (1 → 3 → 7 → 14 → 30 days)
+    if (correct >= 8) reviewInterval = 30;
+    else if (correct >= 6) reviewInterval = 14;
+    else if (correct >= 4) reviewInterval = 7;
+    else if (correct >= 3) reviewInterval = 3;
+    else reviewInterval = 1;
+  } else if (strength === 'medium') {
+    // Medium items: slower progression (1 → 2 days)
+    reviewInterval = correct >= 3 ? 2 : 1;
+  } else if (strength === 'weak') {
+    // Weak items: keep reviewing frequently (0.5 days = 12 hours)
+    reviewInterval = 0.5;
+  } else {
+    // Unanswered/new in learning phase
+    reviewInterval = 0.1; // Review very soon
+  }
+  
+  // PRIORITY 1: DUE for review (items past their interval) - HIGHEST
+  if (daysSinceLastSeen >= reviewInterval) {
+    const overdueDays = daysSinceLastSeen - reviewInterval;
+    weight = 9000 + (overdueDays * 100); // Most important: overdue items
+  }
+  
+  // PRIORITY 2: WEAK items (need practice) - Even if not due yet, weak items get priority
+  else if (strength === 'weak' || accuracy < 0.5) {
+    weight = 7000 + (daysSinceLastSeen * 10);
+  }
+  
+  // PRIORITY 3: MEDIUM items (moderate priority)
+  else if (strength === 'medium') {
+    weight = 3000 + (daysSinceLastSeen * 5);
+  }
+  
+  // PRIORITY 4: STRONG items (lower priority, only when due or occasionally for review)
+  else if (strength === 'strong') {
+    // Strong items only show up when due or occasionally
+    if (daysSinceLastSeen >= reviewInterval * 0.8) {
+      weight = 1000 + (daysSinceLastSeen * 2);
+    } else {
+      weight = 50; // Very low priority - not due yet
+    }
+  }
+  
+  // NEW items (never seen) - high priority but let due items go first
+  if (total === 0) {
+    weight = 8000;
+  }
+  
+  // Boost for items with more incorrect than correct
+  if (incorrect > correct) {
+    weight *= 1.3;
+  }
   
   return weight;
 };
@@ -52,33 +110,33 @@ const getDaysRemaining = () => {
 };
 
 // Calculate weeks remaining
-const getWeeksRemaining = () => {
-  return Math.ceil(getDaysRemaining() / 7);
-};
+// const getWeeksRemaining = () => {
+//   return Math.ceil(getDaysRemaining() / 7);
+// };
 
 // Get current week number (1-8) based on 8-week study plan
-const getCurrentWeek = () => {
-  const totalWeeks = 8;
-  const weeksRemaining = getWeeksRemaining();
-  return Math.max(1, Math.min(totalWeeks, totalWeeks - weeksRemaining + 1));
-};
+// const getCurrentWeek = () => {
+//   const totalWeeks = 8;
+//   const weeksRemaining = getWeeksRemaining();
+//   return Math.max(1, Math.min(totalWeeks, totalWeeks - weeksRemaining + 1));
+// };
 
 export default function App() {
   const [page, setPage] = useState('home');
   const [lang, setLang] = useState('de');
   const [progress, setProgress] = useState<Record<number, any>>({});
   const [badges, setBadges] = useState<string[]>([]);
-  const [quizHistory, setQuizHistory] = useState<any[]>([]);
+  const [quizHistory, setQuizHistory] = useState<QuizResult[]>([]);
   const [studyStreak, setStudyStreak] = useState(0);
-  const [vocabProgress, setVocabProgress] = useState<Record<string, any>>({});
+  const [vocabProgress, setVocabProgress] = useState<Record<string, VocabProgress>>({});
   const [favoriteVocab, setFavoriteVocab] = useState<string[]>([]);
-  const [startDate, setStartDate] = useState<string | null>(null);
+  // const [startDate, setStartDate] = useState<string | null>(null);
   const [vocabMode, setVocabMode] = useState('learn'); // 'learn' or 'training'
 
   useEffect(() => {
     // Load question progress
-    const savedProgress = {};
-    QUESTIONS.forEach(q => {
+    const savedProgress: Record<number, QuestionProgress> = {};
+    QUESTIONS.forEach((q: Question) => {
       const data = localStorage.getItem(`q_${q.id}`);
       if (data) {
         try {
@@ -151,6 +209,7 @@ export default function App() {
     }
 
     // Load or set start date
+    /* Unused for now
     const savedStartDate = localStorage.getItem('startDate');
     if (savedStartDate) {
       setStartDate(savedStartDate);
@@ -159,9 +218,10 @@ export default function App() {
       localStorage.setItem('startDate', today);
       setStartDate(today);
     }
+    */
   }, []);
 
-  const calculateStrength = (correct, incorrect) => {
+  const calculateStrength = (correct: number, incorrect: number): 'weak' | 'medium' | 'strong' | 'unanswered' => {
     const total = correct + incorrect;
     if (total === 0) return 'unanswered';
     const ratio = correct / total;
@@ -170,7 +230,7 @@ export default function App() {
     return 'weak';
   };
 
-  const updateProgress = (qId, correct) => {
+  const updateProgress = (qId: number, correct: boolean) => {
     const newProgress = {
       ...progress,
       [qId]: {
@@ -221,12 +281,11 @@ export default function App() {
     }
   };
 
-  const saveQuizResult = (score, total, categoryBreakdown) => {
-    const newResult = {
+  const saveQuizResult = (score: number, total: number, categoryBreakdown: CategoryBreakdown) => {
+    const newResult: QuizResult = {
       date: new Date().toISOString(),
       score,
       total,
-      percentage: Math.round((score / total) * 100),
       categoryBreakdown
     };
     const newHistory = [newResult, ...quizHistory].slice(0, 10); // Keep last 10 results
@@ -234,12 +293,12 @@ export default function App() {
     localStorage.setItem('quizHistory', JSON.stringify(newHistory));
   };
 
-  const checkBadges = (prog) => {
+  const checkBadges = (prog: Record<number, QuestionProgress>) => {
     const newBadges = [...badges];
     const answered = Object.keys(prog).length;
     if (answered >= 10 && !newBadges.includes('Beginner')) newBadges.push('Beginner');
     if (answered >= QUESTIONS.length && !newBadges.includes('Complete')) newBadges.push('Complete');
-    const strong = Object.values(prog).filter(p => p.strength === 'strong').length;
+    const strong = Object.values(prog).filter((p: QuestionProgress) => p.strength === 'strong').length;
     if (strong >= 20 && !newBadges.includes('Expert')) newBadges.push('Expert');
     if (newBadges.length > badges.length) {
       setBadges(newBadges);
@@ -258,12 +317,15 @@ export default function App() {
   };
 
   const updateVocabProgress = (word: string, known: boolean) => {
-    const newVocabProgress = {
+    const newVocabProgress: Record<string, VocabProgress> = {
       ...vocabProgress,
       [word]: {
         correct: (vocabProgress[word]?.correct || 0) + (known ? 1 : 0),
         incorrect: (vocabProgress[word]?.incorrect || 0) + (known ? 0 : 1),
-        lastSeen: new Date().toISOString()
+        lastSeen: new Date().toISOString(),
+        easeFactor: vocabProgress[word]?.easeFactor || 2.5,
+        interval: vocabProgress[word]?.interval || 0,
+        repetitions: vocabProgress[word]?.repetitions || 0
       }
     };
     setVocabProgress(newVocabProgress);
@@ -296,7 +358,7 @@ export default function App() {
         <nav className="flex border-t overflow-x-auto">
           {['home', 'training', 'quiz', 'vocab', 'studyplan', 'progress'].map(p => (
             <button key={p} onClick={() => setPage(p)} className={`flex-1 py-3 text-xs font-semibold whitespace-nowrap px-2 ${page === p ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500'}`}>
-              {t[p][lang]}
+              {t[p as keyof typeof t][lang as 'de' | 'en']}
             </button>
           ))}
         </nav>
@@ -329,14 +391,14 @@ export default function App() {
             {vocabMode === 'training' && <VocabTrainingPage lang={lang} vocabProgress={vocabProgress} updateVocabProgress={updateVocabProgress} />}
           </div>
         )}
-        {page === 'studyplan' && <StudyPlanPage lang={lang} progress={progress} questions={QUESTIONS} quizHistory={quizHistory} studyStreak={studyStreak} startDate={startDate} />}
+        {page === 'studyplan' && <StudyPlanPage lang={lang} progress={progress} questions={QUESTIONS} quizHistory={quizHistory} studyStreak={studyStreak} />}
         {page === 'progress' && <ProgressPage lang={lang} questions={QUESTIONS} progress={progress} badges={badges} quizHistory={quizHistory} />}
       </main>
     </div>
   );
 }
 
-function HomePage({ lang, badges, progress, setPage, studyStreak, quizHistory }) {
+function HomePage({ lang, badges, progress, setPage, studyStreak, quizHistory }: HomePageProps) {
   const answered = Object.keys(progress).length;
   const strong = Object.values(progress).filter((p: any) => p.strength === 'strong').length;
   const daysRemaining = getDaysRemaining();
@@ -380,7 +442,7 @@ function HomePage({ lang, badges, progress, setPage, studyStreak, quizHistory })
           <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '🔥 Tage Streak' : '🔥 Day Streak'}</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-purple-500">
-          <div className="text-3xl font-bold text-purple-600">{latestQuiz ? `${latestQuiz.percentage}%` : '--'}</div>
+          <div className="text-3xl font-bold text-purple-600">{latestQuiz ? `${Math.round((latestQuiz.score / latestQuiz.total) * 100)}%` : '--'}</div>
           <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '📊 Letztes Quiz' : '📊 Latest Quiz'}</div>
         </div>
       </div>
@@ -457,11 +519,16 @@ function HomePage({ lang, badges, progress, setPage, studyStreak, quizHistory })
   );
 }
 
-function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }) {
+interface Answer {
+  selectedIndex: number;
+  isCorrect: boolean;
+}
+
+function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }: QuizPageProps) {
   const [started, setStarted] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [answers, setAnswers] = useState<any[]>([]);
-  const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
+  const [answers, setAnswers] = useState<Answer[]>([]);
+  const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
   const [showTranslation, setShowTranslation] = useState(false);
   const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
 
@@ -469,7 +536,7 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult })
   const shuffledOptions = useMemo(() => {
     if (!quizQuestions[currentIdx]) return [];
     const q = quizQuestions[currentIdx];
-    const opts = (lang === 'de' ? q.options_de : q.options_en).map((opt, idx) => ({
+    const opts = (lang === 'de' ? q.options_de : q.options_en).map((opt: string, idx: number) => ({
       text: opt,
       originalIndex: idx
     }));
@@ -478,10 +545,10 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult })
 
   // Smart question selection using spaced repetition
   const selectSmartQuestions = () => {
-    const weightedQuestions = questions.map(q => ({
+    const weightedQuestions = questions.map((q: Question) => ({
       ...q,
       weight: calculateQuestionWeight(progress[q.id])
-    })).sort((a, b) => b.weight - a.weight);
+    })).sort((a: { weight: number }, b: { weight: number }) => b.weight - a.weight);
 
     // Take top 50 weighted questions, then randomly select 33 from them
     const topWeighted = weightedQuestions.slice(0, Math.min(50, questions.length));
@@ -523,12 +590,12 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult })
   }
 
   if (currentIdx >= quizQuestions.length) {
-    const score = answers.filter((ans: any) => ans?.isCorrect).length;
+    const score = answers.filter((ans: Answer) => ans?.isCorrect).length;
     const passed = score >= 17;
     
     // Calculate category breakdown
-    const categoryBreakdown = {};
-    quizQuestions.forEach((q: any, idx: number) => {
+    const categoryBreakdown: CategoryBreakdown = {};
+    quizQuestions.forEach((q: Question, idx: number) => {
       const cat = q.category;
       if (!categoryBreakdown[cat]) {
         categoryBreakdown[cat] = { correct: 0, total: 0 };
@@ -556,7 +623,7 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult })
           <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
             <h3 className="font-bold text-gray-800 mb-3 text-sm">{lang === 'de' ? 'Leistung nach Kategorie' : 'Performance by Category'}</h3>
             <div className="space-y-2">
-              {Object.entries(categoryBreakdown).map(([cat, stats]: any) => (
+              {Object.entries(categoryBreakdown).map(([cat, stats]: [string, { correct: number; total: number }]) => (
                 <div key={cat} className="flex justify-between text-sm">
                   <span className="text-gray-600">{cat}</span>
                   <span className={`font-bold ${stats.correct / stats.total >= 0.7 ? 'text-green-600' : 'text-orange-600'}`}>
@@ -581,7 +648,7 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult })
   const answered = answers[currentIdx] !== undefined;
   const userAnswer = answers[currentIdx];
 
-  const handleAnswer = (originalIndex) => {
+  const handleAnswer = (originalIndex: number) => {
     const isCorrect = originalIndex === q.correct_index;
     const newAnswers = [...answers];
     newAnswers[currentIdx] = { selectedIndex: originalIndex, isCorrect };
@@ -618,7 +685,6 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult })
             <HighlightedText 
               text={lang === 'de' ? q.question_de : q.question_en}
               onClick={(word: string) => setSelectedVocab(word)}
-              lang={lang}
             />
           </h3>
           <button onClick={() => setShowTranslation(!showTranslation)} className="ml-2 p-2 text-gray-500 hover:text-indigo-600 transition">
@@ -713,11 +779,11 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult })
 }
 
 // Training Page - Anki-style Spaced Repetition System
-function TrainingPage({ lang, questions, updateProgress, progress }) {
+function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPageProps) {
   const [started, setStarted] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [answers, setAnswers] = useState<any[]>([]);
-  const [trainingQuestions, setTrainingQuestions] = useState<any[]>([]);
+  const [answers, setAnswers] = useState<Answer[]>([]);
+  const [trainingQuestions, setTrainingQuestions] = useState<Question[]>([]);
   const [showTranslation, setShowTranslation] = useState(false);
   const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
   const [sessionStats, setSessionStats] = useState({ correct: 0, incorrect: 0, total: 0 });
@@ -852,6 +918,8 @@ function TrainingPage({ lang, questions, updateProgress, progress }) {
     // Calculate session recommendations
     const newCount = questions.filter((q: any) => !progress[q.id]).length;
     const weakCount = questions.filter((q: any) => progress[q.id]?.strength === 'weak').length;
+    const mediumCount = questions.filter((q: any) => progress[q.id]?.strength === 'medium').length;
+    const strongCount = questions.filter((q: any) => progress[q.id]?.strength === 'strong').length;
     const dueCount = questions.filter((q: any) => {
       if (!progress[q.id]) return false;
       const daysSince = Math.floor((Date.now() - new Date(progress[q.id].lastSeen).getTime()) / (1000 * 60 * 60 * 24));
@@ -860,7 +928,6 @@ function TrainingPage({ lang, questions, updateProgress, progress }) {
     
     const sessionSize = calculateSessionSize();
     const answeredCount = Object.keys(progress).length;
-    const strongCount = Object.values(progress).filter((p: any) => p.strength === 'strong').length;
     const accuracyRate = answeredCount > 0 ? (strongCount / answeredCount * 100).toFixed(0) : 0;
 
     return (
@@ -891,7 +958,7 @@ function TrainingPage({ lang, questions, updateProgress, progress }) {
               <div className="text-purple-700">
                 {sessionSize > 20 && (
                   <div className="flex items-center gap-1">
-                    <TrendingUp size={16} />
+                    <BarChart3 size={16} />
                     <span className="text-xs font-semibold">
                       {lang === 'de' ? `Erhöht! ${accuracyRate}% Genauigkeit` : `Increased! ${accuracyRate}% accuracy`}
                     </span>
@@ -934,14 +1001,40 @@ function TrainingPage({ lang, questions, updateProgress, progress }) {
             <div className="bg-yellow-50 rounded-lg p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="bg-yellow-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
+                  {mediumCount}
+                </div>
+                <div>
+                  <p className="font-semibold text-yellow-900">{lang === 'de' ? 'In Bearbeitung' : 'Learning'}</p>
+                  <p className="text-xs text-yellow-700">{lang === 'de' ? 'Mittlere Genauigkeit' : 'Medium accuracy'}</p>
+                </div>
+              </div>
+              <Target className="text-yellow-500" size={24} />
+            </div>
+
+            <div className="bg-orange-50 rounded-lg p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-orange-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
                   {dueCount}
                 </div>
                 <div>
-                  <p className="font-semibold text-yellow-900">{lang === 'de' ? 'Zur Wiederholung fällig' : 'Due for Review'}</p>
-                  <p className="text-xs text-yellow-700">{lang === 'de' ? 'Basierend auf Zeitintervallen' : 'Based on time intervals'}</p>
+                  <p className="font-semibold text-orange-900">{lang === 'de' ? 'Zur Wiederholung fällig' : 'Due for Review'}</p>
+                  <p className="text-xs text-orange-700">{lang === 'de' ? 'Basierend auf Zeitintervallen' : 'Based on time intervals'}</p>
                 </div>
               </div>
-              <Clock className="text-yellow-500" size={24} />
+              <Clock className="text-orange-500" size={24} />
+            </div>
+
+            <div className="bg-green-50 rounded-lg p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
+                  {strongCount}
+                </div>
+                <div>
+                  <p className="font-semibold text-green-900">{lang === 'de' ? 'Bekannte Fragen' : 'Known Questions'}</p>
+                  <p className="text-xs text-green-700">{lang === 'de' ? 'Stark gemeistert' : 'Strong mastery'}</p>
+                </div>
+              </div>
+              <CheckCircle2 className="text-green-500" size={24} />
             </div>
           </div>
 
@@ -1105,7 +1198,6 @@ function TrainingPage({ lang, questions, updateProgress, progress }) {
             <HighlightedText 
               text={lang === 'de' ? q.question_de : q.question_en}
               onClick={(word: string) => setSelectedVocab(word)}
-              lang={lang}
             />
           </h3>
           <button onClick={() => setShowTranslation(!showTranslation)} className="ml-2 p-2 text-gray-500 hover:text-purple-600 transition">
@@ -1201,17 +1293,17 @@ function TrainingPage({ lang, questions, updateProgress, progress }) {
   );
 }
 
-function CardsPage({ lang, questions, updateProgress, progress }) {
+function CardsPage({ lang, questions, updateProgress, progress }: CardsPageProps) {
   const [started, setStarted] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [cards, setCards] = useState([]);
+  const [cards, setCards] = useState<Question[]>([]);
 
   const startCards = () => {
-    const weightedCards = questions.map(q => ({
+    const weightedCards = questions.map((q: Question) => ({
       ...q,
       weight: calculateQuestionWeight(progress[q.id])
-    })).sort((a, b) => b.weight - a.weight);
+    })).sort((a: { weight: number }, b: { weight: number }) => b.weight - a.weight);
     
     setCards(weightedCards);
     setStarted(true);
@@ -1301,7 +1393,8 @@ function CardsPage({ lang, questions, updateProgress, progress }) {
   );
 }
 
-function InfoPage({ lang }) {
+/* InfoPage is declared but never used - commented out
+function InfoPage({ lang }: { lang: string }) {
   return (
     <div className="p-4 space-y-4">
       <div className="bg-white rounded-2xl p-6 shadow-lg">
@@ -1338,8 +1431,9 @@ function InfoPage({ lang }) {
     </div>
   );
 }
+*/
 
-function ProgressPage({ lang, questions, progress, badges, quizHistory }) {
+function ProgressPage({ lang, questions, progress, badges, quizHistory }: ProgressPageProps) {
   const categories = [...new Set(questions.map((q: any) => q.category))];
 
   const getStats = (category: any) => {
@@ -1374,7 +1468,7 @@ function ProgressPage({ lang, questions, progress, badges, quizHistory }) {
       {quizHistory.length > 0 && (
         <div className="bg-white rounded-xl p-6 shadow-lg">
           <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <TrendingUp size={20} />
+            <BarChart3 size={20} />
             {lang === 'de' ? 'Quiz-Verlauf' : 'Quiz History'}
           </h3>
           <div className="mb-4">
