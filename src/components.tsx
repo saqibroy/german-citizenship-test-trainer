@@ -37,12 +37,60 @@ const extractCoreWords = (vocabDe: string): string[] => {
   return words.filter(w => w.length > 0);
 };
 
+// Build vocabulary map for quick lookup (shared between popup and highlighting)
+const buildVocabMap = (): Record<string, VocabularyItem> => {
+  const map: Record<string, VocabularyItem> = {};
+  CITIZENSHIP_VOCABULARY.forEach((item: VocabularyItem) => {
+    // Extract all core words from the vocabulary entry
+    const coreWords = extractCoreWords(item.de);
+    
+    coreWords.forEach(coreWord => {
+      const lower = coreWord.toLowerCase();
+      const normalized = normalizeText(lower);
+      
+      // Map both original and normalized versions to the vocabulary item
+      map[lower] = item;
+      map[normalized] = item;
+      
+      // Also handle plural forms (simple heuristic: add 'n', 'en', 'e', 's')
+      if (!lower.endsWith('n')) {
+        map[lower + 'n'] = item;
+        map[normalized + 'n'] = item;
+      }
+      if (!lower.endsWith('en')) {
+        map[lower + 'en'] = item;
+        map[normalized + 'en'] = item;
+      }
+      if (!lower.endsWith('e')) {
+        map[lower + 'e'] = item;
+        map[normalized + 'e'] = item;
+      }
+      if (!lower.endsWith('s')) {
+        map[lower + 's'] = item;
+        map[normalized + 's'] = item;
+      }
+    });
+  });
+  return map;
+};
+
+// Create the vocab map once (singleton pattern)
+let VOCAB_MAP: Record<string, VocabularyItem> | null = null;
+const getVocabMap = (): Record<string, VocabularyItem> => {
+  if (!VOCAB_MAP) {
+    VOCAB_MAP = buildVocabMap();
+  }
+  return VOCAB_MAP;
+};
+
 // Vocabulary Popup Component
 export function VocabPopup({ word, onClose, lang }: VocabPopupProps) {
-  const vocabItem = CITIZENSHIP_VOCABULARY.find((v: VocabularyItem) => 
-    normalizeText(v.de).includes(normalizeText(word)) || 
-    v.de.toLowerCase() === word.toLowerCase()
-  );
+  const vocabMap = getVocabMap();
+  const cleanWord = word.toLowerCase().replace(/[.,!?;:]/g, '');
+  const normalized = normalizeText(cleanWord);
+  
+  // Try to find vocab item using the same logic as highlighting
+  const vocabItem = vocabMap[cleanWord] || vocabMap[normalized];
 
   if (!vocabItem) return null;
 
@@ -91,42 +139,8 @@ export function VocabPopup({ word, onClose, lang }: VocabPopupProps) {
 
 // Text with Vocabulary Highlighting Component
 export function HighlightedText({ text, onClick }: Omit<HighlightedTextProps, 'lang'>) {
-  // Build a map of vocabulary words for quick lookup
-  const vocabMap = useMemo(() => {
-    const map: Record<string, VocabularyItem> = {};
-    CITIZENSHIP_VOCABULARY.forEach((item: VocabularyItem) => {
-      // Extract all core words from the vocabulary entry
-      const coreWords = extractCoreWords(item.de);
-      
-      coreWords.forEach(coreWord => {
-        const lower = coreWord.toLowerCase();
-        const normalized = normalizeText(lower);
-        
-        // Map both original and normalized versions to the vocabulary item
-        map[lower] = item;
-        map[normalized] = item;
-        
-        // Also handle plural forms (simple heuristic: add 'n', 'en', 'e', 's')
-        if (!lower.endsWith('n')) {
-          map[lower + 'n'] = item;
-          map[normalized + 'n'] = item;
-        }
-        if (!lower.endsWith('en')) {
-          map[lower + 'en'] = item;
-          map[normalized + 'en'] = item;
-        }
-        if (!lower.endsWith('e')) {
-          map[lower + 'e'] = item;
-          map[normalized + 'e'] = item;
-        }
-        if (!lower.endsWith('s')) {
-          map[lower + 's'] = item;
-          map[normalized + 's'] = item;
-        }
-      });
-    });
-    return map;
-  }, []);
+  // Use the shared vocab map
+  const vocabMap = useMemo(() => getVocabMap(), []);
 
   // Split text into words and identify vocabulary words
   const renderHighlightedText = () => {

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Globe, BookOpen, Award, ChevronRight, Check, X, Eye, EyeOff, BarChart3,
-  Calendar, Target, Clock, Lightbulb, Flame,
+  Calendar, Target, Clock, Lightbulb, Flame, GraduationCap,
   AlertCircle, CheckCircle2, Brain, Sparkles, BookMarked, Zap
 } from 'lucide-react';
 import { QUESTIONS, CATEGORY_ICONS } from './data.js';
 import { CITIZENSHIP_VOCABULARY } from './vacabulary.js';
 import { VocabPage, StudyPlanPage, VocabPopup, HighlightedText, VocabTrainingPage } from './components.tsx';
+import { GrammarLessonsPage } from './GrammarLessons.tsx';
 import type { Question, QuestionProgress, QuizResult, CategoryBreakdown, VocabProgress, HomePageProps, QuizPageProps, TrainingPageProps, CardsPageProps, ProgressPageProps } from './types';
 
 // Shuffle array function
@@ -312,6 +313,7 @@ export default function App() {
     training: { de: 'Training', en: 'Training' },
     cards: { de: 'Karten', en: 'Cards' },
     vocab: { de: 'Vokabeln', en: 'Vocab' },
+    grammar: { de: 'Grammatik', en: 'Grammar' },
     studyplan: { de: 'Plan', en: 'Plan' },
     progress: { de: 'Stats', en: 'Stats' }
   };
@@ -356,7 +358,7 @@ export default function App() {
           </button>
         </div>
         <nav className="flex border-t overflow-x-auto">
-          {['home', 'training', 'quiz', 'vocab', 'studyplan', 'progress'].map(p => (
+          {['home', 'training', 'quiz', 'vocab', 'grammar', 'progress'].map(p => (
             <button key={p} onClick={() => setPage(p)} className={`flex-1 py-3 text-xs font-semibold whitespace-nowrap px-2 ${page === p ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500'}`}>
               {t[p as keyof typeof t][lang as 'de' | 'en']}
             </button>
@@ -391,6 +393,7 @@ export default function App() {
             {vocabMode === 'training' && <VocabTrainingPage lang={lang} vocabProgress={vocabProgress} updateVocabProgress={updateVocabProgress} />}
           </div>
         )}
+        {page === 'grammar' && <GrammarLessonsPage lang={lang as 'de' | 'en'} />}
         {page === 'studyplan' && <StudyPlanPage lang={lang} progress={progress} questions={QUESTIONS} quizHistory={quizHistory} studyStreak={studyStreak} />}
         {page === 'progress' && <ProgressPage lang={lang} questions={QUESTIONS} progress={progress} badges={badges} quizHistory={quizHistory} />}
       </main>
@@ -477,6 +480,13 @@ function HomePage({ lang, badges, progress, setPage, studyStreak, quizHistory }:
           </div>
           <ChevronRight />
         </button>
+        <button onClick={() => setPage('grammar')} className="w-full bg-gradient-to-r from-teal-500 to-green-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
+          <div className="flex items-center gap-3">
+            <GraduationCap size={24} />
+            <span>{lang === 'de' ? '📖 Grammatik Lektionen' : '📖 Grammar Lessons'}</span>
+          </div>
+          <ChevronRight />
+        </button>
         <button onClick={() => setPage('studyplan')} className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
           <div className="flex items-center gap-3">
             <Calendar size={24} />
@@ -531,6 +541,7 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
   const [showTranslation, setShowTranslation] = useState(false);
   const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
+  const [hoveredOption, setHoveredOption] = useState<number | null>(null);
 
   // Create shuffled options with original indices - CALL HOOKS FIRST, BEFORE ANY RETURNS!
   const shuffledOptions = useMemo(() => {
@@ -713,33 +724,56 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
             const isCorrectAnswer = opt.originalIndex === q.correct_index;
             const showAsCorrect = answered && isCorrectAnswer;
             const showAsWrong = answered && isSelected && !isCorrectAnswer;
+            const showingTranslation = hoveredOption === idx;
+            
+            // Get the translation text
+            const translationArray = lang === 'de' ? q.options_en : q.options_de;
+            const displayText = showingTranslation ? translationArray[opt.originalIndex] : opt.text;
 
             return (
-              <button
-                key={idx}
-                onClick={() => !answered && handleAnswer(opt.originalIndex)}
-                disabled={answered}
-                className={`w-full text-left p-4 rounded-xl border-2 font-semibold transition-all ${
-                  showAsWrong ? 'bg-red-50 border-red-500 shadow-md' :
-                  showAsCorrect ? 'bg-green-50 border-green-500 shadow-md' :
-                  'border-gray-200 hover:border-indigo-400 hover:shadow-md active:scale-98'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    showAsWrong ? 'bg-red-500 text-white' :
-                    showAsCorrect ? 'bg-green-500 text-white' :
-                    'bg-gray-200 text-gray-600'
-                  }`}>
-                    {answered && (showAsCorrect || showAsWrong) ? (
-                      isCorrectAnswer ? <Check size={16} /> : <X size={16} />
-                    ) : (
-                      String.fromCharCode(65 + idx)
-                    )}
-                  </span>
-                  <span className="flex-1">{opt.text}</span>
-                </div>
-              </button>
+              <div key={idx} className="relative flex gap-2">
+                <button
+                  onClick={() => !answered && handleAnswer(opt.originalIndex)}
+                  disabled={answered}
+                  className={`flex-1 text-left p-4 rounded-xl border-2 font-semibold transition-all ${
+                    showAsWrong ? 'bg-red-50 border-red-500 shadow-md' :
+                    showAsCorrect ? 'bg-green-50 border-green-500 shadow-md' :
+                    'border-gray-200 hover:border-indigo-400 hover:shadow-md active:scale-98'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      showAsWrong ? 'bg-red-500 text-white' :
+                      showAsCorrect ? 'bg-green-500 text-white' :
+                      'bg-gray-200 text-gray-600'
+                    }`}>
+                      {answered && (showAsCorrect || showAsWrong) ? (
+                        isCorrectAnswer ? <Check size={16} /> : <X size={16} />
+                      ) : (
+                        String.fromCharCode(65 + idx)
+                      )}
+                    </span>
+                    <span className="flex-1">{displayText}</span>
+                  </div>
+                </button>
+                
+                {/* Translation Toggle Button */}
+                <button
+                  onMouseDown={() => setHoveredOption(idx)}
+                  onMouseUp={() => setHoveredOption(null)}
+                  onMouseLeave={() => setHoveredOption(null)}
+                  onTouchStart={() => setHoveredOption(idx)}
+                  onTouchEnd={() => setHoveredOption(null)}
+                  className={`px-3 py-2 rounded-xl border-2 transition-all ${
+                    showingTranslation 
+                      ? 'bg-blue-500 border-blue-500 text-white' 
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600'
+                  }`}
+                  title={lang === 'de' ? 'Übersetzung anzeigen (gedrückt halten)' : 'Show translation (hold)'}
+                >
+                  <Globe size={18} />
+                </button>
+              </div>
             );
           })}
         </div>
@@ -787,6 +821,7 @@ function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPag
   const [showTranslation, setShowTranslation] = useState(false);
   const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
   const [sessionStats, setSessionStats] = useState({ correct: 0, incorrect: 0, total: 0 });
+  const [hoveredOption, setHoveredOption] = useState<number | null>(null);
 
   // Shuffled options with original indices
   const shuffledOptions = useMemo(() => {
@@ -1225,33 +1260,56 @@ function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPag
             const isCorrectAnswer = opt.originalIndex === q.correct_index;
             const showAsCorrect = answered && isCorrectAnswer;
             const showAsWrong = answered && isSelected && !isCorrectAnswer;
+            const showingTranslation = hoveredOption === idx;
+            
+            // Get the translation text
+            const translationArray = lang === 'de' ? q.options_en : q.options_de;
+            const displayText = showingTranslation ? translationArray[opt.originalIndex] : opt.text;
 
             return (
-              <button
-                key={idx}
-                onClick={() => !answered && handleAnswer(opt.originalIndex)}
-                disabled={answered}
-                className={`w-full text-left p-4 rounded-xl border-2 font-semibold transition-all ${
-                  showAsWrong ? 'bg-red-50 border-red-500 shadow-md' :
-                  showAsCorrect ? 'bg-green-50 border-green-500 shadow-md' :
-                  'border-gray-200 hover:border-purple-400 hover:shadow-md active:scale-98'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    showAsWrong ? 'bg-red-500 text-white' :
-                    showAsCorrect ? 'bg-green-500 text-white' :
-                    'bg-gray-200 text-gray-600'
-                  }`}>
-                    {answered && (showAsCorrect || showAsWrong) ? (
-                      isCorrectAnswer ? <Check size={16} /> : <X size={16} />
-                    ) : (
-                      String.fromCharCode(65 + idx)
-                    )}
-                  </span>
-                  <span className="flex-1">{opt.text}</span>
-                </div>
-              </button>
+              <div key={idx} className="relative flex gap-2">
+                <button
+                  onClick={() => !answered && handleAnswer(opt.originalIndex)}
+                  disabled={answered}
+                  className={`flex-1 text-left p-4 rounded-xl border-2 font-semibold transition-all ${
+                    showAsWrong ? 'bg-red-50 border-red-500 shadow-md' :
+                    showAsCorrect ? 'bg-green-50 border-green-500 shadow-md' :
+                    'border-gray-200 hover:border-purple-400 hover:shadow-md active:scale-98'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      showAsWrong ? 'bg-red-500 text-white' :
+                      showAsCorrect ? 'bg-green-500 text-white' :
+                      'bg-gray-200 text-gray-600'
+                    }`}>
+                      {answered && (showAsCorrect || showAsWrong) ? (
+                        isCorrectAnswer ? <Check size={16} /> : <X size={16} />
+                      ) : (
+                        String.fromCharCode(65 + idx)
+                      )}
+                    </span>
+                    <span className="flex-1">{displayText}</span>
+                  </div>
+                </button>
+                
+                {/* Translation Toggle Button */}
+                <button
+                  onMouseDown={() => setHoveredOption(idx)}
+                  onMouseUp={() => setHoveredOption(null)}
+                  onMouseLeave={() => setHoveredOption(null)}
+                  onTouchStart={() => setHoveredOption(idx)}
+                  onTouchEnd={() => setHoveredOption(null)}
+                  className={`px-3 py-2 rounded-xl border-2 transition-all ${
+                    showingTranslation 
+                      ? 'bg-blue-500 border-blue-500 text-white' 
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600'
+                  }`}
+                  title={lang === 'de' ? 'Übersetzung anzeigen (gedrückt halten)' : 'Show translation (hold)'}
+                >
+                  <Globe size={18} />
+                </button>
+              </div>
             );
           })}
         </div>
