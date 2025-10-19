@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
-  BookMarked, Star, Filter, CheckCircle2, XCircle, Brain, Sparkles,
-  Calendar, TrendingUp, Target, AlertCircle, Award, Flame, Clock,
-  ChevronRight, ChevronDown, ChevronUp, Lightbulb, Zap
+  BookMarked, Star, CheckCircle2, XCircle, Brain, Sparkles,
+  Calendar, Target, AlertCircle, Flame, Clock,
+  ChevronRight, Lightbulb, Zap
 } from 'lucide-react';
 import { CITIZENSHIP_VOCABULARY } from './vacabulary.js';
+import type { VocabPopupProps, HighlightedTextProps, VocabPageProps, StudyPlanPageProps, VocabTrainingPageProps, VocabularyItem } from './types';
 
 // Helper function to normalize German text for matching
 const normalizeText = (text: string) => {
@@ -37,8 +38,8 @@ const extractCoreWords = (vocabDe: string): string[] => {
 };
 
 // Vocabulary Popup Component
-export function VocabPopup({ word, onClose, lang }) {
-  const vocabItem = CITIZENSHIP_VOCABULARY.find(v => 
+export function VocabPopup({ word, onClose, lang }: VocabPopupProps) {
+  const vocabItem = CITIZENSHIP_VOCABULARY.find((v: VocabularyItem) => 
     normalizeText(v.de).includes(normalizeText(word)) || 
     v.de.toLowerCase() === word.toLowerCase()
   );
@@ -89,11 +90,11 @@ export function VocabPopup({ word, onClose, lang }) {
 }
 
 // Text with Vocabulary Highlighting Component
-export function HighlightedText({ text, onClick, lang }) {
+export function HighlightedText({ text, onClick }: Omit<HighlightedTextProps, 'lang'>) {
   // Build a map of vocabulary words for quick lookup
   const vocabMap = useMemo(() => {
-    const map = {};
-    CITIZENSHIP_VOCABULARY.forEach(item => {
+    const map: Record<string, VocabularyItem> = {};
+    CITIZENSHIP_VOCABULARY.forEach((item: VocabularyItem) => {
       // Extract all core words from the vocabulary entry
       const coreWords = extractCoreWords(item.de);
       
@@ -130,7 +131,7 @@ export function HighlightedText({ text, onClick, lang }) {
   // Split text into words and identify vocabulary words
   const renderHighlightedText = () => {
     const words = text.split(/(\s+|[.,!?;:])/);
-    return words.map((word, idx) => {
+    return words.map((word: string, idx: number) => {
       const cleanWord = word.toLowerCase().replace(/[.,!?;:]/g, '');
       const normalized = normalizeText(cleanWord);
       
@@ -153,37 +154,116 @@ export function HighlightedText({ text, onClick, lang }) {
 }
 
 // Vocabulary Page Component
-export function VocabPage({ lang, vocabulary, updateVocabProgress, vocabProgress, favoriteVocab, toggleFavoriteVocab }) {
+export function VocabPage({ lang, vocabulary, updateVocabProgress, vocabProgress, favoriteVocab, toggleFavoriteVocab }: VocabPageProps) {
   const [mode, setMode] = useState<'flashcards' | 'list'>('list');
   const [filter, setFilter] = useState<'all' | 'favorites' | 'tier1' | 'tier2' | 'tier3'>('all');
   const [currentCardIdx, setCurrentCardIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter vocabulary based on current filter
+  // SRS weight calculation for flashcards (same as training)
+  const calculateVocabWeight = (vocabId: string) => {
+    const vProgress = vocabProgress[vocabId];
+    const vocab = vocabulary.find((v: VocabularyItem) => v.de === vocabId);
+    const tierBonus = vocab ? 
+      (vocab.tier === 1 ? 400 : vocab.tier === 2 ? 300 : 200) : 0;
+    
+    if (!vProgress) return 8000 + tierBonus; // NEW words
+    
+    const { correct, incorrect, lastSeen } = vProgress;
+    const total = correct + incorrect;
+    const accuracy = total > 0 ? correct / total : 0;
+    const daysSince = lastSeen ? 
+      Math.floor((Date.now() - new Date(lastSeen).getTime()) / (1000 * 60 * 60 * 24)) : 999;
+    
+    let strength: 'weak' | 'medium' | 'strong' = 'weak';
+    if (total >= 3 && accuracy >= 0.8) strength = 'strong';
+    else if (total >= 2 && accuracy >= 0.6) strength = 'medium';
+    
+    let reviewInterval = 1;
+    if (strength === 'strong') {
+      if (correct >= 10) reviewInterval = 60;
+      else if (correct >= 8) reviewInterval = 30;
+      else if (correct >= 6) reviewInterval = 14;
+      else if (correct >= 4) reviewInterval = 7;
+      else if (correct >= 3) reviewInterval = 3;
+      else reviewInterval = 1;
+    } else if (strength === 'medium') {
+      if (correct >= 4) reviewInterval = 3;
+      else if (correct >= 2) reviewInterval = 2;
+      else reviewInterval = 1;
+    } else {
+      reviewInterval = 0.5;
+    }
+    
+    let weight = 100;
+    if (daysSince >= reviewInterval) {
+      const overdueDays = daysSince - reviewInterval;
+      weight = 9000 + (overdueDays * 100) + tierBonus;
+      if (strength === 'weak') weight += 1000;
+    } else if (strength === 'weak' || accuracy < 0.5) {
+      weight = 7000 + (daysSince * 10) + tierBonus;
+    } else if (strength === 'medium') {
+      if (daysSince >= reviewInterval * 0.7) {
+        weight = 4000 + (daysSince * 5) + tierBonus;
+      } else {
+        weight = 2000 + tierBonus;
+      }
+    } else if (strength === 'strong') {
+      if (daysSince >= reviewInterval * 0.8) {
+        weight = 1500 + (daysSince * 2) + tierBonus;
+      } else {
+        weight = 50 + tierBonus;
+      }
+    }
+    
+    if (incorrect > correct && total >= 2) weight *= 1.3;
+    if (strength === 'strong' && correct >= 8 && daysSince < reviewInterval * 0.5) {
+      weight = Math.max(10, weight * 0.3);
+    }
+    
+    return weight;
+  };
+
+  // Filter and randomize vocabulary based on SRS weight and tier priority
   const filteredVocab = useMemo(() => {
     let filtered = vocabulary;
     
     if (filter === 'favorites') {
-      filtered = vocabulary.filter(v => favoriteVocab.includes(v.de));
+      filtered = vocabulary.filter((v: VocabularyItem) => favoriteVocab.includes(v.de));
     } else if (filter === 'tier1') {
-      filtered = vocabulary.filter(v => v.tier === 1);
+      filtered = vocabulary.filter((v: VocabularyItem) => v.tier === 1);
     } else if (filter === 'tier2') {
-      filtered = vocabulary.filter(v => v.tier === 2);
+      filtered = vocabulary.filter((v: VocabularyItem) => v.tier === 2);
     } else if (filter === 'tier3') {
-      filtered = vocabulary.filter(v => v.tier === 3);
+      filtered = vocabulary.filter((v: VocabularyItem) => v.tier === 3);
     }
 
     if (searchTerm) {
-      filtered = filtered.filter(v => 
+      filtered = filtered.filter((v: VocabularyItem) => 
         v.de.toLowerCase().includes(searchTerm.toLowerCase()) ||
         v.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
         v.category.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    return filtered;
-  }, [vocabulary, filter, favoriteVocab, searchTerm]);
+    // Apply SRS weighting and randomization
+    type WeightedVocab = VocabularyItem & { srsWeight: number };
+    const weighted: WeightedVocab[] = filtered.map((v: VocabularyItem) => ({
+      ...v,
+      srsWeight: calculateVocabWeight(v.de)
+    })).sort((a: WeightedVocab, b: WeightedVocab) => b.srsWeight - a.srsWeight);
+    
+    // Take top 80% weighted, then shuffle for randomness
+    const topWeighted = weighted.slice(0, Math.max(Math.ceil(weighted.length * 0.8), filtered.length));
+    const shuffled = [...topWeighted];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    
+    return shuffled.map(({ srsWeight, ...vocab }) => vocab as VocabularyItem);
+  }, [vocabulary, filter, favoriteVocab, searchTerm, vocabProgress]);
 
   const handleCardRating = (known: boolean) => {
     const currentWord = filteredVocab[currentCardIdx]?.de;
@@ -382,6 +462,80 @@ export function VocabPage({ lang, vocabulary, updateVocabProgress, vocabProgress
         ))}
       </div>
 
+      {/* Learning Stats */}
+      <div className="bg-white rounded-xl p-4 shadow-md">
+        <h3 className="font-bold text-gray-800 mb-3 text-sm">
+          {lang === 'de' ? '📊 Lernstatistik' : '📊 Learning Stats'}
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-blue-50 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
+                {vocabulary.filter((v: VocabularyItem) => !vocabProgress[v.de]).length}
+              </div>
+              <span className="text-blue-900 font-semibold text-sm">
+                {lang === 'de' ? 'Neu' : 'New'}
+              </span>
+            </div>
+            <p className="text-xs text-blue-700">{lang === 'de' ? 'Noch nicht gelernt' : 'Not learned yet'}</p>
+          </div>
+
+          <div className="bg-red-50 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
+                {vocabulary.filter((v: VocabularyItem) => {
+                  const p = vocabProgress[v.de];
+                  if (!p) return false;
+                  const total = p.correct + p.incorrect;
+                  const accuracy = total > 0 ? p.correct / total : 0;
+                  return total >= 1 && accuracy < 0.5;
+                }).length}
+              </div>
+              <span className="text-red-900 font-semibold text-sm">
+                {lang === 'de' ? 'Schwach' : 'Weak'}
+              </span>
+            </div>
+            <p className="text-xs text-red-700">{lang === 'de' ? '< 50% richtig' : '< 50% correct'}</p>
+          </div>
+
+          <div className="bg-yellow-50 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="bg-yellow-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
+                {vocabulary.filter((v: VocabularyItem) => {
+                  const p = vocabProgress[v.de];
+                  if (!p) return false;
+                  const total = p.correct + p.incorrect;
+                  const accuracy = total > 0 ? p.correct / total : 0;
+                  return total >= 2 && accuracy >= 0.5 && accuracy < 0.8;
+                }).length}
+              </div>
+              <span className="text-yellow-900 font-semibold text-sm">
+                {lang === 'de' ? 'Mittel' : 'Learning'}
+              </span>
+            </div>
+            <p className="text-xs text-yellow-700">{lang === 'de' ? '50-80% richtig' : '50-80% correct'}</p>
+          </div>
+
+          <div className="bg-green-50 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
+                {vocabulary.filter((v: VocabularyItem) => {
+                  const p = vocabProgress[v.de];
+                  if (!p) return false;
+                  const total = p.correct + p.incorrect;
+                  const accuracy = total > 0 ? p.correct / total : 0;
+                  return total >= 3 && accuracy >= 0.8;
+                }).length}
+              </div>
+              <span className="text-green-900 font-semibold text-sm">
+                {lang === 'de' ? 'Bekannt' : 'Known'}
+              </span>
+            </div>
+            <p className="text-xs text-green-700">{lang === 'de' ? '≥ 80% richtig' : '≥ 80% correct'}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Start Flashcards Button */}
       <button 
         onClick={() => { setMode('flashcards'); setCurrentCardIdx(0); setFlipped(false); }}
@@ -393,7 +547,7 @@ export function VocabPage({ lang, vocabulary, updateVocabProgress, vocabProgress
 
       {/* Vocabulary List */}
       <div className="space-y-3">
-        {filteredVocab.map((vocab, idx) => {
+        {filteredVocab.map((vocab: VocabularyItem, idx: number) => {
           const progress = vocabProgress[vocab.de];
           const correct = progress?.correct || 0;
           const incorrect = progress?.incorrect || 0;
@@ -438,7 +592,7 @@ export function VocabPage({ lang, vocabulary, updateVocabProgress, vocabProgress
 }
 
 // Study Plan Page Component
-export function StudyPlanPage({ lang, progress, questions, quizHistory, studyStreak, startDate }) {
+export function StudyPlanPage({ lang, progress, questions, quizHistory, studyStreak }: Omit<StudyPlanPageProps, 'startDate'>) {
   const daysRemaining = Math.max(0, Math.ceil((new Date('2025-12-02').getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
   const weeksRemaining = Math.ceil(daysRemaining / 7);
   const currentWeek = Math.max(1, Math.min(8, 8 - weeksRemaining + 1));
@@ -452,7 +606,7 @@ export function StudyPlanPage({ lang, progress, questions, quizHistory, studyStr
   const weakCount = Object.values(progress).filter((p: any) => p.strength === 'weak').length;
 
   // Weekly targets
-  const weeklyTargets = {
+  const weeklyTargets: Record<number, { questions: number; avgScore: number; strongCategories: number }> = {
     1: { questions: 50, avgScore: 50, strongCategories: 0 },
     2: { questions: 100, avgScore: 55, strongCategories: 2 },
     3: { questions: 150, avgScore: 60, strongCategories: 4 },
@@ -464,7 +618,7 @@ export function StudyPlanPage({ lang, progress, questions, quizHistory, studyStr
   };
 
   const currentTarget = weeklyTargets[currentWeek] || weeklyTargets[8];
-  const onTrack = answered >= currentTarget.questions && avgScore >= currentTarget.avgScore;
+  // const onTrack = answered >= currentTarget.questions && avgScore >= currentTarget.avgScore;
 
   // Calculate pace status
   let paceStatus = 'green';
@@ -661,7 +815,7 @@ export function StudyPlanPage({ lang, progress, questions, quizHistory, studyStr
             const weekNum = parseInt(week);
             const isPast = weekNum < currentWeek;
             const isCurrent = weekNum === currentWeek;
-            const isFuture = weekNum > currentWeek;
+            // const isFuture = weekNum > currentWeek;
 
             return (
               <div 
@@ -701,17 +855,33 @@ export function StudyPlanPage({ lang, progress, questions, quizHistory, studyStr
 }
 
 // Vocabulary Training Page with SRS
-export function VocabTrainingPage({ lang, vocabProgress, updateVocabProgress }) {
+export function VocabTrainingPage({ lang, vocabProgress, updateVocabProgress }: VocabTrainingPageProps) {
   const [started, setStarted] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
-  const [sessionVocab, setSessionVocab] = useState([]);
+  const [sessionVocab, setSessionVocab] = useState<VocabularyItem[]>([]);
   const [sessionStats, setSessionStats] = useState({ correct: 0, incorrect: 0, total: 0 });
 
-  // Calculate SRS weight for vocabulary (same as questions)
+  // Enhanced SRS weight calculation for vocabulary (Anki/SM-2 style)
+  // Priority system:
+  // 1. DUE items (past their review interval) - HIGHEST
+  // 2. WEAK items (need practice) - HIGH
+  // 3. NEW items (never seen) - MEDIUM-HIGH
+  // 4. MEDIUM items - MEDIUM
+  // 5. STRONG items (only when due or for occasional review) - LOW
+  
   const calculateVocabWeight = (vocabId: string) => {
     const vProgress = vocabProgress[vocabId];
-    if (!vProgress) return 10000; // New words - highest priority
+    
+    // Get vocabulary tier for additional priority
+    const vocab = CITIZENSHIP_VOCABULARY.find((v: VocabularyItem) => v.de === vocabId);
+    const tierBonus = vocab ? 
+      (vocab.tier === 1 ? 400 : vocab.tier === 2 ? 300 : 200) : 0;
+    
+    // NEW word - never seen before
+    if (!vProgress) {
+      return 8000 + tierBonus; // High priority for new words (but lower than due items)
+    }
     
     const { correct, incorrect, lastSeen } = vProgress;
     const total = correct + incorrect;
@@ -721,53 +891,79 @@ export function VocabTrainingPage({ lang, vocabProgress, updateVocabProgress }) 
     const daysSince = lastSeen ? 
       Math.floor((Date.now() - new Date(lastSeen).getTime()) / (1000 * 60 * 60 * 24)) : 999;
     
-    // Determine strength
-    let strength = 'weak';
-    if (total >= 3 && accuracy >= 0.75) strength = 'strong';
-    else if (total >= 2 && accuracy >= 0.5) strength = 'medium';
+    // Determine strength level
+    let strength: 'weak' | 'medium' | 'strong' = 'weak';
+    if (total >= 3 && accuracy >= 0.8) strength = 'strong';
+    else if (total >= 2 && accuracy >= 0.6) strength = 'medium';
     
-    // Base interval based on strength
-    let interval = 1;
-    if (strength === 'strong' && correct >= 5) interval = 7;
-    else if (strength === 'strong' && correct >= 3) interval = 3;
-    else if (strength === 'medium') interval = 1.5;
-    else if (strength === 'weak') interval = 0.5;
+    // Calculate review interval based on strength (Anki-style exponential backoff)
+    let reviewInterval = 1; // days
+    
+    if (strength === 'strong') {
+      // Strong words: exponential intervals (1 → 3 → 7 → 14 → 30 → 60 days)
+      if (correct >= 10) reviewInterval = 60;
+      else if (correct >= 8) reviewInterval = 30;
+      else if (correct >= 6) reviewInterval = 14;
+      else if (correct >= 4) reviewInterval = 7;
+      else if (correct >= 3) reviewInterval = 3;
+      else reviewInterval = 1;
+    } else if (strength === 'medium') {
+      // Medium words: slower progression (1 → 2 → 3 days)
+      if (correct >= 4) reviewInterval = 3;
+      else if (correct >= 2) reviewInterval = 2;
+      else reviewInterval = 1;
+    } else {
+      // Weak words: review frequently (0.5 days = 12 hours)
+      reviewInterval = 0.5;
+    }
     
     let weight = 100;
     
-    // Priority 1: Due for review
-    if (daysSince >= interval) {
-      weight = 10 + (daysSince * 10);
+    // PRIORITY 1: DUE items (past review interval) - HIGHEST PRIORITY
+    if (daysSince >= reviewInterval) {
+      const overdueDays = daysSince - reviewInterval;
+      weight = 9000 + (overdueDays * 100) + tierBonus;
+      
+      // Extra boost for overdue weak items
+      if (strength === 'weak') {
+        weight += 1000;
+      }
     }
     
-    // Priority 2: Weak items
-    if (strength === 'weak') {
-      weight += 1000;
-    } else if (strength === 'medium') {
-      weight += 500;
+    // PRIORITY 2: WEAK items (need practice) - HIGH PRIORITY
+    else if (strength === 'weak' || accuracy < 0.5) {
+      weight = 7000 + (daysSince * 10) + tierBonus;
     }
     
-    // Priority 3: New words
-    if (total === 0) {
-      weight += 5000;
+    // PRIORITY 3: MEDIUM items - MEDIUM PRIORITY
+    else if (strength === 'medium') {
+      // Show medium items when they're getting close to due
+      if (daysSince >= reviewInterval * 0.7) {
+        weight = 4000 + (daysSince * 5) + tierBonus;
+      } else {
+        weight = 2000 + tierBonus;
+      }
     }
     
-    // Priority 4: Low accuracy
-    if (accuracy < 0.5 && total >= 2) {
-      weight += 800;
+    // PRIORITY 4: STRONG items - LOW PRIORITY (only when due or occasional review)
+    else if (strength === 'strong') {
+      if (daysSince >= reviewInterval * 0.8) {
+        // Strong items approaching their due date
+        weight = 1500 + (daysSince * 2) + tierBonus;
+      } else {
+        // Strong items not due yet - very low priority
+        weight = 50 + tierBonus;
+      }
     }
     
-    // Priority 5: Tier-based importance (Tier 1 = most important)
-    const vocab = CITIZENSHIP_VOCABULARY.find(v => v.de === vocabId);
-    if (vocab) {
-      if (vocab.tier === 1) weight += 400; // ESSENTIAL
-      else if (vocab.tier === 2) weight += 300; // IMPORTANT
-      else if (vocab.tier === 3) weight += 200; // USEFUL
+    // Boost for words with more incorrect than correct
+    if (incorrect > correct && total >= 2) {
+      weight *= 1.3;
     }
     
-    // Reduce priority for well-known items
-    if (strength === 'strong' && daysSince < interval) {
-      weight = Math.max(1, weight - 500);
+    // Penalty for very well-known items that aren't due
+    if (strength === 'strong' && correct >= 8 && daysSince < reviewInterval * 0.5) {
+      weight = Math.max(10, weight * 0.3); // Significantly reduce priority
     }
     
     return weight;
@@ -792,48 +988,95 @@ export function VocabTrainingPage({ lang, vocabProgress, updateVocabProgress }) 
     return baseSize;
   };
 
-  // Select vocabulary for training
-  const selectVocabForTraining = (count: number) => {
-    const weightedVocab = CITIZENSHIP_VOCABULARY.map((v) => ({
+  // Select vocabulary for training - Prioritizes Tier 1 (Essential), then Tier 2 (Important), then Tier 3
+  const selectVocabForTraining = (count: number): VocabularyItem[] => {
+    type WeightedVocab = VocabularyItem & { srsWeight: number };
+    
+    // Calculate weights for all vocabulary with tier-based priority
+    const weightedVocab: WeightedVocab[] = CITIZENSHIP_VOCABULARY.map((v: VocabularyItem) => ({
       ...v,
       srsWeight: calculateVocabWeight(v.de)
-    })).sort((a, b) => b.srsWeight - a.srsWeight);
+    })).sort((a: WeightedVocab, b: WeightedVocab) => {
+      // First sort by tier (lower tier number = higher priority)
+      if (a.tier !== b.tier) {
+        return a.tier - b.tier;
+      }
+      // Then by SRS weight (higher weight = needs more practice)
+      return b.srsWeight - a.srsWeight;
+    });
 
-    // Mix: 50% new, 25% weak, 20% due, 5% random
-    const newWords = weightedVocab.filter(v => !vocabProgress[v.de]).slice(0, Math.ceil(count * 0.5));
-    const weakWords = weightedVocab.filter(v => {
-      const p = vocabProgress[v.de];
+    // Separate by tier and mastery level
+    const tier1Words = weightedVocab.filter(v => v.tier === 1);
+    const tier2Words = weightedVocab.filter(v => v.tier === 2);
+    const tier3Words = weightedVocab.filter(v => v.tier === 3);
+
+    // Helper to check if a word is mastered (80%+ accuracy with at least 3 attempts)
+    const isMastered = (vocabDe: string): boolean => {
+      const p = vocabProgress[vocabDe];
       if (!p) return false;
       const total = p.correct + p.incorrect;
       const accuracy = total > 0 ? p.correct / total : 0;
-      return total >= 1 && accuracy < 0.5;
-    }).slice(0, Math.ceil(count * 0.25));
+      return total >= 3 && accuracy >= 0.8;
+    };
+
+    // Strategy: Focus on Tier 1 until 80% mastered, then move to Tier 2, etc.
+    const tier1Mastered = tier1Words.filter(v => isMastered(v.de));
+    const tier2Mastered = tier2Words.filter(v => isMastered(v.de));
     
-    const dueWords = weightedVocab.filter(v => {
-      if (!vocabProgress[v.de]) return false;
-      const daysSince = Math.floor((Date.now() - new Date(vocabProgress[v.de].lastSeen).getTime()) / (1000 * 60 * 60 * 24));
-      return daysSince >= 1;
-    }).slice(0, Math.ceil(count * 0.2));
+    const tier1MasteryRate = tier1Words.length > 0 ? tier1Mastered.length / tier1Words.length : 1;
+    const tier2MasteryRate = tier2Words.length > 0 ? tier2Mastered.length / tier2Words.length : 1;
+
+    let selection: WeightedVocab[] = [];
+
+    if (tier1MasteryRate < 0.8) {
+      // Focus on Tier 1: 70% Tier 1, 20% Tier 2, 10% Tier 3
+      const tier1Count = Math.ceil(count * 0.7);
+      const tier2Count = Math.ceil(count * 0.2);
+      const tier3Count = Math.ceil(count * 0.1);
+      
+      selection = [
+        ...tier1Words.filter(v => !isMastered(v.de)).slice(0, tier1Count),
+        ...tier2Words.slice(0, tier2Count),
+        ...tier3Words.slice(0, tier3Count)
+      ];
+    } else if (tier2MasteryRate < 0.8) {
+      // Focus on Tier 2: 20% Tier 1 (review), 60% Tier 2, 20% Tier 3
+      const tier1Count = Math.ceil(count * 0.2);
+      const tier2Count = Math.ceil(count * 0.6);
+      const tier3Count = Math.ceil(count * 0.2);
+      
+      selection = [
+        ...tier1Words.slice(0, tier1Count),
+        ...tier2Words.filter(v => !isMastered(v.de)).slice(0, tier2Count),
+        ...tier3Words.slice(0, tier3Count)
+      ];
+    } else {
+      // Focus on Tier 3: 15% Tier 1 (review), 25% Tier 2 (review), 60% Tier 3
+      const tier1Count = Math.ceil(count * 0.15);
+      const tier2Count = Math.ceil(count * 0.25);
+      const tier3Count = Math.ceil(count * 0.6);
+      
+      selection = [
+        ...tier1Words.slice(0, tier1Count),
+        ...tier2Words.slice(0, tier2Count),
+        ...tier3Words.filter(v => !isMastered(v.de)).slice(0, tier3Count)
+      ];
+    }
+
+    // Remove duplicates
+    const unique = Array.from(new Set(selection.map(v => v.de)))
+      .map(de => selection.find(v => v.de === de))
+      .filter((v): v is WeightedVocab => v !== undefined);
     
-    const shuffled = [...weightedVocab];
+    // RANDOMIZE the final selection - this is the key change!
+    const shuffled = [...unique];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    const randomWords = shuffled.slice(0, Math.ceil(count * 0.05));
-
-    const combined = [...newWords, ...weakWords, ...dueWords, ...randomWords];
-    const unique = Array.from(new Set(combined.map(v => v.de))).map(de => 
-      combined.find(v => v.de === de)
-    );
     
-    // Shuffle final selection
-    for (let i = unique.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [unique[i], unique[j]] = [unique[j], unique[i]];
-    }
-    
-    return unique.slice(0, count);
+    // Strip srsWeight property before returning
+    return shuffled.slice(0, count).map(({ srsWeight, ...vocab }) => vocab as VocabularyItem);
   };
 
   const startTraining = () => {
@@ -865,8 +1108,8 @@ export function VocabTrainingPage({ lang, vocabProgress, updateVocabProgress }) 
 
   if (!started) {
     const sessionSize = calculateSessionSize();
-    const newCount = CITIZENSHIP_VOCABULARY.filter(v => !vocabProgress[v.de]).length;
-    const weakCount = CITIZENSHIP_VOCABULARY.filter(v => {
+    const newCount = CITIZENSHIP_VOCABULARY.filter((v: VocabularyItem) => !vocabProgress[v.de]).length;
+    const weakCount = CITIZENSHIP_VOCABULARY.filter((v: VocabularyItem) => {
       const p = vocabProgress[v.de];
       if (!p) return false;
       const total = p.correct + p.incorrect;
@@ -874,8 +1117,36 @@ export function VocabTrainingPage({ lang, vocabProgress, updateVocabProgress }) 
       return total >= 1 && accuracy < 0.5;
     }).length;
     
-    const tier1Count = CITIZENSHIP_VOCABULARY.filter(v => v.tier === 1).length;
-    const tier2Count = CITIZENSHIP_VOCABULARY.filter(v => v.tier === 2).length;
+    const tier1Words = CITIZENSHIP_VOCABULARY.filter((v: VocabularyItem) => v.tier === 1);
+    const tier2Words = CITIZENSHIP_VOCABULARY.filter((v: VocabularyItem) => v.tier === 2);
+    const tier3Words = CITIZENSHIP_VOCABULARY.filter((v: VocabularyItem) => v.tier === 3);
+    
+    // Calculate mastery for each tier
+    const isMastered = (vocabDe: string): boolean => {
+      const p = vocabProgress[vocabDe];
+      if (!p) return false;
+      const total = p.correct + p.incorrect;
+      const accuracy = total > 0 ? p.correct / total : 0;
+      return total >= 3 && accuracy >= 0.8;
+    };
+    
+    const tier1Mastered = tier1Words.filter((v: VocabularyItem) => isMastered(v.de)).length;
+    const tier2Mastered = tier2Words.filter((v: VocabularyItem) => isMastered(v.de)).length;
+    const tier3Mastered = tier3Words.filter((v: VocabularyItem) => isMastered(v.de)).length;
+    
+    const tier1Progress = tier1Words.length > 0 ? Math.round((tier1Mastered / tier1Words.length) * 100) : 0;
+    const tier2Progress = tier2Words.length > 0 ? Math.round((tier2Mastered / tier2Words.length) * 100) : 0;
+    const tier3Progress = tier3Words.length > 0 ? Math.round((tier3Mastered / tier3Words.length) * 100) : 0;
+    
+    // Determine current focus
+    let currentFocus = '';
+    if (tier1Progress < 80) {
+      currentFocus = lang === 'de' ? '🎯 Fokus: TIER 1 (Essential)' : '🎯 Focus: TIER 1 (Essential)';
+    } else if (tier2Progress < 80) {
+      currentFocus = lang === 'de' ? '🎯 Fokus: TIER 2 (Important)' : '🎯 Focus: TIER 2 (Important)';
+    } else {
+      currentFocus = lang === 'de' ? '🎯 Fokus: TIER 3 (Useful)' : '🎯 Focus: TIER 3 (Useful)';
+    }
 
     return (
       <div className="p-4">
@@ -896,14 +1167,66 @@ export function VocabTrainingPage({ lang, vocabProgress, updateVocabProgress }) 
             </h3>
             <p className="text-sm text-blue-800 mb-3">
               {lang === 'de' 
-                ? 'Lerne Vokabeln mit Anki-Stil Wiederholung. Tier 1 & 2 werden priorisiert!' 
-                : 'Learn vocabulary with Anki-style repetition. Tier 1 & 2 are prioritized!'}
+                ? 'Vokabeln erscheinen in zufälliger Reihenfolge. Höhere Tier-Vokabeln haben Priorität!' 
+                : 'Vocabulary appears in random order. Higher-tier vocabulary has priority!'}
+            </p>
+            <p className="text-sm font-bold text-blue-900 bg-white px-3 py-2 rounded-lg mb-3">
+              {currentFocus}
             </p>
             <div className="flex items-center gap-4 text-sm">
               <div className="bg-white px-3 py-2 rounded-lg">
                 <span className="text-blue-600 font-bold text-2xl">{sessionSize}</span>
                 <span className="text-blue-800 ml-2">{lang === 'de' ? 'Wörter' : 'words'}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Tier Mastery Progress */}
+          <div className="mb-6 space-y-3">
+            <h3 className="font-bold text-gray-800 text-sm mb-3">
+              {lang === 'de' ? '📊 Beherrschung nach Stufe' : '📊 Mastery by Tier'}
+            </h3>
+            
+            <div className="bg-red-50 rounded-lg p-3 border-2 border-red-200">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-bold text-red-900">TIER 1 - Essential</span>
+                <span className="text-red-700 font-bold">{tier1Mastered}/{tier1Words.length}</span>
+              </div>
+              <div className="w-full bg-red-200 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-red-500 to-red-600 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${tier1Progress}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-red-700 mt-1">{tier1Progress}% {lang === 'de' ? 'gemeistert' : 'mastered'}</p>
+            </div>
+
+            <div className="bg-orange-50 rounded-lg p-3 border-2 border-orange-200">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-bold text-orange-900">TIER 2 - Important</span>
+                <span className="text-orange-700 font-bold">{tier2Mastered}/{tier2Words.length}</span>
+              </div>
+              <div className="w-full bg-orange-200 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-orange-500 to-orange-600 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${tier2Progress}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-orange-700 mt-1">{tier2Progress}% {lang === 'de' ? 'gemeistert' : 'mastered'}</p>
+            </div>
+
+            <div className="bg-yellow-50 rounded-lg p-3 border-2 border-yellow-200">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-bold text-yellow-900">TIER 3 - Useful</span>
+                <span className="text-yellow-700 font-bold">{tier3Mastered}/{tier3Words.length}</span>
+              </div>
+              <div className="w-full bg-yellow-200 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${tier3Progress}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-yellow-700 mt-1">{tier3Progress}% {lang === 'de' ? 'gemeistert' : 'mastered'}</p>
             </div>
           </div>
 
@@ -932,19 +1255,6 @@ export function VocabTrainingPage({ lang, vocabProgress, updateVocabProgress }) 
                 </div>
               </div>
               <AlertCircle className="text-red-500" size={24} />
-            </div>
-
-            <div className="bg-purple-50 rounded-lg p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-purple-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
-                  {tier1Count + tier2Count}
-                </div>
-                <div>
-                  <p className="font-semibold text-purple-900">{lang === 'de' ? 'Wichtige Wörter' : 'Important Words'}</p>
-                  <p className="text-xs text-purple-700">{lang === 'de' ? 'Tier 1 & 2 (Priorität)' : 'Tier 1 & 2 (Priority)'}</p>
-                </div>
-              </div>
-              <Star className="text-purple-500" size={24} />
             </div>
           </div>
 
