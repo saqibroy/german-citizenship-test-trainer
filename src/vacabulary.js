@@ -2397,6 +2397,624 @@ export const CITIZENSHIP_VOCABULARY = [
     "en": "antisemitism / hatred of Jews",
     "example_de": "Judenhass ist in Deutschland nicht toleriert.",
     "example_en": "Antisemitism is not tolerated in Germany."
+  },
+  
+  // ============= COMMON VERBS AND THEIR FORMS =============
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "dürfen",
+    "en": "to be allowed to / may",
+    "example_de": "In Deutschland dürfen Menschen offen ihre Meinung sagen.",
+    "example_en": "In Germany, people may openly express their opinion."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "können",
+    "en": "to be able to / can",
+    "example_de": "Eltern können bis zum 14. Lebensjahr entscheiden.",
+    "example_en": "Parents can decide until the 14th year of life."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "müssen",
+    "en": "must / have to",
+    "example_de": "Alle müssen sich an die Gesetze halten.",
+    "example_en": "Everyone must obey the laws."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "sollen",
+    "en": "should / ought to",
+    "example_de": "Was sollen Bürger in einer Demokratie tun?",
+    "example_en": "What should citizens do in a democracy?"
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "wählen",
+    "en": "to vote / elect",
+    "example_de": "Bürger wählen ihre Vertreter.",
+    "example_en": "Citizens elect their representatives."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "entscheiden",
+    "en": "to decide",
+    "example_de": "Die Regierung kann nicht alleine entscheiden.",
+    "example_en": "The government cannot decide alone."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "gelten",
+    "en": "to apply / be valid",
+    "example_de": "In Deutschland gilt die Meinungsfreiheit.",
+    "example_en": "Freedom of speech applies in Germany."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "gehören",
+    "en": "to belong to",
+    "example_de": "Welches Recht gehört zu den Grundrechten?",
+    "example_en": "Which right belongs to the basic rights?"
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "halten",
+    "en": "to hold / keep / obey",
+    "example_de": "Der Staat muss sich an die Gesetze halten.",
+    "example_en": "The state must obey the laws."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "teilnehmen",
+    "en": "to participate / take part",
+    "example_de": "Kinder können am Religionsunterricht teilnehmen.",
+    "example_en": "Children can participate in religious education."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "annehmen",
+    "en": "to accept / assume",
+    "example_de": "Man darf kein Geld annehmen für die Wahl.",
+    "example_en": "One must not accept money for voting."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "bedeuten",
+    "en": "to mean / signify",
+    "example_de": "Was bedeutet das für die Demokratie?",
+    "example_en": "What does that mean for democracy?"
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "sagen",
+    "en": "to say",
+    "example_de": "Menschen dürfen offen etwas gegen die Regierung sagen.",
+    "example_en": "People may openly say something against the government."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "zahlen",
+    "en": "to pay",
+    "example_de": "Die Menschen zahlen Steuern.",
+    "example_en": "People pay taxes."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "haben",
+    "en": "to have",
+    "example_de": "Die Menschen haben das Wahlrecht.",
+    "example_en": "People have the right to vote."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "sein",
+    "en": "to be",
+    "example_de": "Deutschland ist ein Rechtsstaat.",
+    "example_en": "Germany is a constitutional state."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Verbs",
+    "de": "werden",
+    "en": "to become / will",
+    "example_de": "Der Bundeskanzler wird vom Bundestag gewählt.",
+    "example_en": "The Federal Chancellor is elected by the Bundestag."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Verbs",
+    "de": "beschließen",
+    "en": "to decide / pass (a law)",
+    "example_de": "Der Bundestag beschließt neue Gesetze.",
+    "example_en": "The Bundestag passes new laws."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Verbs",
+    "de": "machen",
+    "en": "to make / do",
+    "example_de": "Die Gerichte machen keine Gesetze.",
+    "example_en": "The courts do not make laws."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Verbs",
+    "de": "befolgen",
+    "en": "to follow / obey",
+    "example_de": "Alle müssen die Gesetze befolgen.",
+    "example_en": "Everyone must follow the laws."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Verbs",
+    "de": "gehen",
+    "en": "to go",
+    "example_de": "Man geht zur Wahl.",
+    "example_en": "One goes to vote."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Verbs",
+    "de": "leben",
+    "en": "to live",
+    "example_de": "Menschen leben frei in Deutschland.",
+    "example_en": "People live freely in Germany."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Verbs",
+    "de": "arbeiten",
+    "en": "to work",
+    "example_de": "Jeder darf frei arbeiten.",
+    "example_en": "Everyone may work freely."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Verbs",
+    "de": "demonstrieren",
+    "en": "to demonstrate / protest",
+    "example_de": "Bürger dürfen friedlich demonstrieren.",
+    "example_en": "Citizens may demonstrate peacefully."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Verbs",
+    "de": "vertreten",
+    "en": "to represent",
+    "example_de": "Abgeordnete vertreten das Volk.",
+    "example_en": "Representatives represent the people."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Verbs",
+    "de": "schützen",
+    "en": "to protect",
+    "example_de": "Der Staat schützt die Grundrechte.",
+    "example_en": "The state protects basic rights."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Verbs",
+    "de": "kontrollieren",
+    "en": "to control / check",
+    "example_de": "Das Parlament kontrolliert die Regierung.",
+    "example_en": "Parliament controls the government."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Verbs",
+    "de": "beachten",
+    "en": "to observe / follow",
+    "example_de": "Alle müssen die Gesetze beachten.",
+    "example_en": "Everyone must observe the laws."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Verbs",
+    "de": "lernen",
+    "en": "to learn",
+    "example_de": "Schüler lernen in der Schule.",
+    "example_en": "Students learn in school."
+  },
+  
+  // ============= MORE COMMON NOUNS FROM QUESTIONS =============
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Political Terms",
+    "de": "die Regierung",
+    "en": "government",
+    "example_de": "Menschen dürfen etwas gegen die Regierung sagen.",
+    "example_en": "People may say something against the government."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Rights & Law",
+    "de": "die Religionsfreiheit",
+    "en": "freedom of religion",
+    "example_de": "In Deutschland gilt Religionsfreiheit.",
+    "example_en": "Freedom of religion applies in Germany."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Rights & Law",
+    "de": "die Steuern",
+    "en": "taxes",
+    "example_de": "Die Menschen zahlen Steuern.",
+    "example_en": "People pay taxes."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Concepts (No Article)",
+    "de": "Eltern",
+    "en": "parents",
+    "example_de": "Eltern können bis zum 14. Lebensjahr entscheiden.",
+    "example_en": "Parents can decide until the 14th year of life."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Education",
+    "de": "das Lebensjahr",
+    "en": "year of life / age",
+    "example_de": "Bis zum 14. Lebensjahr entscheiden die Eltern.",
+    "example_en": "Until the 14th year of life, parents decide."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Education",
+    "de": "das Kind",
+    "en": "child",
+    "example_de": "Das Kind geht zur Schule.",
+    "example_en": "The child goes to school."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Education",
+    "de": "die Schule",
+    "en": "school",
+    "example_de": "Kinder gehen in die Schule.",
+    "example_en": "Children go to school."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Education",
+    "de": "der Geschichtsunterricht",
+    "en": "history class",
+    "example_de": "Schüler nehmen am Geschichtsunterricht teil.",
+    "example_en": "Students participate in history class."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Education",
+    "de": "der Religionsunterricht",
+    "en": "religious education",
+    "example_de": "Eltern können entscheiden, ob das Kind am Religionsunterricht teilnimmt.",
+    "example_en": "Parents can decide whether the child participates in religious education."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Education",
+    "de": "der Politikunterricht",
+    "en": "politics class / civics",
+    "example_de": "Schüler lernen im Politikunterricht über Demokratie.",
+    "example_en": "Students learn about democracy in politics class."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Education",
+    "de": "der Sprachunterricht",
+    "en": "language class",
+    "example_de": "Der Sprachunterricht ist wichtig.",
+    "example_en": "Language class is important."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Court & Law",
+    "de": "die Gerichte",
+    "en": "courts",
+    "example_de": "Die Gerichte machen keine Gesetze.",
+    "example_en": "The courts do not make laws."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Rights & Law",
+    "de": "das Grundrecht",
+    "en": "basic right / fundamental right",
+    "example_de": "Die Meinungsfreiheit ist ein Grundrecht.",
+    "example_en": "Freedom of speech is a basic right."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Rights & Law",
+    "de": "der Waffenbesitz",
+    "en": "gun ownership",
+    "example_de": "Waffenbesitz ist kein Grundrecht.",
+    "example_en": "Gun ownership is not a basic right."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Rights & Law",
+    "de": "das Faustrecht",
+    "en": "rule of force / vigilante justice",
+    "example_de": "Faustrecht gibt es in Deutschland nicht.",
+    "example_en": "Rule of force does not exist in Germany."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Rights & Law",
+    "de": "die Selbstjustiz",
+    "en": "vigilante justice / taking law into own hands",
+    "example_de": "Selbstjustiz ist verboten.",
+    "example_en": "Vigilante justice is forbidden."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Rights & Law",
+    "de": "die Wahlen",
+    "en": "elections",
+    "example_de": "Wahlen in Deutschland sind frei.",
+    "example_en": "Elections in Germany are free."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Concepts (No Article)",
+    "de": "Geld",
+    "en": "money",
+    "example_de": "Man darf kein Geld annehmen.",
+    "example_en": "One must not accept money."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Political Terms",
+    "de": "die Kandidatin / der Kandidat",
+    "en": "candidate",
+    "example_de": "Man wählt eine Kandidatin oder einen Kandidaten.",
+    "example_en": "One elects a female or male candidate."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Concepts (No Article)",
+    "de": "Personen",
+    "en": "persons / people",
+    "example_de": "Nur bestimmte Personen dürfen wählen.",
+    "example_en": "Only certain people may vote."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Court & Law",
+    "de": "das Gefängnis",
+    "en": "prison / jail",
+    "example_de": "Personen, die im Gefängnis waren, dürfen trotzdem wählen.",
+    "example_en": "People who were in prison may still vote."
+  },
+  
+  // ============= COMMON ADJECTIVES & ADVERBS =============
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Adjectives & Adverbs",
+    "de": "frei",
+    "en": "free",
+    "example_de": "Wahlen sind frei und geheim.",
+    "example_en": "Elections are free and secret."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Adjectives & Adverbs",
+    "de": "offen",
+    "en": "open / openly",
+    "example_de": "Menschen dürfen offen ihre Meinung sagen.",
+    "example_en": "People may openly express their opinion."
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Adjectives & Adverbs",
+    "de": "gemeint",
+    "en": "meant",
+    "example_de": "Was ist damit gemeint?",
+    "example_en": "What is meant by that?"
+  },
+  {
+    "tier": 1,
+    "tier_name": "ESSENTIAL",
+    "category": "Adjectives & Adverbs",
+    "de": "bestimmt",
+    "en": "certain / specific",
+    "example_de": "Man wählt einen bestimmten Kandidaten.",
+    "example_en": "One elects a specific candidate."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Adjectives & Adverbs",
+    "de": "friedlich",
+    "en": "peaceful / peacefully",
+    "example_de": "Bürger dürfen friedlich demonstrieren.",
+    "example_en": "Citizens may demonstrate peacefully."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Adjectives & Adverbs",
+    "de": "alleine",
+    "en": "alone",
+    "example_de": "Die Regierung kann nicht alleine entscheiden.",
+    "example_en": "The government cannot decide alone."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Adjectives & Adverbs",
+    "de": "trotzdem",
+    "en": "nevertheless / still",
+    "example_de": "Sie dürfen trotzdem wählen.",
+    "example_en": "They may nevertheless vote."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Adjectives & Adverbs",
+    "de": "verboten",
+    "en": "forbidden / prohibited",
+    "example_de": "Selbstjustiz ist verboten.",
+    "example_en": "Vigilante justice is forbidden."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Adjectives & Adverbs",
+    "de": "wichtig",
+    "en": "important",
+    "example_de": "Bildung ist wichtig.",
+    "example_en": "Education is important."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Adjectives & Adverbs",
+    "de": "geheim",
+    "en": "secret",
+    "example_de": "Wahlen sind frei und geheim.",
+    "example_en": "Elections are free and secret."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Concepts (No Article)",
+    "de": "etwas",
+    "en": "something",
+    "example_de": "Menschen dürfen etwas gegen die Regierung sagen.",
+    "example_en": "People may say something against the government."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Prepositions & Conjunctions",
+    "de": "gegen",
+    "en": "against",
+    "example_de": "Man darf etwas gegen die Regierung sagen.",
+    "example_en": "One may say something against the government."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Prepositions & Conjunctions",
+    "de": "weil",
+    "en": "because",
+    "example_de": "Menschen dürfen das sagen, weil Meinungsfreiheit gilt.",
+    "example_en": "People may say that because freedom of speech applies."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Prepositions & Conjunctions",
+    "de": "damit",
+    "en": "with that / thereby",
+    "example_de": "Was ist damit gemeint?",
+    "example_en": "What is meant by that?"
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Prepositions & Conjunctions",
+    "de": "ob",
+    "en": "whether / if",
+    "example_de": "Eltern können entscheiden, ob das Kind teilnimmt.",
+    "example_en": "Parents can decide whether the child participates."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Prepositions & Conjunctions",
+    "de": "bis",
+    "en": "until",
+    "example_de": "Bis zum 14. Lebensjahr entscheiden die Eltern.",
+    "example_en": "Until the 14th year of life, parents decide."
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Pronouns",
+    "de": "welches",
+    "en": "which",
+    "example_de": "Welches Recht gehört zu den Grundrechten?",
+    "example_en": "Which right belongs to the basic rights?"
+  },
+  {
+    "tier": 2,
+    "tier_name": "IMPORTANT",
+    "category": "Pronouns",
+    "de": "alle",
+    "en": "all / everyone",
+    "example_de": "Alle müssen die Gesetze beachten.",
+    "example_en": "Everyone must observe the laws."
   }
 ];
 
