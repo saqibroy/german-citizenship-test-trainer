@@ -980,6 +980,101 @@ export const GERMAN_GRAMMAR_LESSONS = [
         "Usually comma before aber, denn, sondern",
         "No comma before und, oder (unless it's a full clause)",
         "'sondern' only after negative: nicht ... sondern"
+      ],
+      "quickTips": [
+        "🎯 Remember: denn = because, aber = but, sondern = but rather (after negation)",
+        "⚡ Quick test: If you remove the connector, both parts should be complete sentences",
+        "💡 Comma trick: Always before aber/denn/sondern, rarely before und/oder"
+      ]
+    }
+  },
+
+  // ============================================
+  // BONUS LESSON: Exam-Specific Patterns
+  // ============================================
+  {
+    "id": "lesson-13",
+    "title": "🎯 Citizenship Test: Common Patterns & Phrases",
+    "level": "Intermediate",
+    "category": "Test Preparation",
+    "description": "Essential patterns and phrases that appear frequently in the German citizenship test",
+    "content": {
+      "explanation": "The citizenship test uses specific grammatical patterns repeatedly. Mastering these will help you understand questions faster and answer with confidence!",
+      "pattern": "Common test question formats",
+      "examples": [
+        {
+          "german": "Was bedeutet 'Rechtsstaat' in Deutschland?",
+          "english": "What does 'constitutional state' mean in Germany?",
+          "breakdown": {
+            "pattern": "Was bedeutet ... ? (What does ... mean?)",
+            "keywords": "bedeutet = means, Rechtsstaat = constitutional state"
+          },
+          "notes": "This pattern appears in ~25% of questions. Always introduces a definition question."
+        },
+        {
+          "german": "Welche Aussage ist richtig?",
+          "english": "Which statement is correct?",
+          "breakdown": {
+            "pattern": "Welche/Welcher/Welches ... ? (Which ... ?)",
+            "keywords": "Aussage = statement, richtig = correct"
+          },
+          "notes": "Very common in multiple-choice format. 'Welche' changes: welcher (masculine), welche (feminine), welches (neuter)."
+        },
+        {
+          "german": "In Deutschland dürfen Menschen ...",
+          "english": "In Germany, people are allowed to ...",
+          "breakdown": {
+            "pattern": "dürfen = are allowed to (permission)",
+            "keywords": "Menschen = people, dürfen = may/are allowed"
+          },
+          "notes": "Tests rights and freedoms. Remember: dürfen = permission, müssen = obligation, können = ability."
+        },
+        {
+          "german": "Man muss ... bezahlen/haben/sein",
+          "english": "One must ... pay/have/be",
+          "breakdown": {
+            "pattern": "Man muss + infinitive",
+            "keywords": "man = one/you (general), muss = must, bezahlen = pay"
+          },
+          "notes": "Tests obligations. 'man' is a general 'you/one', not 'man' as in English!"
+        },
+        {
+          "german": "Deutschland ist ein ... Staat",
+          "english": "Germany is a ... state",
+          "breakdown": {
+            "pattern": "Deutschland ist ein ...",
+            "keywords": "Staat = state, democratic/federal/constitutional are common answers"
+          },
+          "notes": "Introduces definitions about Germany's political system. Watch for: demokratischer, föderaler, sozialer Staat."
+        }
+      ],
+      "keyRules": [
+        "Modal verbs are KEY: können (can), dürfen (may), müssen (must), sollen (should)",
+        "Question words: Was (what), Wer (who), Wann (when), Wo (where), Warum (why), Wie (how)",
+        "Test uses 'man' (one/you in general) very frequently - not the English word 'man'!",
+        "Numbers and years: Written as numerals (1949, 16 Bundesländer)",
+        "Negation: 'nicht' usually comes before the word being negated"
+      ],
+      "commonMistakes": [
+        "❌ Confusing 'man' (one/you) with 'Mann' (man/husband)",
+        "❌ Translating word-by-word instead of understanding structure",
+        "❌ Missing that modal verb sends main verb to END",
+        "❌ Confusing 'dürfen' (allowed) with 'müssen' (must)",
+        "❌ Not recognizing 'Rechtsstaat' = rule of law / constitutional state"
+      ],
+      "quickTips": [
+        "🎯 KEY VOCABULARY: Rechtsstaat, Grundgesetz, Bundesland, Demokratie, Gleichberechtigung",
+        "⚡ Remember 1949 (Grundgesetz), 1990 (Reunification), 16 Bundesländer",
+        "💡 When you see 'dürfen' → it's about RIGHTS and FREEDOMS",
+        "🔑 When you see 'müssen' → it's about OBLIGATIONS and DUTIES",
+        "🚀 Practice tip: Read the question word first (Was/Wer/Wo) to know what type of answer to expect"
+      ],
+      "examTips": [
+        "📝 33 questions in real test, 17 need to be correct to pass (≈52%)",
+        "⏱️ 60 minutes total = about 2 minutes per question",
+        "🎲 Multiple choice: 4 options per question",
+        "💪 No penalty for wrong answers - always guess if unsure!",
+        "🧠 Focus on understanding the QUESTION WORD and MODAL VERB first"
       ]
     }
   }

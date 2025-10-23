@@ -5,6 +5,7 @@ import {
   ChevronRight, Lightbulb, Zap
 } from 'lucide-react';
 import { CITIZENSHIP_VOCABULARY } from './vacabulary.js';
+import { calculateSRSWeight } from './srsAlgorithm';
 import type { VocabPopupProps, HighlightedTextProps, VocabPageProps, StudyPlanPageProps, VocabTrainingPageProps, VocabularyItem } from './types';
 
 // Helper function to normalize German text for matching
@@ -154,7 +155,10 @@ export function HighlightedText({ text, onClick }: Omit<HighlightedTextProps, 'l
           <span
             key={idx}
             className="bg-yellow-200 hover:bg-yellow-300 cursor-pointer px-1 rounded transition-colors border-b-2 border-yellow-400"
-            onClick={() => onClick(cleanWord)}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent answer button from triggering
+              onClick(cleanWord);
+            }}
           >
             {word}
           </span>
@@ -180,63 +184,10 @@ export function VocabPage({ lang, vocabulary, updateVocabProgress, vocabProgress
     const vProgress = vocabProgress[vocabId];
     const vocab = vocabulary.find((v: VocabularyItem) => v.de === vocabId);
     const tierBonus = vocab ? 
-      (vocab.tier === 1 ? 400 : vocab.tier === 2 ? 300 : 200) : 0;
+      (vocab.tier === 1 ? 400 : vocab.tier === 2 ? 300 : vocab.tier === 3 ? 200 : 100) : 0;
     
-    if (!vProgress) return 8000 + tierBonus; // NEW words
-    
-    const { correct, incorrect, lastSeen } = vProgress;
-    const total = correct + incorrect;
-    const accuracy = total > 0 ? correct / total : 0;
-    const daysSince = lastSeen ? 
-      Math.floor((Date.now() - new Date(lastSeen).getTime()) / (1000 * 60 * 60 * 24)) : 999;
-    
-    let strength: 'weak' | 'medium' | 'strong' = 'weak';
-    if (total >= 3 && accuracy >= 0.8) strength = 'strong';
-    else if (total >= 2 && accuracy >= 0.6) strength = 'medium';
-    
-    let reviewInterval = 1;
-    if (strength === 'strong') {
-      if (correct >= 10) reviewInterval = 60;
-      else if (correct >= 8) reviewInterval = 30;
-      else if (correct >= 6) reviewInterval = 14;
-      else if (correct >= 4) reviewInterval = 7;
-      else if (correct >= 3) reviewInterval = 3;
-      else reviewInterval = 1;
-    } else if (strength === 'medium') {
-      if (correct >= 4) reviewInterval = 3;
-      else if (correct >= 2) reviewInterval = 2;
-      else reviewInterval = 1;
-    } else {
-      reviewInterval = 0.5;
-    }
-    
-    let weight = 100;
-    if (daysSince >= reviewInterval) {
-      const overdueDays = daysSince - reviewInterval;
-      weight = 9000 + (overdueDays * 100) + tierBonus;
-      if (strength === 'weak') weight += 1000;
-    } else if (strength === 'weak' || accuracy < 0.5) {
-      weight = 7000 + (daysSince * 10) + tierBonus;
-    } else if (strength === 'medium') {
-      if (daysSince >= reviewInterval * 0.7) {
-        weight = 4000 + (daysSince * 5) + tierBonus;
-      } else {
-        weight = 2000 + tierBonus;
-      }
-    } else if (strength === 'strong') {
-      if (daysSince >= reviewInterval * 0.8) {
-        weight = 1500 + (daysSince * 2) + tierBonus;
-      } else {
-        weight = 50 + tierBonus;
-      }
-    }
-    
-    if (incorrect > correct && total >= 2) weight *= 1.3;
-    if (strength === 'strong' && correct >= 8 && daysSince < reviewInterval * 0.5) {
-      weight = Math.max(10, weight * 0.3);
-    }
-    
-    return weight;
+    // Use the unified SRS algorithm
+    return calculateSRSWeight(vProgress, tierBonus);
   };
 
   // Filter and randomize vocabulary based on SRS weight and tier priority
@@ -876,130 +827,35 @@ export function VocabTrainingPage({ lang, vocabProgress, updateVocabProgress }: 
   const [sessionVocab, setSessionVocab] = useState<VocabularyItem[]>([]);
   const [sessionStats, setSessionStats] = useState({ correct: 0, incorrect: 0, total: 0 });
 
-  // Enhanced SRS weight calculation for vocabulary (Anki/SM-2 style)
-  // Priority system:
-  // 1. DUE items (past their review interval) - HIGHEST
-  // 2. WEAK items (need practice) - HIGH
-  // 3. NEW items (never seen) - MEDIUM-HIGH
-  // 4. MEDIUM items - MEDIUM
-  // 5. STRONG items (only when due or for occasional review) - LOW
-  
+  // Use the unified SRS weight calculation from srsAlgorithm.ts
   const calculateVocabWeight = (vocabId: string) => {
     const vProgress = vocabProgress[vocabId];
     
     // Get vocabulary tier for additional priority
     const vocab = CITIZENSHIP_VOCABULARY.find((v: VocabularyItem) => v.de === vocabId);
     const tierBonus = vocab ? 
-      (vocab.tier === 1 ? 400 : vocab.tier === 2 ? 300 : 200) : 0;
+      (vocab.tier === 1 ? 400 : vocab.tier === 2 ? 300 : vocab.tier === 3 ? 200 : 100) : 0;
     
-    // NEW word - never seen before
-    if (!vProgress) {
-      return 8000 + tierBonus; // High priority for new words (but lower than due items)
-    }
-    
-    const { correct, incorrect, lastSeen } = vProgress;
-    const total = correct + incorrect;
-    const accuracy = total > 0 ? correct / total : 0;
-    
-    // Calculate days since last seen
-    const daysSince = lastSeen ? 
-      Math.floor((Date.now() - new Date(lastSeen).getTime()) / (1000 * 60 * 60 * 24)) : 999;
-    
-    // Determine strength level
-    let strength: 'weak' | 'medium' | 'strong' = 'weak';
-    if (total >= 3 && accuracy >= 0.8) strength = 'strong';
-    else if (total >= 2 && accuracy >= 0.6) strength = 'medium';
-    
-    // Calculate review interval based on strength (Anki-style exponential backoff)
-    let reviewInterval = 1; // days
-    
-    if (strength === 'strong') {
-      // Strong words: exponential intervals (1 → 3 → 7 → 14 → 30 → 60 days)
-      if (correct >= 10) reviewInterval = 60;
-      else if (correct >= 8) reviewInterval = 30;
-      else if (correct >= 6) reviewInterval = 14;
-      else if (correct >= 4) reviewInterval = 7;
-      else if (correct >= 3) reviewInterval = 3;
-      else reviewInterval = 1;
-    } else if (strength === 'medium') {
-      // Medium words: slower progression (1 → 2 → 3 days)
-      if (correct >= 4) reviewInterval = 3;
-      else if (correct >= 2) reviewInterval = 2;
-      else reviewInterval = 1;
-    } else {
-      // Weak words: review frequently (0.5 days = 12 hours)
-      reviewInterval = 0.5;
-    }
-    
-    let weight = 100;
-    
-    // PRIORITY 1: DUE items (past review interval) - HIGHEST PRIORITY
-    if (daysSince >= reviewInterval) {
-      const overdueDays = daysSince - reviewInterval;
-      weight = 9000 + (overdueDays * 100) + tierBonus;
-      
-      // Extra boost for overdue weak items
-      if (strength === 'weak') {
-        weight += 1000;
-      }
-    }
-    
-    // PRIORITY 2: WEAK items (need practice) - HIGH PRIORITY
-    else if (strength === 'weak' || accuracy < 0.5) {
-      weight = 7000 + (daysSince * 10) + tierBonus;
-    }
-    
-    // PRIORITY 3: MEDIUM items - MEDIUM PRIORITY
-    else if (strength === 'medium') {
-      // Show medium items when they're getting close to due
-      if (daysSince >= reviewInterval * 0.7) {
-        weight = 4000 + (daysSince * 5) + tierBonus;
-      } else {
-        weight = 2000 + tierBonus;
-      }
-    }
-    
-    // PRIORITY 4: STRONG items - LOW PRIORITY (only when due or occasional review)
-    else if (strength === 'strong') {
-      if (daysSince >= reviewInterval * 0.8) {
-        // Strong items approaching their due date
-        weight = 1500 + (daysSince * 2) + tierBonus;
-      } else {
-        // Strong items not due yet - very low priority
-        weight = 50 + tierBonus;
-      }
-    }
-    
-    // Boost for words with more incorrect than correct
-    if (incorrect > correct && total >= 2) {
-      weight *= 1.3;
-    }
-    
-    // Penalty for very well-known items that aren't due
-    if (strength === 'strong' && correct >= 8 && daysSince < reviewInterval * 0.5) {
-      weight = Math.max(10, weight * 0.3); // Significantly reduce priority
-    }
-    
-    return weight;
+    // Use the unified SRS algorithm
+    return calculateSRSWeight(vProgress, tierBonus);
   };
 
   // Calculate session size based on progress
   const calculateSessionSize = () => {
     const answeredCount = Object.keys(vocabProgress).length;
-    const strongCount = Object.values(vocabProgress).filter((p: any) => {
-      const total = p.correct + p.incorrect;
-      const accuracy = total > 0 ? p.correct / total : 0;
-      return total >= 3 && accuracy >= 0.75;
-    }).length;
-    const accuracyRate = answeredCount > 0 ? strongCount / answeredCount : 0;
+    const matureCount = Object.values(vocabProgress).filter((p: any) => 
+      p.srsLevel === 'mature' || p.srsLevel === 'mastered'
+    ).length;
+    const accuracyRate = answeredCount > 0 ? matureCount / answeredCount : 0;
     
-    let baseSize = 15; // Start smaller for vocabulary
+    // EXAM-FOCUSED: Larger sessions for faster coverage (30-40 words)
+    let baseSize = 30; // Increased from 15
     
-    if (answeredCount > 30 && accuracyRate > 0.6) baseSize = 20;
-    if (answeredCount > 60 && accuracyRate > 0.7) baseSize = 25;
-    if (answeredCount > 90 && accuracyRate > 0.75) baseSize = 30;
+    if (answeredCount > 50 && accuracyRate > 0.5) baseSize = 35;
+    if (answeredCount > 100 && accuracyRate > 0.6) baseSize = 40;
+    if (answeredCount > 200 && accuracyRate > 0.7) baseSize = 45; // Max for experienced learners
     
-    return baseSize;
+    return Math.min(baseSize, CITIZENSHIP_VOCABULARY.length);
   };
 
   // Select vocabulary for training - Prioritizes Tier 1 (Essential), then Tier 2 (Important), then Tier 3
@@ -1242,6 +1098,68 @@ export function VocabTrainingPage({ lang, vocabProgress, updateVocabProgress }: 
               </div>
               <p className="text-xs text-yellow-700 mt-1">{tier3Progress}% {lang === 'de' ? 'gemeistert' : 'mastered'}</p>
             </div>
+          </div>
+
+          {/* SRS Level Distribution */}
+          <div className="mb-6">
+            <h3 className="font-bold text-gray-800 text-sm mb-3">
+              {lang === 'de' ? '🎓 SRS-Stufen Verteilung' : '🎓 SRS Level Distribution'}
+            </h3>
+            {(() => {
+              const srsDistribution = {
+                new: CITIZENSHIP_VOCABULARY.filter(v => !vocabProgress[v.de]).length,
+                learning: 0,
+                young: 0,
+                mature: 0,
+                mastered: 0
+              };
+              
+              Object.values(vocabProgress).forEach((vp: any) => {
+                const level = vp.srsLevel || 'new';
+                if (level in srsDistribution && level !== 'new') {
+                  srsDistribution[level as keyof typeof srsDistribution]++;
+                }
+              });
+
+              return (
+                <div className="grid grid-cols-5 gap-2">
+                  <div className="bg-blue-100 rounded-lg p-3 text-center border-2 border-blue-200">
+                    <div className="text-2xl mb-1">🆕</div>
+                    <div className="text-xl font-bold text-blue-800">{srsDistribution.new}</div>
+                    <div className="text-xs text-blue-600 capitalize">{lang === 'de' ? 'Neu' : 'New'}</div>
+                  </div>
+
+                  <div className="bg-orange-100 rounded-lg p-3 text-center border-2 border-orange-200">
+                    <div className="text-2xl mb-1">📚</div>
+                    <div className="text-xl font-bold text-orange-800">{srsDistribution.learning}</div>
+                    <div className="text-xs text-orange-600 capitalize">{lang === 'de' ? 'Lerne' : 'Learning'}</div>
+                  </div>
+
+                  <div className="bg-yellow-100 rounded-lg p-3 text-center border-2 border-yellow-200">
+                    <div className="text-2xl mb-1">🌱</div>
+                    <div className="text-xl font-bold text-yellow-800">{srsDistribution.young}</div>
+                    <div className="text-xs text-yellow-600 capitalize">{lang === 'de' ? 'Jung' : 'Young'}</div>
+                  </div>
+
+                  <div className="bg-green-100 rounded-lg p-3 text-center border-2 border-green-200">
+                    <div className="text-2xl mb-1">🌳</div>
+                    <div className="text-xl font-bold text-green-800">{srsDistribution.mature}</div>
+                    <div className="text-xs text-green-600 capitalize">{lang === 'de' ? 'Reif' : 'Mature'}</div>
+                  </div>
+
+                  <div className="bg-purple-100 rounded-lg p-3 text-center border-2 border-purple-200">
+                    <div className="text-2xl mb-1">⭐</div>
+                    <div className="text-xl font-bold text-purple-800">{srsDistribution.mastered}</div>
+                    <div className="text-xs text-purple-600 capitalize">{lang === 'de' ? 'Gemeistert' : 'Mastered'}</div>
+                  </div>
+                </div>
+              );
+            })()}
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              {lang === 'de' 
+                ? `📈 ${Object.keys(vocabProgress).length} von ${CITIZENSHIP_VOCABULARY.length} Wörtern studiert`
+                : `📈 ${Object.keys(vocabProgress).length} of ${CITIZENSHIP_VOCABULARY.length} words studied`}
+            </p>
           </div>
 
           <div className="space-y-3 mb-6">

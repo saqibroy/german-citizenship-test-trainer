@@ -1,13 +1,20 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Globe, BookOpen, Award, ChevronRight, Check, X, Eye, EyeOff, BarChart3,
-  Calendar, Target, Clock, Lightbulb, Flame, GraduationCap,
+  Target, Clock, Lightbulb, Flame, GraduationCap,
   AlertCircle, CheckCircle2, Brain, Sparkles, BookMarked, Zap
 } from 'lucide-react';
 import { QUESTIONS, CATEGORY_ICONS } from './data.js';
 import { CITIZENSHIP_VOCABULARY } from './vacabulary.js';
 import { VocabPage, StudyPlanPage, VocabPopup, HighlightedText, VocabTrainingPage } from './components.tsx';
 import { GrammarLessonsPage } from './GrammarLessons.tsx';
+import { PerformancePage } from './PerformancePage.tsx';
+import { 
+  SRS_CONFIG,
+  updateProgress as updateSRSProgress,
+  calculateTestReadiness,
+  daysSinceLastSeen
+} from './srsAlgorithm';
 import type { Question, QuestionProgress, QuizResult, CategoryBreakdown, VocabProgress, HomePageProps, QuizPageProps, TrainingPageProps, CardsPageProps, ProgressPageProps } from './types';
 
 // Shuffle array function
@@ -232,16 +239,25 @@ export default function App() {
   };
 
   const updateProgress = (qId: number, correct: boolean) => {
+    const existing = progress[qId];
+    const newCorrect = (existing?.correct || 0) + (correct ? 1 : 0);
+    const newIncorrect = (existing?.incorrect || 0) + (correct ? 0 : 1);
+    
     const newProgress = {
       ...progress,
       [qId]: {
-        correct: (progress[qId]?.correct || 0) + (correct ? 1 : 0),
-        incorrect: (progress[qId]?.incorrect || 0) + (correct ? 0 : 1),
+        correct: newCorrect,
+        incorrect: newIncorrect,
         lastSeen: new Date().toISOString(),
-        strength: calculateStrength(
-          (progress[qId]?.correct || 0) + (correct ? 1 : 0),
-          (progress[qId]?.incorrect || 0) + (correct ? 0 : 1)
-        )
+        strength: calculateStrength(newCorrect, newIncorrect),
+        // New SRS fields with defaults for backward compatibility
+        srsLevel: existing?.srsLevel || 'new',
+        easeFactor: existing?.easeFactor || SRS_CONFIG.DEFAULT_EASE,
+        interval: existing?.interval || 0,
+        repetitions: existing?.repetitions || 0,
+        lapses: existing?.lapses || 0,
+        averageTime: existing?.averageTime || 0,
+        lastConfidence: existing?.lastConfidence
       }
     };
     setProgress(newProgress);
@@ -315,23 +331,24 @@ export default function App() {
     vocab: { de: 'Vokabeln', en: 'Vocab' },
     grammar: { de: 'Grammatik', en: 'Grammar' },
     studyplan: { de: 'Plan', en: 'Plan' },
-    progress: { de: 'Stats', en: 'Stats' }
+    progress: { de: 'Stats', en: 'Stats' },
+    performance: { de: '📊 Leistung', en: '📊 Performance' }
   };
 
-  const updateVocabProgress = (word: string, known: boolean) => {
+  const updateVocabProgress = (word: string, known: boolean, answerTime: number = 5) => {
+    const existing = vocabProgress[word];
+    
+    // Use the new SRS algorithm
+    const updated = updateSRSProgress(existing, known, answerTime) as VocabProgress;
+    
     const newVocabProgress: Record<string, VocabProgress> = {
       ...vocabProgress,
-      [word]: {
-        correct: (vocabProgress[word]?.correct || 0) + (known ? 1 : 0),
-        incorrect: (vocabProgress[word]?.incorrect || 0) + (known ? 0 : 1),
-        lastSeen: new Date().toISOString(),
-        easeFactor: vocabProgress[word]?.easeFactor || 2.5,
-        interval: vocabProgress[word]?.interval || 0,
-        repetitions: vocabProgress[word]?.repetitions || 0
-      }
+      [word]: updated
     };
+    
     setVocabProgress(newVocabProgress);
     localStorage.setItem('vocabProgress', JSON.stringify(newVocabProgress));
+    updateStudyStreak();
   };
 
   const toggleFavoriteVocab = (word: string) => {
@@ -358,7 +375,7 @@ export default function App() {
           </button>
         </div>
         <nav className="flex border-t overflow-x-auto">
-          {['home', 'training', 'quiz', 'vocab', 'grammar', 'progress'].map(p => (
+          {['home', 'training', 'quiz', 'vocab', 'grammar', 'performance'].map(p => (
             <button key={p} onClick={() => setPage(p)} className={`flex-1 py-3 text-xs font-semibold whitespace-nowrap px-2 ${page === p ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500'}`}>
               {t[p as keyof typeof t][lang as 'de' | 'en']}
             </button>
@@ -367,7 +384,7 @@ export default function App() {
       </header>
 
       <main className="pb-6">
-        {page === 'home' && <HomePage lang={lang} badges={badges} progress={progress} setPage={setPage} studyStreak={studyStreak} quizHistory={quizHistory} />}
+        {page === 'home' && <HomePage lang={lang} badges={badges} progress={progress} setPage={setPage} studyStreak={studyStreak} />}
         {page === 'training' && <TrainingPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
         {page === 'quiz' && <QuizPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} saveQuizResult={saveQuizResult} />}
         {page === 'cards' && <CardsPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
@@ -396,135 +413,252 @@ export default function App() {
         {page === 'grammar' && <GrammarLessonsPage lang={lang as 'de' | 'en'} />}
         {page === 'studyplan' && <StudyPlanPage lang={lang} progress={progress} questions={QUESTIONS} quizHistory={quizHistory} studyStreak={studyStreak} />}
         {page === 'progress' && <ProgressPage lang={lang} questions={QUESTIONS} progress={progress} badges={badges} quizHistory={quizHistory} />}
+        {page === 'performance' && <PerformancePage lang={lang as 'de' | 'en'} progress={progress} questions={QUESTIONS} quizHistory={quizHistory} studyStreak={studyStreak} vocabProgress={vocabProgress} vocabulary={CITIZENSHIP_VOCABULARY} />}
       </main>
     </div>
   );
 }
 
-function HomePage({ lang, badges, progress, setPage, studyStreak, quizHistory }: HomePageProps) {
+function HomePage({ lang, badges, progress, setPage, studyStreak }: HomePageProps) {
   const answered = Object.keys(progress).length;
-  const strong = Object.values(progress).filter((p: any) => p.strength === 'strong').length;
   const daysRemaining = getDaysRemaining();
-  const latestQuiz = quizHistory[0];
+  
+  // Calculate test readiness (from srsAlgorithm)
+  const readiness = calculateTestReadiness(progress, QUESTIONS.length);
+  
+  // Calculate due questions
+  const dueCount = Object.entries(progress).filter(([_, p]) => {
+    const daysSince = daysSinceLastSeen(p.lastSeen);
+    return daysSince >= (p.interval || 0);
+  }).length;
+  
+  // Calculate SRS distribution
+  const srsDistribution = {
+    new: QUESTIONS.length - answered,
+    learning: 0,
+    young: 0,
+    mature: 0,
+    mastered: 0
+  };
+  
+  Object.values(progress).forEach((p: any) => {
+    const level = p.srsLevel || 'learning';
+    if (level in srsDistribution) {
+      srsDistribution[level as keyof typeof srsDistribution]++;
+    }
+  });
+
+  // Daily targets
+  const questionsPerDay = daysRemaining > 0 ? Math.ceil((QUESTIONS.length - answered) / daysRemaining) : QUESTIONS.length - answered;
+  const reviewsPerDay = daysRemaining > 0 ? Math.ceil(dueCount / Math.min(7, daysRemaining)) : dueCount;
   
   return (
-    <div className="p-4 space-y-4">
-      {/* Exam Countdown Banner */}
-      <div className="bg-gradient-to-br from-red-500 to-pink-600 text-white rounded-2xl p-6 shadow-xl">
-        <div className="flex items-center gap-3 mb-2">
-          <Calendar size={28} />
-          <div>
-            <h2 className="text-2xl font-bold">{lang === 'de' ? 'Prüfung in' : 'Exam in'}</h2>
-            <p className="text-3xl font-black mt-1">{daysRemaining} {lang === 'de' ? 'Tagen' : 'Days'}</p>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 space-y-4">
+      {/* Exam Countdown - Hero Section */}
+      <div className="bg-gradient-to-br from-red-600 to-pink-600 text-white rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-32 -mt-32"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-5 rounded-full -ml-24 -mb-24"></div>
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-black mb-2">
+                {lang === 'de' ? '🗓️ Prüfung in' : '🗓️ Exam in'}
+              </h1>
+              <div className="text-6xl font-black">{daysRemaining}</div>
+              <div className="text-2xl font-bold opacity-90 mt-1">
+                {lang === 'de' ? 'Tagen' : 'Days'}
+              </div>
+            </div>
+            <Target className="opacity-20" size={120} />
           </div>
-        </div>
-        <p className="opacity-90 text-sm mt-2">📅 {lang === 'de' ? 'Zieldatum: 2. Dezember 2025' : 'Target Date: December 2, 2025'}</p>
-      </div>
-
-      {/* Welcome Card */}
-      <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-2xl p-6 shadow-xl">
-        <h2 className="text-2xl font-bold mb-2">{lang === 'de' ? 'Willkommen zurück!' : 'Welcome back!'}</h2>
-        <p className="opacity-90 text-sm">{lang === 'de' ? 'Bereite dich auf den offiziellen Einbürgerungstest vor mit intelligentem Lernsystem!' : 'Prepare for the official citizenship test with intelligent learning system!'}</p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-indigo-500">
-          <div className="text-3xl font-bold text-indigo-600">{answered}/{QUESTIONS.length}</div>
-          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '✓ Fragen geübt' : '✓ Questions Practiced'}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-green-500">
-          <div className="text-3xl font-bold text-green-600">{strong}</div>
-          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '💪 Starke Bereiche' : '💪 Strong Areas'}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-orange-500">
-          <div className="flex items-center gap-2">
-            <Flame className="text-orange-500" size={24} />
-            <div className="text-3xl font-bold text-orange-600">{studyStreak}</div>
-          </div>
-          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '🔥 Tage Streak' : '🔥 Day Streak'}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-purple-500">
-          <div className="text-3xl font-bold text-purple-600">{latestQuiz ? `${Math.round((latestQuiz.score / latestQuiz.total) * 100)}%` : '--'}</div>
-          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '📊 Letztes Quiz' : '📊 Latest Quiz'}</div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="space-y-3">
-        <button onClick={() => setPage('training')} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-          <div className="flex items-center gap-3">
-            <Brain size={24} />
-            <span>{lang === 'de' ? '🧠 Training Mode (Anki-Stil)' : '🧠 Training Mode (Anki-style)'}</span>
-          </div>
-          <ChevronRight />
-        </button>
-        <button onClick={() => setPage('quiz')} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-          <div className="flex items-center gap-3">
-            <Target size={24} />
-            <span>{lang === 'de' ? 'Quiz starten (33 Fragen)' : 'Start Quiz (33 Questions)'}</span>
-          </div>
-          <ChevronRight />
-        </button>
-        <button onClick={() => setPage('cards')} className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-          <div className="flex items-center gap-3">
-            <BookOpen size={24} />
-            <span>{lang === 'de' ? 'Kartenset üben' : 'Practice Flashcards'}</span>
-          </div>
-          <ChevronRight />
-        </button>
-        <button onClick={() => setPage('vocab')} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-          <div className="flex items-center gap-3">
-            <BookMarked size={24} />
-            <span>{lang === 'de' ? 'Vokabeln lernen' : 'Learn Vocabulary'}</span>
-          </div>
-          <ChevronRight />
-        </button>
-        <button onClick={() => setPage('grammar')} className="w-full bg-gradient-to-r from-teal-500 to-green-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-          <div className="flex items-center gap-3">
-            <GraduationCap size={24} />
-            <span>{lang === 'de' ? '📖 Grammatik Lektionen' : '📖 Grammar Lessons'}</span>
-          </div>
-          <ChevronRight />
-        </button>
-        <button onClick={() => setPage('studyplan')} className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-          <div className="flex items-center gap-3">
-            <Calendar size={24} />
-            <span>{lang === 'de' ? 'Lernplan ansehen' : 'View Study Plan'}</span>
-          </div>
-          <ChevronRight />
-        </button>
-      </div>
-
-      {/* Badges */}
-      {badges.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-md">
-          <div className="flex items-center gap-2 mb-3">
-            <Award className="text-yellow-500" size={20} />
-            <h3 className="font-bold text-gray-800">{lang === 'de' ? 'Abzeichen' : 'Badges'}</h3>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {badges.map((b: any, i: any) => (
-              <span key={i} className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md">🏆 {b}</span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Quick Tip */}
-      <div className="bg-blue-50 border-l-4 border-blue-500 rounded-xl p-4 shadow-sm">
-        <div className="flex items-start gap-3">
-          <Lightbulb className="text-blue-500 flex-shrink-0 mt-0.5" size={20} />
-          <div>
-            <h4 className="font-bold text-blue-900 mb-1">{lang === 'de' ? 'Tipp des Tages' : 'Daily Tip'}</h4>
-            <p className="text-sm text-blue-800">
-              {lang === 'de' 
-                ? 'Klicke auf hervorgehobene Wörter in Quizfragen, um sofortige Übersetzungen und Definitionen zu sehen!' 
-                : 'Click on highlighted words in quiz questions to see instant translations and definitions!'}
+          <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-4 mt-4">
+            <p className="text-lg font-semibold">
+              📅 {lang === 'de' ? 'Zieldatum: 2. Dezember 2025' : 'Target Date: December 2, 2025'}
             </p>
           </div>
         </div>
       </div>
+
+      {/* Test Readiness Card */}
+      <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-3xl p-6 shadow-xl text-white">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold mb-1">
+              {lang === 'de' ? '📊 Testbereitschaft' : '📊 Test Readiness'}
+            </h2>
+            <div className="text-5xl font-black">{readiness.score}%</div>
+          </div>
+          <Brain className="opacity-30" size={80} />
+        </div>
+        <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-full h-4 overflow-hidden mb-3">
+          <div 
+            className="bg-white h-full rounded-full transition-all duration-500"
+            style={{ width: `${readiness.score}%` }}
+          ></div>
+        </div>
+        <p className="text-sm opacity-90">
+          {readiness.score >= 80 ? '🎉 ' + (lang === 'de' ? 'Bereit für die Prüfung!' : 'Ready for the exam!') :
+           readiness.score >= 60 ? '👍 ' + (lang === 'de' ? 'Fast geschafft!' : 'Almost there!') :
+           readiness.score >= 40 ? '📚 ' + (lang === 'de' ? 'Weiter üben!' : 'Keep practicing!') :
+           '💪 ' + (lang === 'de' ? 'Guter Start!' : 'Good start!')}
+        </p>
+      </div>
+
+      {/* Daily Goals */}
+      <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-indigo-200">
+        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Target className="text-indigo-600" size={24} />
+          {lang === 'de' ? 'Tägliche Ziele' : 'Daily Goals'}
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border-2 border-purple-200">
+            <div className="text-3xl font-bold text-purple-600">{questionsPerDay}</div>
+            <div className="text-xs text-purple-800 font-semibold mt-1">
+              {lang === 'de' ? 'Neue Fragen' : 'New Questions'}
+            </div>
+            <div className="text-xs text-gray-600 mt-1">
+              {lang === 'de' ? 'pro Tag' : 'per day'}
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border-2 border-orange-200">
+            <div className="text-3xl font-bold text-orange-600">{reviewsPerDay}</div>
+            <div className="text-xs text-orange-800 font-semibold mt-1">
+              {lang === 'de' ? 'Wiederholungen' : 'Reviews'}
+            </div>
+            <div className="text-xs text-gray-600 mt-1">
+              {lang === 'de' ? 'pro Tag' : 'per day'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-indigo-500">
+          <div className="text-3xl font-bold text-indigo-600">{answered}</div>
+          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '✓ Fragen' : '✓ Questions'}</div>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-green-500">
+          <div className="text-3xl font-bold text-green-600">{srsDistribution.mastered}</div>
+          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '⭐ Gemeistert' : '⭐ Mastered'}</div>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-orange-500">
+          <div className="flex items-center gap-2">
+            <Flame className="text-orange-500" size={20} />
+            <div className="text-3xl font-bold text-orange-600">{studyStreak}</div>
+          </div>
+          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '🔥 Streak' : '🔥 Streak'}</div>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-red-500">
+          <div className="text-3xl font-bold text-red-600">{dueCount}</div>
+          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '⏰ Fällig' : '⏰ Due'}</div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-purple-200">
+        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Zap className="text-purple-600" size={24} />
+          {lang === 'de' ? 'Schnellstart' : 'Quick Actions'}
+        </h3>
+        <div className="space-y-3">
+          {dueCount > 0 && (
+            <button onClick={() => setPage('training')} className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
+              <div className="flex items-center gap-3">
+                <AlertCircle size={24} />
+                <div className="text-left">
+                  <div className="font-black">{lang === 'de' ? '🔄 Fällige Fragen wiederholen' : '🔄 Review Due Questions'}</div>
+                  <div className="text-xs opacity-90">{dueCount} {lang === 'de' ? 'Fragen warten' : 'questions waiting'}</div>
+                </div>
+              </div>
+              <ChevronRight />
+            </button>
+          )}
+          
+          <button onClick={() => setPage('training')} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
+            <div className="flex items-center gap-3">
+              <Brain size={24} />
+              <div className="text-left">
+                <div className="font-black">{lang === 'de' ? '🧠 Training starten' : '🧠 Start Training'}</div>
+                <div className="text-xs opacity-90">{lang === 'de' ? 'Anki-Stil SRS' : 'Anki-style SRS'}</div>
+              </div>
+            </div>
+            <ChevronRight />
+          </button>
+
+          <button onClick={() => setPage('quiz')} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
+            <div className="flex items-center gap-3">
+              <Target size={24} />
+              <div className="text-left">
+                <div className="font-black">{lang === 'de' ? '🎯 Praxis-Quiz' : '🎯 Practice Quiz'}</div>
+                <div className="text-xs opacity-90">33 {lang === 'de' ? 'Fragen' : 'questions'}</div>
+              </div>
+            </div>
+            <ChevronRight />
+          </button>
+
+          <button onClick={() => setPage('vocab')} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
+            <div className="flex items-center gap-3">
+              <BookMarked size={24} />
+              <div className="text-left">
+                <div className="font-black">{lang === 'de' ? '📚 Vokabeln' : '📚 Vocabulary'}</div>
+                <div className="text-xs opacity-90">{lang === 'de' ? 'Mit SRS lernen' : 'Learn with SRS'}</div>
+              </div>
+            </div>
+            <ChevronRight />
+          </button>
+        </div>
+      </div>
+
+      {/* Secondary Actions */}
+      <div className="grid grid-cols-2 gap-3">
+        <button onClick={() => setPage('cards')} className="bg-white text-gray-800 rounded-xl p-4 font-bold shadow-md border-2 border-gray-200 hover:border-gray-300 transition-all">
+          <BookOpen className="mx-auto mb-2 text-green-600" size={28} />
+          <div className="text-sm">{lang === 'de' ? 'Kartenset' : 'Flashcards'}</div>
+        </button>
+        <button onClick={() => setPage('grammar')} className="bg-white text-gray-800 rounded-xl p-4 font-bold shadow-md border-2 border-gray-200 hover:border-gray-300 transition-all">
+          <GraduationCap className="mx-auto mb-2 text-teal-600" size={28} />
+          <div className="text-sm">{lang === 'de' ? 'Grammatik' : 'Grammar'}</div>
+        </button>
+      </div>
+
+      {/* Progress Insight */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded-xl p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <Lightbulb className="text-green-600 flex-shrink-0 mt-0.5" size={22} />
+          <div>
+            <h4 className="font-bold text-green-900 mb-1">
+              {lang === 'de' ? '💡 Fortschritts-Einblick' : '💡 Progress Insight'}
+            </h4>
+            <p className="text-sm text-green-800">
+              {srsDistribution.mastered >= 100 
+                ? (lang === 'de' ? '🎉 Großartig! Du hast über 100 Fragen gemeistert!' : '🎉 Amazing! You\'ve mastered over 100 questions!')
+                : answered < 50
+                ? (lang === 'de' ? `🚀 Beginne mit ${questionsPerDay} neuen Fragen pro Tag für ${daysRemaining} Tage!` : `🚀 Start with ${questionsPerDay} new questions per day for ${daysRemaining} days!`)
+                : dueCount > 20
+                ? (lang === 'de' ? `⏰ Fokussiere auf ${dueCount} fällige Wiederholungen heute!` : `⏰ Focus on ${dueCount} due reviews today!`)
+                : (lang === 'de' ? '📚 Weiter so! Balance neue Fragen mit Wiederholungen.' : '📚 Keep it up! Balance new questions with reviews.')}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Badges */}
+      {badges.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-md border-2 border-yellow-200">
+          <div className="flex items-center gap-2 mb-3">
+            <Award className="text-yellow-500" size={22} />
+            <h3 className="font-bold text-gray-800">{lang === 'de' ? '🏆 Abzeichen' : '🏆 Badges'}</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {badges.map((b: any, i: any) => (
+              <span key={i} className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md">
+                {b}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -618,7 +752,7 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
     });
     
     // Save quiz result on first render
-    React.useEffect(() => {
+    useEffect(() => {
       saveQuizResult(score, 33, categoryBreakdown);
     }, []);
     
@@ -753,7 +887,16 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
                         String.fromCharCode(65 + idx)
                       )}
                     </span>
-                    <span className="flex-1">{displayText}</span>
+                    <span className="flex-1">
+                      {showingTranslation ? (
+                        displayText
+                      ) : (
+                        <HighlightedText 
+                          text={opt.text}
+                          onClick={(word: string) => setSelectedVocab(word)}
+                        />
+                      )}
+                    </span>
                   </div>
                 </button>
                 
@@ -907,35 +1050,73 @@ function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPag
     return Math.min(baseSize, Math.max(10, remaining));
   };
 
-  // Smart question selection for training
+  // Smart question selection for training with CATEGORY BALANCING
   const selectTrainingQuestions = (count: number) => {
-    const weightedQuestions = questions.map((q: any) => ({
-      ...q,
-      srsWeight: calculateSRSWeight(progress[q.id])
-    })).sort((a: any, b: any) => b.srsWeight - a.srsWeight);
+    // First, get all categories and their question counts
+    const categories = [...new Set(questions.map((q: any) => q.category))];
+    const categoryStats = categories.map(cat => {
+      const catQuestions = questions.filter((q: any) => q.category === cat);
+      const answered = catQuestions.filter((q: any) => progress[q.id]).length;
+      const weak = catQuestions.filter((q: any) => progress[q.id]?.strength === 'weak').length;
+      const avgAccuracy = catQuestions.reduce((acc, q: any) => {
+        const p = progress[q.id];
+        if (!p) return acc;
+        const total = p.correct + p.incorrect;
+        return acc + (total > 0 ? p.correct / total : 0);
+      }, 0) / Math.max(1, answered);
+      
+      return {
+        category: cat,
+        total: catQuestions.length,
+        answered,
+        weak,
+        avgAccuracy,
+        coverage: answered / catQuestions.length,
+        priority: (1 - (answered / catQuestions.length)) * 2 + (weak / catQuestions.length) + (1 - avgAccuracy)
+      };
+    }).sort((a, b) => b.priority - a.priority);
 
-    // Mix of question types:
-    // - 40% New questions (never seen)
-    // - 30% Weak questions (need reinforcement)
-    // - 20% Due for review (based on interval)
-    // - 10% Random (for variety)
+    // Calculate how many questions to take from each category
+    const questionsPerCategory: Record<string, number> = {};
+    const basePerCategory = Math.floor(count / categories.length);
+    let remaining = count - (basePerCategory * categories.length);
     
-    const newQuestions = weightedQuestions.filter((q: any) => !progress[q.id]).slice(0, Math.ceil(count * 0.4));
-    const weakQuestions = weightedQuestions.filter((q: any) => progress[q.id]?.strength === 'weak').slice(0, Math.ceil(count * 0.3));
-    const dueQuestions = weightedQuestions.filter((q: any) => {
-      if (!progress[q.id]) return false;
-      const daysSince = Math.floor((Date.now() - new Date(progress[q.id].lastSeen).getTime()) / (1000 * 60 * 60 * 24));
-      return daysSince >= 1;
-    }).slice(0, Math.ceil(count * 0.2));
-    const randomQuestions = shuffleArray(weightedQuestions).slice(0, Math.ceil(count * 0.1));
+    // Distribute questions proportionally with priority for weak categories
+    categoryStats.forEach(stat => {
+      questionsPerCategory[stat.category] = basePerCategory;
+      if (stat.priority > 2 && remaining > 0) {
+        questionsPerCategory[stat.category]++;
+        remaining--;
+      }
+    });
+    
+    // Distribute any remaining questions to highest priority categories
+    categoryStats.forEach(stat => {
+      if (remaining > 0) {
+        questionsPerCategory[stat.category]++;
+        remaining--;
+      }
+    });
 
-    // Combine and shuffle
-    const combined = [...newQuestions, ...weakQuestions, ...dueQuestions, ...randomQuestions];
-    const unique = Array.from(new Set(combined.map((q: any) => q.id))).map(id => 
-      combined.find((q: any) => q.id === id)
-    );
+    // Now select questions from each category using SRS weighting
+    const selectedQuestions: any[] = [];
     
-    return shuffleArray(unique).slice(0, count);
+    categories.forEach(cat => {
+      const catQuestions = questions.filter((q: any) => q.category === cat);
+      const targetCount = questionsPerCategory[cat];
+      
+      // Weight questions by SRS score
+      const weightedCatQuestions = catQuestions.map((q: any) => ({
+        ...q,
+        srsWeight: calculateSRSWeight(progress[q.id])
+      })).sort((a: any, b: any) => b.srsWeight - a.srsWeight);
+
+      // Take the highest priority questions from this category
+      selectedQuestions.push(...weightedCatQuestions.slice(0, targetCount));
+    });
+
+    // Shuffle the final selection to mix categories
+    return shuffleArray(selectedQuestions).slice(0, count);
   };
 
   const startTraining = () => {
@@ -1071,6 +1252,46 @@ function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPag
               </div>
               <CheckCircle2 className="text-green-500" size={24} />
             </div>
+          </div>
+
+          {/* Category Coverage Indicator */}
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-6 border-2 border-indigo-200">
+            <h4 className="font-bold text-indigo-900 mb-3 flex items-center gap-2">
+              <BarChart3 className="text-indigo-600" size={18} />
+              {lang === 'de' ? '📚 Kategorieabdeckung' : '📚 Category Coverage'}
+            </h4>
+            {(() => {
+              const categories = [...new Set(questions.map((q: any) => q.category))];
+              const categoryProgress = categories.map(cat => {
+                const catQuestions = questions.filter((q: any) => q.category === cat);
+                const answered = catQuestions.filter((q: any) => progress[q.id]).length;
+                const coverage = (answered / catQuestions.length) * 100;
+                return { category: cat, coverage, answered, total: catQuestions.length };
+              }).sort((a, b) => a.coverage - b.coverage);
+
+              const weakCategories = categoryProgress.filter(c => c.coverage < 50);
+              const strongCategories = categoryProgress.filter(c => c.coverage >= 80);
+
+              return (
+                <div>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="bg-white rounded-lg p-3 text-center">
+                      <div className="text-2xl font-bold text-red-600">{weakCategories.length}</div>
+                      <div className="text-xs text-gray-600">{lang === 'de' ? 'Schwache' : 'Weak'}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 text-center">
+                      <div className="text-2xl font-bold text-green-600">{strongCategories.length}</div>
+                      <div className="text-xs text-gray-600">{lang === 'de' ? 'Stark' : 'Strong'}</div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-indigo-700 bg-white rounded-lg p-2">
+                    💡 {lang === 'de' 
+                      ? 'Training wählt automatisch Fragen aus allen Kategorien für ausgewogene Vorbereitung!' 
+                      : 'Training automatically selects questions from all categories for balanced preparation!'}
+                  </p>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="bg-gray-50 rounded-xl p-4 mb-6">
@@ -1289,7 +1510,16 @@ function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPag
                         String.fromCharCode(65 + idx)
                       )}
                     </span>
-                    <span className="flex-1">{displayText}</span>
+                    <span className="flex-1">
+                      {showingTranslation ? (
+                        displayText
+                      ) : (
+                        <HighlightedText 
+                          text={opt.text}
+                          onClick={(word: string) => setSelectedVocab(word)}
+                        />
+                      )}
+                    </span>
                   </div>
                 </button>
                 

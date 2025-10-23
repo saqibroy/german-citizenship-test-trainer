@@ -188,6 +188,38 @@ export function GrammarLessonsPage({ lang }: { lang: 'de' | 'en' }) {
               </div>
             </div>
           )}
+
+          {currentLesson.content.quickTips && currentLesson.content.quickTips.length > 0 && (
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border-l-4 border-purple-500">
+              <h3 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
+                <Lightbulb className="text-purple-600" size={20} />
+                {lang === 'de' ? '⚡ Schnelle Tipps' : '⚡ Quick Tips'}
+              </h3>
+              <div className="space-y-2">
+                {currentLesson.content.quickTips.map((tip: string, idx: number) => (
+                  <div key={idx} className="flex gap-2 text-purple-800 bg-white p-3 rounded-lg">
+                    <span>{tip}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {currentLesson.content.examTips && currentLesson.content.examTips.length > 0 && (
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-4 border-l-4 border-orange-500">
+              <h3 className="font-bold text-orange-900 mb-3 flex items-center gap-2">
+                <GraduationCap className="text-orange-600" size={20} />
+                {lang === 'de' ? '🎓 Prüfungstipps' : '🎓 Exam Tips'}
+              </h3>
+              <div className="space-y-2">
+                {currentLesson.content.examTips.map((tip: string, idx: number) => (
+                  <div key={idx} className="flex gap-2 text-orange-800 bg-white p-3 rounded-lg font-semibold">
+                    <span>{tip}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="sticky bottom-4 mt-6">

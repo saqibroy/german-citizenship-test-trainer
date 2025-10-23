@@ -10,11 +10,22 @@ export interface Question {
 }
 
 // Progress Types
+export type SRSLevel = 'new' | 'learning' | 'young' | 'mature' | 'mastered';
+export type ConfidenceRating = 'again' | 'hard' | 'good' | 'easy';
+
 export interface QuestionProgress {
   correct: number;
   incorrect: number;
   lastSeen: string;
   strength: 'weak' | 'medium' | 'strong';
+  // Enhanced SRS fields
+  srsLevel: SRSLevel;
+  easeFactor: number;  // 1.3-2.5 (SuperMemo algorithm)
+  interval: number;    // Days until next review
+  repetitions: number; // Number of successful reviews
+  lapses: number;      // Number of times forgotten
+  averageTime: number; // Average answer time in seconds
+  lastConfidence?: ConfidenceRating;
 }
 
 export interface VocabProgress {
@@ -24,6 +35,13 @@ export interface VocabProgress {
   easeFactor: number;
   interval: number;
   repetitions: number;
+  // Enhanced SRS fields
+  srsLevel: SRSLevel;
+  lapses: number;
+  averageTime: number;
+  lastConfidence?: ConfidenceRating;
+  // Backward compatibility
+  strength: 'weak' | 'medium' | 'strong';
 }
 
 // Quiz Types
@@ -63,7 +81,7 @@ export interface HomePageProps {
   progress: Record<number, QuestionProgress>;
   setPage: (page: string) => void;
   studyStreak: number;
-  quizHistory: QuizResult[];
+  quizHistory?: QuizResult[];
 }
 
 export interface QuizPageProps {
