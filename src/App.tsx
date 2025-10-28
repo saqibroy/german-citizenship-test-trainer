@@ -676,6 +676,7 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
   const [showTranslation, setShowTranslation] = useState(false);
   const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
   const [hoveredOption, setHoveredOption] = useState<number | null>(null);
+  const [resultSaved, setResultSaved] = useState(false);
 
   // Create shuffled options with original indices - CALL HOOKS FIRST, BEFORE ANY RETURNS!
   const shuffledOptions = useMemo(() => {
@@ -687,6 +688,26 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
     }));
     return shuffleArray(opts);
   }, [quizQuestions, currentIdx, lang]);
+
+  // Save quiz result when completed
+  useEffect(() => {
+    if (started && quizQuestions.length > 0 && currentIdx >= quizQuestions.length && !resultSaved) {
+      const score = answers.filter((ans: Answer) => ans?.isCorrect).length;
+      const categoryBreakdown: CategoryBreakdown = {};
+      quizQuestions.forEach((q: Question, idx: number) => {
+        const cat = q.category;
+        if (!categoryBreakdown[cat]) {
+          categoryBreakdown[cat] = { correct: 0, total: 0 };
+        }
+        categoryBreakdown[cat].total++;
+        if (answers[idx]?.isCorrect) {
+          categoryBreakdown[cat].correct++;
+        }
+      });
+      saveQuizResult(score, 33, categoryBreakdown);
+      setResultSaved(true);
+    }
+  }, [started, currentIdx, quizQuestions.length, answers, resultSaved, quizQuestions, saveQuizResult]);
 
   // Smart question selection using spaced repetition
   const selectSmartQuestions = () => {
@@ -707,6 +728,7 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
     setCurrentIdx(0);
     setAnswers([]);
     setShowTranslation(false);
+    setResultSaved(false); // Reset result saved flag
   };
 
   // NOW it's safe to have conditional returns
@@ -751,35 +773,70 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
       }
     });
     
-    // Save quiz result on first render
-    useEffect(() => {
-      saveQuizResult(score, 33, categoryBreakdown);
-    }, []);
-    
     return (
-      <div className="p-4">
-        <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
-          <div className="text-6xl mb-4">{passed ? '🎉' : '📚'}</div>
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">{lang === 'de' ? 'Quiz abgeschlossen' : 'Quiz Completed'}</h2>
-          <div className={`text-6xl font-bold mb-4 ${passed ? 'text-green-600' : 'text-orange-600'}`}>{score}/33</div>
-          <p className="text-xl mb-6 font-semibold">{passed ? (lang === 'de' ? '✓ BESTANDEN' : '✓ PASSED') : (lang === 'de' ? 'Weiter üben!' : 'Keep practicing!')}</p>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 flex items-center justify-center">
+        <div className="bg-white rounded-2xl p-8 shadow-2xl text-center max-w-2xl w-full">
+          <div className="text-8xl mb-6 animate-bounce">{passed ? '🎉' : '📚'}</div>
+          <h2 className="text-3xl font-bold mb-4 text-gray-800">
+            {lang === 'de' ? 'Quiz abgeschlossen!' : 'Quiz Completed!'}
+          </h2>
+          <div className={`text-7xl font-bold mb-6 ${passed ? 'text-green-600' : 'text-orange-600'}`}>
+            {score}/33
+          </div>
+          <div className="mb-6">
+            <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
+              <div 
+                className={`h-4 rounded-full transition-all duration-1000 ${
+                  passed ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-orange-400 to-orange-600'
+                }`}
+                style={{ width: `${(score / 33) * 100}%` }}
+              ></div>
+            </div>
+            <p className="text-2xl mb-6 font-bold">
+              {passed ? (
+                <span className="text-green-600">{lang === 'de' ? '✓ BESTANDEN' : '✓ PASSED'}</span>
+              ) : (
+                <span className="text-orange-600">{lang === 'de' ? 'Weiter üben!' : 'Keep practicing!'}</span>
+              )}
+            </p>
+          </div>
           
           {/* Performance Breakdown */}
-          <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
-            <h3 className="font-bold text-gray-800 mb-3 text-sm">{lang === 'de' ? 'Leistung nach Kategorie' : 'Performance by Category'}</h3>
-            <div className="space-y-2">
-              {Object.entries(categoryBreakdown).map(([cat, stats]: [string, { correct: number; total: number }]) => (
-                <div key={cat} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{cat}</span>
-                  <span className={`font-bold ${stats.correct / stats.total >= 0.7 ? 'text-green-600' : 'text-orange-600'}`}>
-                    {stats.correct}/{stats.total} ({Math.round((stats.correct / stats.total) * 100)}%)
-                  </span>
-                </div>
-              ))}
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 mb-6 text-left shadow-inner">
+            <h3 className="font-bold text-gray-800 mb-4 text-lg flex items-center gap-2">
+              <BarChart3 size={20} className="text-indigo-600" />
+              {lang === 'de' ? 'Leistung nach Kategorie' : 'Performance by Category'}
+            </h3>
+            <div className="space-y-3">
+              {Object.entries(categoryBreakdown).map(([cat, stats]: [string, { correct: number; total: number }]) => {
+                const percentage = Math.round((stats.correct / stats.total) * 100);
+                const isGood = stats.correct / stats.total >= 0.7;
+                return (
+                  <div key={cat} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-700 font-medium">{cat}</span>
+                      <span className={`font-bold ${isGood ? 'text-green-600' : 'text-orange-600'}`}>
+                        {stats.correct}/{stats.total} ({percentage}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all ${
+                          isGood ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-orange-400 to-orange-600'
+                        }`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
           
-          <button onClick={() => setStarted(false)} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl py-3 font-bold shadow-lg">
+          <button 
+            onClick={() => setStarted(false)} 
+            className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl py-4 font-bold shadow-lg transform transition-all hover:scale-105"
+          >
             {lang === 'de' ? 'Neues Quiz' : 'New Quiz'}
           </button>
         </div>
@@ -1334,51 +1391,73 @@ function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPag
     const accuracy = Math.round((score / trainingQuestions.length) * 100);
     
     return (
-      <div className="p-4">
-        <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
-          <div className="text-6xl mb-4">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 p-4 flex items-center justify-center">
+        <div className="bg-white rounded-2xl p-8 shadow-2xl text-center max-w-2xl w-full">
+          <div className="text-8xl mb-6 animate-bounce">
             {accuracy >= 80 ? '🎉' : accuracy >= 60 ? '👍' : '📚'}
           </div>
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">
+          <h2 className="text-3xl font-bold mb-4 text-gray-800">
             {lang === 'de' ? 'Training abgeschlossen!' : 'Training Completed!'}
           </h2>
-          <div className={`text-6xl font-bold mb-4 ${
+          <div className={`text-7xl font-bold mb-6 ${
             accuracy >= 80 ? 'text-green-600' : 
             accuracy >= 60 ? 'text-yellow-600' : 'text-orange-600'
           }`}>
             {score}/{trainingQuestions.length}
           </div>
-          <p className="text-xl mb-6 font-semibold text-gray-700">
-            {lang === 'de' ? 'Genauigkeit' : 'Accuracy'}: {accuracy}%
-          </p>
+          
+          <div className="mb-6">
+            <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
+              <div 
+                className={`h-4 rounded-full transition-all duration-1000 ${
+                  accuracy >= 80 ? 'bg-gradient-to-r from-green-400 to-green-600' : 
+                  accuracy >= 60 ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 
+                  'bg-gradient-to-r from-orange-400 to-orange-600'
+                }`}
+                style={{ width: `${accuracy}%` }}
+              ></div>
+            </div>
+            <p className="text-2xl font-bold text-gray-700">
+              {lang === 'de' ? 'Genauigkeit' : 'Accuracy'}: {accuracy}%
+            </p>
+          </div>
 
-          <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <h3 className="font-bold text-gray-800 mb-3">{lang === 'de' ? 'Sitzungsstatistik' : 'Session Stats'}</h3>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div>
-                <div className="text-3xl font-bold text-green-600">{sessionStats.correct}</div>
-                <div className="text-xs text-gray-600">{lang === 'de' ? 'Richtig' : 'Correct'}</div>
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 mb-6 shadow-inner">
+            <h3 className="font-bold text-gray-800 mb-4 text-lg flex items-center justify-center gap-2">
+              <Brain size={20} className="text-purple-600" />
+              {lang === 'de' ? 'Sitzungsstatistik' : 'Session Stats'}
+            </h3>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="bg-white rounded-lg p-4 shadow-sm">
+                <div className="text-4xl font-bold text-green-600 mb-1">{sessionStats.correct}</div>
+                <div className="text-sm text-gray-600 font-medium">{lang === 'de' ? 'Richtig' : 'Correct'}</div>
               </div>
-              <div>
-                <div className="text-3xl font-bold text-red-600">{sessionStats.incorrect}</div>
-                <div className="text-xs text-gray-600">{lang === 'de' ? 'Falsch' : 'Wrong'}</div>
+              <div className="bg-white rounded-lg p-4 shadow-sm">
+                <div className="text-4xl font-bold text-red-600 mb-1">{sessionStats.incorrect}</div>
+                <div className="text-sm text-gray-600 font-medium">{lang === 'de' ? 'Falsch' : 'Wrong'}</div>
               </div>
-              <div>
-                <div className="text-3xl font-bold text-purple-600">{trainingQuestions.length}</div>
-                <div className="text-xs text-gray-600">{lang === 'de' ? 'Gesamt' : 'Total'}</div>
+              <div className="bg-white rounded-lg p-4 shadow-sm">
+                <div className="text-4xl font-bold text-purple-600 mb-1">{trainingQuestions.length}</div>
+                <div className="text-sm text-gray-600 font-medium">{lang === 'de' ? 'Gesamt' : 'Total'}</div>
               </div>
             </div>
           </div>
 
           <div className="space-y-3">
-            <button onClick={() => setStarted(false)} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl py-3 font-bold shadow-lg">
+            <button 
+              onClick={() => setStarted(false)} 
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl py-4 font-bold shadow-lg transform transition-all hover:scale-105"
+            >
               {lang === 'de' ? 'Neue Training-Sitzung' : 'New Training Session'}
             </button>
-            <p className="text-sm text-gray-600">
-              {lang === 'de' 
-                ? '💡 Tipp: Komme morgen zurück für optimale Wiederholung!' 
-                : '💡 Tip: Come back tomorrow for optimal review!'}
-            </p>
+            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+              <p className="text-sm text-purple-800 font-medium flex items-center justify-center gap-2">
+                <Lightbulb size={16} className="text-purple-600" />
+                {lang === 'de' 
+                  ? 'Tipp: Komme morgen zurück für optimale Wiederholung!' 
+                  : 'Tip: Come back tomorrow for optimal review!'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
