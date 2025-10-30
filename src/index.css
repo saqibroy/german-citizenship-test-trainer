@@ -7,6 +7,40 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Mobile viewport height fix - prevents address bar issues */
+  html {
+    height: -webkit-fill-available;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Touch target minimum size (44px × 44px for accessibility) */
+@layer components {
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Landscape mode optimizations */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .landscape-compact {
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+    
+    .landscape-compact .text-3xl {
+      font-size: 1.5rem;
+    }
+    
+    .landscape-compact .text-2xl {
+      font-size: 1.25rem;
+    }
+  }
 }
 
 /* Custom keyframes */

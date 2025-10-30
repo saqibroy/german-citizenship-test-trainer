@@ -256,7 +256,7 @@ export function GrammarLessonsPage({ lang }: { lang: 'de' | 'en' }) {
             : 'Learn German sentence structure and grammar for the citizenship test'}
         </p>
         <div className="bg-white bg-opacity-20 rounded-lg p-3 mt-4">
-          <p className="text-sm font-semibold text-white">
+          <p className="text-sm font-semibold text-gray-900">
             {lang === 'de'
               ? '📚 12 umfassende Lektionen • Alle Erklärungen auf Englisch'
               : '📚 12 comprehensive lessons • All explanations in English'}

@@ -1,0 +1,27 @@
+{
+  "name": "German Citizenship Test Trainer",
+  "short_name": "DE Citizenship",
+  "description": "Master all 310 questions for the German citizenship test with our intelligent SRS learning system",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "de-DE",
+  "dir": "ltr"
+}

@@ -87,7 +87,7 @@ export interface HomePageProps {
 export interface QuizPageProps {
   lang: string;
   questions: Question[];
-  updateProgress: (qId: number, correct: boolean) => void;
+  updateProgress: (qId: number, correct: boolean, answerTime?: number) => void;
   progress: Record<number, QuestionProgress>;
   saveQuizResult: (score: number, total: number, categoryBreakdown: CategoryBreakdown) => void;
 }
@@ -95,14 +95,14 @@ export interface QuizPageProps {
 export interface TrainingPageProps {
   lang: string;
   questions: Question[];
-  updateProgress: (qId: number, correct: boolean) => void;
+  updateProgress: (qId: number, correct: boolean, answerTime?: number) => void;
   progress: Record<number, QuestionProgress>;
 }
 
 export interface CardsPageProps {
   lang: string;
   questions: Question[];
-  updateProgress: (qId: number, correct: boolean) => void;
+  updateProgress: (qId: number, correct: boolean, answerTime?: number) => void;
   progress: Record<number, QuestionProgress>;
 }
 
