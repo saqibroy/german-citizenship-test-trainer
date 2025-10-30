@@ -1,202 +1,114 @@
- import { useState, useEffect, useMemo } from 'react';
-import { 
-  Globe, BookOpen, Award, ChevronRight, Check, X, Eye, EyeOff, BarChart3,
-  Target, Clock, Lightbulb, Flame, GraduationCap,
-  AlertCircle, CheckCircle2, Brain, Sparkles, BookMarked, Zap
-} from 'lucide-react';
-import { QUESTIONS, CATEGORY_ICONS } from './data.js';
+ import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
+import { Globe, BookOpen } from 'lucide-react';
+import { QUESTIONS } from './data.js';
 import { CITIZENSHIP_VOCABULARY } from './vacabulary.js';
-import { VocabPage, VocabPopup, HighlightedText, VocabTrainingPage } from './components.tsx';
-import { GrammarLessonsPage } from './GrammarLessons.tsx';
-import { PerformancePage } from './PerformancePage.tsx';
-import { 
-  updateProgress as updateSRSProgress,
-  calculateTestReadiness,
-  daysSinceLastSeen,
-  calculateSRSWeight
-} from './srsAlgorithm';
-import type { Question, QuestionProgress, QuizResult, CategoryBreakdown, VocabProgress, HomePageProps, QuizPageProps, TrainingPageProps, CardsPageProps, ProgressPageProps } from './types';
+import { VocabPage, VocabTrainingPage } from './components.tsx';
+import { updateProgress as updateSRSProgress } from './srsAlgorithm';
+import { ErrorBoundary } from './components/ErrorBoundary.tsx';
+import { OnboardingModal } from './components/OnboardingModal.tsx';
+import { SkeletonLoader } from './components/SkeletonLoader.tsx';
+import { safeGetItem, safeSetItem, validateVocabProgress } from './utils/storage';
+import type { QuestionProgress, CategoryBreakdown, VocabProgress } from './types';
 
-// Shuffle array function
-const shuffleArray = <T,>(array: T[]): T[] => {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-};
+// Import custom hooks
+import { useProgress } from './hooks/useProgress';
+import { useQuizHistory } from './hooks/useQuizHistory';
+import { useStudyStreak } from './hooks/useStudyStreak';
+import { useBadges } from './hooks/useBadges';
 
-// Target exam date - December 2, 2025
-const EXAM_DATE = new Date('2025-12-02');
+// Lazy load page components for code splitting
+const HomePage = lazy(() => import('./pages/HomePage.tsx').then(m => ({ default: m.HomePage })));
+const QuizPage = lazy(() => import('./pages/QuizPage.tsx').then(m => ({ default: m.QuizPage })));
+const TrainingPage = lazy(() => import('./pages/TrainingPage.tsx').then(m => ({ default: m.TrainingPage })));
+const CardsPage = lazy(() => import('./pages/CardsPage.tsx').then(m => ({ default: m.CardsPage })));
+const GrammarLessonsPage = lazy(() => import('./GrammarLessons.tsx').then(m => ({ default: m.GrammarLessonsPage })));
+const StatsPage = lazy(() => import('./StatsPage.tsx').then(m => ({ default: m.StatsPage })));
+const SettingsPage = lazy(() => import('./SettingsPage.tsx').then(m => ({ default: m.SettingsPage })));
 
-// Calculate days remaining until exam
-const getDaysRemaining = () => {
-  const today = new Date();
-  const diff = EXAM_DATE.getTime() - today.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-};
+// Loading component with skeleton based on current page
+function PageLoader({ page }: { page: string }) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4">
+      {page === 'training' && <SkeletonLoader type="question" />}
+      {page === 'quiz' && <SkeletonLoader type="quiz" />}
+      {page === 'cards' && <SkeletonLoader type="card" />}
+      {page === 'stats' && <SkeletonLoader type="stats" />}
+      {!['training', 'quiz', 'cards', 'stats'].includes(page) && (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent mb-4"></div>
+            <p className="text-gray-600 font-semibold">Loading...</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function App() {
   const [page, setPage] = useState('home');
   const [lang, setLang] = useState('de');
-  const [progress, setProgress] = useState<Record<number, any>>({});
-  const [badges, setBadges] = useState<string[]>([]);
-  const [quizHistory, setQuizHistory] = useState<QuizResult[]>([]);
-  const [studyStreak, setStudyStreak] = useState(0);
   const [vocabProgress, setVocabProgress] = useState<Record<string, VocabProgress>>({});
   const [favoriteVocab, setFavoriteVocab] = useState<string[]>([]);
   const [vocabMode, setVocabMode] = useState('learn'); // 'learn' or 'training'
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Use custom hooks for cleaner state management
+  const { progress, updateProgress: updateProgressHook, getProgress } = useProgress(QUESTIONS);
+  const { quizHistory, addQuizResult } = useQuizHistory();
+  const { studyStreak, totalStudyDays, updateStreak } = useStudyStreak();
+  const { badges, checkBadges } = useBadges(progress, quizHistory, studyStreak, totalStudyDays);
 
   useEffect(() => {
-    // Load question progress
-    const savedProgress: Record<number, QuestionProgress> = {};
-    QUESTIONS.forEach((q: Question) => {
-      const data = localStorage.getItem(`q_${q.id}`);
-      if (data) {
-        try {
-          savedProgress[q.id] = JSON.parse(data);
-        } catch (e) {
-          console.error('Error parsing progress:', e);
-        }
-      }
-    });
-    setProgress(savedProgress);
-
-    // Load badges
-    const badgesData = localStorage.getItem('badges');
-    if (badgesData) {
-      try {
-        setBadges(JSON.parse(badgesData));
-      } catch (e) {
-        console.error('Error parsing badges:', e);
-      }
+    // Check if user has seen onboarding
+    const hasSeenOnboarding = safeGetItem<boolean>('hasSeenOnboarding', false);
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
     }
 
-    // Load quiz history
-    const historyData = localStorage.getItem('quizHistory');
-    if (historyData) {
-      try {
-        setQuizHistory(JSON.parse(historyData));
-      } catch (e) {
-        console.error('Error parsing quiz history:', e);
-      }
-    }
-
-    // Load study streak
-    const streakData = localStorage.getItem('studyStreak');
-    if (streakData) {
-      try {
-        const { streak, lastStudyDate } = JSON.parse(streakData);
-        const today = new Date().toDateString();
-        const yesterday = new Date(Date.now() - 86400000).toDateString();
-        
-        if (lastStudyDate === today) {
-          setStudyStreak(streak);
-        } else if (lastStudyDate === yesterday) {
-          setStudyStreak(streak);
-        } else {
-          setStudyStreak(0);
-        }
-      } catch (e) {
-        console.error('Error parsing study streak:', e);
-      }
-    }
-
-    // Load vocabulary progress
-    const vocabData = localStorage.getItem('vocabProgress');
-    if (vocabData) {
-      try {
-        setVocabProgress(JSON.parse(vocabData));
-      } catch (e) {
-        console.error('Error parsing vocab progress:', e);
-      }
+    // Load vocabulary progress with validation
+    const vocabData = safeGetItem<Record<string, VocabProgress>>('vocabProgress', {});
+    if (validateVocabProgress(vocabData)) {
+      setVocabProgress(vocabData);
     }
 
     // Load favorite vocabulary
-    const favData = localStorage.getItem('favoriteVocab');
-    if (favData) {
-      try {
-        setFavoriteVocab(JSON.parse(favData));
-      } catch (e) {
-        console.error('Error parsing favorite vocab:', e);
-      }
+    const favData = safeGetItem<string[]>('favoriteVocab', []);
+    if (Array.isArray(favData)) {
+      setFavoriteVocab(favData);
     }
   }, []);
 
-  const updateProgress = (qId: number, correct: boolean, answerTime: number = 5) => {
-    const existing = progress[qId];
+  // Memoize callbacks for performance
+  const updateProgress = useCallback((qId: number, correct: boolean, answerTime: number = 5) => {
+    const existing = getProgress(qId);
     
     // Use the proper SRS algorithm to calculate new progress
     const updated = updateSRSProgress(existing, correct, answerTime) as QuestionProgress;
     
-    const newProgress = {
-      ...progress,
-      [qId]: updated
-    };
+    // Update using the hook
+    updateProgressHook(qId, updated);
     
-    setProgress(newProgress);
-    localStorage.setItem(`q_${qId}`, JSON.stringify(updated));
-    updateStudyStreak();
-    checkBadges(newProgress);
-  };
-
-  const updateStudyStreak = () => {
-    const today = new Date().toDateString();
-    const streakData = localStorage.getItem('studyStreak');
+    // Update study streak
+    updateStreak();
     
-    if (streakData) {
-      try {
-        const { streak, lastStudyDate } = JSON.parse(streakData);
-        const yesterday = new Date(Date.now() - 86400000).toDateString();
-        
-        if (lastStudyDate === today) {
-          // Already studied today
-          return;
-        } else if (lastStudyDate === yesterday) {
-          // Continuing streak
-          const newStreak = streak + 1;
-          setStudyStreak(newStreak);
-          localStorage.setItem('studyStreak', JSON.stringify({ streak: newStreak, lastStudyDate: today }));
-        } else {
-          // Streak broken, start new
-          setStudyStreak(1);
-          localStorage.setItem('studyStreak', JSON.stringify({ streak: 1, lastStudyDate: today }));
-        }
-      } catch (e) {
-        console.error('Error updating study streak:', e);
-      }
-    } else {
-      // First study session
-      setStudyStreak(1);
-      localStorage.setItem('studyStreak', JSON.stringify({ streak: 1, lastStudyDate: today }));
-    }
-  };
+    // Check for new badges
+    checkBadges();
+  }, [getProgress, updateProgressHook, updateStreak, checkBadges]);
 
-  const saveQuizResult = (score: number, total: number, categoryBreakdown: CategoryBreakdown) => {
-    const newResult: QuizResult = {
+  const saveQuizResult = useCallback((score: number, total: number, categoryBreakdown: CategoryBreakdown) => {
+    // Use the hook to add quiz result
+    addQuizResult({
       date: new Date().toISOString(),
       score,
       total,
+      percentage: (score / total) * 100,
       categoryBreakdown
-    };
-    const newHistory = [newResult, ...quizHistory].slice(0, 10); // Keep last 10 results
-    setQuizHistory(newHistory);
-    localStorage.setItem('quizHistory', JSON.stringify(newHistory));
-  };
-
-  const checkBadges = (prog: Record<number, QuestionProgress>) => {
-    const newBadges = [...badges];
-    const answered = Object.keys(prog).length;
-    if (answered >= 10 && !newBadges.includes('Beginner')) newBadges.push('Beginner');
-    if (answered >= QUESTIONS.length && !newBadges.includes('Complete')) newBadges.push('Complete');
-    const strong = Object.values(prog).filter((p: QuestionProgress) => p.strength === 'strong').length;
-    if (strong >= 20 && !newBadges.includes('Expert')) newBadges.push('Expert');
-    if (newBadges.length > badges.length) {
-      setBadges(newBadges);
-      localStorage.setItem('badges', JSON.stringify(newBadges));
-    }
-  };
+    });
+    
+    // Check for new badges after quiz
+    checkBadges();
+  }, [addQuizResult, checkBadges]);
 
   const t = {
     home: { de: 'Start', en: 'Home' },
@@ -205,11 +117,11 @@ export default function App() {
     cards: { de: 'Karten', en: 'Cards' },
     vocab: { de: 'Vokabeln', en: 'Vocab' },
     grammar: { de: 'Grammatik', en: 'Grammar' },
-    progress: { de: 'Stats', en: 'Stats' },
-    performance: { de: '📊 Leistung', en: '📊 Performance' }
+    stats: { de: 'Statistik', en: 'Stats' },
+    settings: { de: 'Einstellungen', en: 'Settings' }
   };
 
-  const updateVocabProgress = (word: string, known: boolean, answerTime: number = 5) => {
+  const updateVocabProgress = useCallback((word: string, known: boolean, answerTime: number = 5) => {
     const existing = vocabProgress[word];
     
     // Use the new SRS algorithm
@@ -221,1524 +133,116 @@ export default function App() {
     };
     
     setVocabProgress(newVocabProgress);
-    localStorage.setItem('vocabProgress', JSON.stringify(newVocabProgress));
-    updateStudyStreak();
-  };
+    safeSetItem('vocabProgress', newVocabProgress);
+    updateStreak();
+  }, [vocabProgress, updateStreak]);
 
-  const toggleFavoriteVocab = (word: string) => {
+  const toggleFavoriteVocab = useCallback((word: string) => {
     const newFavorites = favoriteVocab.includes(word)
       ? favoriteVocab.filter(w => w !== word)
       : [...favoriteVocab, word];
     setFavoriteVocab(newFavorites);
-    localStorage.setItem('favoriteVocab', JSON.stringify(newFavorites));
+    safeSetItem('favoriteVocab', newFavorites);
+  }, [favoriteVocab]);
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    safeSetItem('hasSeenOnboarding', true);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+    <ErrorBoundary>
+      {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} lang={lang as 'de' | 'en'} />}
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-20 md:pb-6">
       <header className="bg-white shadow-md sticky top-0 z-50">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-2">
             <BookOpen className="text-indigo-600" size={24} />
-            <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-base md:text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               {lang === 'de' ? 'Einbürgerungstest' : 'Citizenship Test'}
             </h1>
           </div>
-          <button onClick={() => setLang(lang === 'de' ? 'en' : 'de')} className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full font-semibold text-sm shadow-lg">
+          <button 
+            onClick={() => setLang(lang === 'de' ? 'en' : 'de')} 
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full font-semibold text-sm shadow-lg hover:shadow-xl transition-shadow active:scale-95"
+          >
             <Globe size={16} />
-            {lang === 'de' ? 'EN' : 'DE'}
+            <span className="hidden sm:inline">{lang === 'de' ? 'EN' : 'DE'}</span>
           </button>
         </div>
-        <nav className="flex border-t overflow-x-auto">
-          {['home', 'training', 'quiz', 'vocab', 'grammar', 'performance'].map(p => (
-            <button key={p} onClick={() => setPage(p)} className={`flex-1 py-3 text-xs font-semibold whitespace-nowrap px-2 ${page === p ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500'}`}>
+        
+        {/* Desktop Navigation - Hidden on mobile */}
+        <nav className="hidden md:flex border-t overflow-x-auto">
+          {['home', 'training', 'quiz', 'vocab', 'grammar', 'stats', 'settings'].map(p => (
+            <button key={p} onClick={() => setPage(p)} className={`flex-1 py-3 text-sm font-semibold whitespace-nowrap px-2 transition-colors ${page === p ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
               {t[p as keyof typeof t][lang as 'de' | 'en']}
             </button>
           ))}
         </nav>
       </header>
 
-      <main className="pb-6">
-        {page === 'home' && <HomePage lang={lang} badges={badges} progress={progress} setPage={setPage} studyStreak={studyStreak} />}
-        {page === 'training' && <TrainingPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
-        {page === 'quiz' && <QuizPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} saveQuizResult={saveQuizResult} />}
-        {page === 'cards' && <CardsPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
-        {page === 'vocab' && (
-          <div>
-            <div className="bg-white border-b sticky top-0 z-10">
-              <div className="flex">
-                <button 
-                  onClick={() => setVocabMode('learn')}
-                  className={`flex-1 py-3 font-semibold ${vocabMode === 'learn' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-                >
-                  {lang === 'de' ? '📚 Lernen' : '📚 Learn'}
-                </button>
-                <button 
-                  onClick={() => setVocabMode('training')}
-                  className={`flex-1 py-3 font-semibold ${vocabMode === 'training' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-                >
-                  {lang === 'de' ? '🧠 Training' : '🧠 Training'}
-                </button>
-              </div>
-            </div>
-            {vocabMode === 'learn' && <VocabPage lang={lang} vocabulary={CITIZENSHIP_VOCABULARY} updateVocabProgress={updateVocabProgress} vocabProgress={vocabProgress} favoriteVocab={favoriteVocab} toggleFavoriteVocab={toggleFavoriteVocab} />}
-            {vocabMode === 'training' && <VocabTrainingPage lang={lang} vocabProgress={vocabProgress} updateVocabProgress={updateVocabProgress} />}
-          </div>
-        )}
-        {page === 'grammar' && <GrammarLessonsPage lang={lang as 'de' | 'en'} />}
-        {page === 'progress' && <ProgressPage lang={lang} questions={QUESTIONS} progress={progress} badges={badges} quizHistory={quizHistory} />}
-        {page === 'performance' && <PerformancePage lang={lang as 'de' | 'en'} progress={progress} questions={QUESTIONS} quizHistory={quizHistory} studyStreak={studyStreak} vocabProgress={vocabProgress} vocabulary={CITIZENSHIP_VOCABULARY} />}
-      </main>
-    </div>
-  );
-}
-
-function HomePage({ lang, badges, progress, setPage, studyStreak }: HomePageProps) {
-  const answered = Object.keys(progress).length;
-  const daysRemaining = getDaysRemaining();
-  
-  // Calculate test readiness (from srsAlgorithm)
-  const readiness = calculateTestReadiness(progress, QUESTIONS.length);
-  
-  // Calculate due questions
-  const dueCount = Object.entries(progress).filter(([_, p]) => {
-    const daysSince = daysSinceLastSeen(p.lastSeen);
-    return daysSince >= (p.interval || 0);
-  }).length;
-  
-  // Calculate SRS distribution
-  const srsDistribution = {
-    new: QUESTIONS.length - answered,
-    learning: 0,
-    young: 0,
-    mature: 0,
-    mastered: 0
-  };
-  
-  Object.values(progress).forEach((p: any) => {
-    const level = p.srsLevel || 'learning';
-    if (level in srsDistribution) {
-      srsDistribution[level as keyof typeof srsDistribution]++;
-    }
-  });
-
-  // Daily targets
-  const questionsPerDay = daysRemaining > 0 ? Math.ceil((QUESTIONS.length - answered) / daysRemaining) : QUESTIONS.length - answered;
-  const reviewsPerDay = daysRemaining > 0 ? Math.ceil(dueCount / Math.min(7, daysRemaining)) : dueCount;
-  
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 space-y-4">
-      {/* Exam Countdown - Hero Section */}
-      <div className="bg-gradient-to-br from-red-600 to-pink-600 text-white rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-32 -mt-32"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-5 rounded-full -ml-24 -mb-24"></div>
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-4">
+      <main className="pb-2">
+        <Suspense fallback={<PageLoader page={page} />}>
+          {page === 'home' && <HomePage lang={lang} badges={badges} progress={progress} setPage={setPage} studyStreak={studyStreak} />}
+          {page === 'training' && <TrainingPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
+          {page === 'quiz' && <QuizPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} saveQuizResult={saveQuizResult} />}
+          {page === 'cards' && <CardsPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
+          {page === 'vocab' && (
             <div>
-              <h1 className="text-3xl font-black mb-2">
-                {lang === 'de' ? '🗓️ Prüfung in' : '🗓️ Exam in'}
-              </h1>
-              <div className="text-6xl font-black">{daysRemaining}</div>
-              <div className="text-2xl font-bold opacity-90 mt-1">
-                {lang === 'de' ? 'Tagen' : 'Days'}
-              </div>
-            </div>
-            <Target className="opacity-20" size={120} />
-          </div>
-          <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-4 mt-4">
-            <p className="text-lg font-semibold">
-              📅 {lang === 'de' ? 'Zieldatum: 2. Dezember 2025' : 'Target Date: December 2, 2025'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Test Readiness Card */}
-      <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-3xl p-6 shadow-xl text-white">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-bold mb-1">
-              {lang === 'de' ? '📊 Testbereitschaft' : '📊 Test Readiness'}
-            </h2>
-            <div className="text-5xl font-black">{readiness.score}%</div>
-          </div>
-          <Brain className="opacity-30" size={80} />
-        </div>
-        <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-full h-4 overflow-hidden mb-3">
-          <div 
-            className="bg-white h-full rounded-full transition-all duration-500"
-            style={{ width: `${readiness.score}%` }}
-          ></div>
-        </div>
-        <p className="text-sm opacity-90">
-          {readiness.score >= 80 ? '🎉 ' + (lang === 'de' ? 'Bereit für die Prüfung!' : 'Ready for the exam!') :
-           readiness.score >= 60 ? '👍 ' + (lang === 'de' ? 'Fast geschafft!' : 'Almost there!') :
-           readiness.score >= 40 ? '📚 ' + (lang === 'de' ? 'Weiter üben!' : 'Keep practicing!') :
-           '💪 ' + (lang === 'de' ? 'Guter Start!' : 'Good start!')}
-        </p>
-      </div>
-
-      {/* Daily Goals */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-indigo-200">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <Target className="text-indigo-600" size={24} />
-          {lang === 'de' ? 'Tägliche Ziele' : 'Daily Goals'}
-        </h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border-2 border-purple-200">
-            <div className="text-3xl font-bold text-purple-600">{questionsPerDay}</div>
-            <div className="text-xs text-purple-800 font-semibold mt-1">
-              {lang === 'de' ? 'Neue Fragen' : 'New Questions'}
-            </div>
-            <div className="text-xs text-gray-600 mt-1">
-              {lang === 'de' ? 'pro Tag' : 'per day'}
-            </div>
-          </div>
-          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border-2 border-orange-200">
-            <div className="text-3xl font-bold text-orange-600">{reviewsPerDay}</div>
-            <div className="text-xs text-orange-800 font-semibold mt-1">
-              {lang === 'de' ? 'Wiederholungen' : 'Reviews'}
-            </div>
-            <div className="text-xs text-gray-600 mt-1">
-              {lang === 'de' ? 'pro Tag' : 'per day'}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-indigo-500">
-          <div className="text-3xl font-bold text-indigo-600">{answered}</div>
-          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '✓ Fragen' : '✓ Questions'}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-green-500">
-          <div className="text-3xl font-bold text-green-600">{srsDistribution.mastered}</div>
-          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '⭐ Gemeistert' : '⭐ Mastered'}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-orange-500">
-          <div className="flex items-center gap-2">
-            <Flame className="text-orange-500" size={20} />
-            <div className="text-3xl font-bold text-orange-600">{studyStreak}</div>
-          </div>
-          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '🔥 Streak' : '🔥 Streak'}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-red-500">
-          <div className="text-3xl font-bold text-red-600">{dueCount}</div>
-          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '⏰ Fällig' : '⏰ Due'}</div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-purple-200">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <Zap className="text-purple-600" size={24} />
-          {lang === 'de' ? 'Schnellstart' : 'Quick Actions'}
-        </h3>
-        <div className="space-y-3">
-          {dueCount > 0 && (
-            <button onClick={() => setPage('training')} className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-              <div className="flex items-center gap-3">
-                <AlertCircle size={24} />
-                <div className="text-left">
-                  <div className="font-black">{lang === 'de' ? '🔄 Fällige Fragen wiederholen' : '🔄 Review Due Questions'}</div>
-                  <div className="text-xs opacity-90">{dueCount} {lang === 'de' ? 'Fragen warten' : 'questions waiting'}</div>
+              <div className="bg-white border-b sticky top-0 z-10">
+                <div className="flex">
+                  <button 
+                    onClick={() => setVocabMode('learn')}
+                    className={`flex-1 py-3 font-semibold ${vocabMode === 'learn' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+                  >
+                    {lang === 'de' ? '📚 Lernen' : '📚 Learn'}
+                  </button>
+                  <button 
+                    onClick={() => setVocabMode('training')}
+                    className={`flex-1 py-3 font-semibold ${vocabMode === 'training' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+                  >
+                    {lang === 'de' ? '🧠 Training' : '🧠 Training'}
+                  </button>
                 </div>
               </div>
-              <ChevronRight />
-            </button>
+              {vocabMode === 'learn' && <VocabPage lang={lang} vocabulary={CITIZENSHIP_VOCABULARY} updateVocabProgress={updateVocabProgress} vocabProgress={vocabProgress} favoriteVocab={favoriteVocab} toggleFavoriteVocab={toggleFavoriteVocab} />}
+              {vocabMode === 'training' && <VocabTrainingPage lang={lang} vocabProgress={vocabProgress} updateVocabProgress={updateVocabProgress} />}
+            </div>
           )}
-          
-          <button onClick={() => setPage('training')} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-            <div className="flex items-center gap-3">
-              <Brain size={24} />
-              <div className="text-left">
-                <div className="font-black">{lang === 'de' ? '🧠 Training starten' : '🧠 Start Training'}</div>
-                <div className="text-xs opacity-90">{lang === 'de' ? 'Anki-Stil SRS' : 'Anki-style SRS'}</div>
-              </div>
-            </div>
-            <ChevronRight />
-          </button>
+          {page === 'grammar' && <GrammarLessonsPage lang={lang as 'de' | 'en'} />}
+          {page === 'stats' && <StatsPage lang={lang as 'de' | 'en'} progress={progress} questions={QUESTIONS} badges={badges} quizHistory={quizHistory} studyStreak={studyStreak} />}
+          {page === 'settings' && <SettingsPage lang={lang as 'de' | 'en'} />}
+        </Suspense>
+      </main>
 
-          <button onClick={() => setPage('quiz')} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-            <div className="flex items-center gap-3">
-              <Target size={24} />
-              <div className="text-left">
-                <div className="font-black">{lang === 'de' ? '🎯 Praxis-Quiz' : '🎯 Practice Quiz'}</div>
-                <div className="text-xs opacity-90">33 {lang === 'de' ? 'Fragen' : 'questions'}</div>
-              </div>
-            </div>
-            <ChevronRight />
-          </button>
-
-          <button onClick={() => setPage('vocab')} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-            <div className="flex items-center gap-3">
-              <BookMarked size={24} />
-              <div className="text-left">
-                <div className="font-black">{lang === 'de' ? '📚 Vokabeln' : '📚 Vocabulary'}</div>
-                <div className="text-xs opacity-90">{lang === 'de' ? 'Mit SRS lernen' : 'Learn with SRS'}</div>
-              </div>
-            </div>
-            <ChevronRight />
-          </button>
-        </div>
-      </div>
-
-      {/* Secondary Actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <button onClick={() => setPage('cards')} className="bg-white text-gray-800 rounded-xl p-4 font-bold shadow-md border-2 border-gray-200 hover:border-gray-300 transition-all">
-          <BookOpen className="mx-auto mb-2 text-green-600" size={28} />
-          <div className="text-sm">{lang === 'de' ? 'Kartenset' : 'Flashcards'}</div>
-        </button>
-        <button onClick={() => setPage('grammar')} className="bg-white text-gray-800 rounded-xl p-4 font-bold shadow-md border-2 border-gray-200 hover:border-gray-300 transition-all">
-          <GraduationCap className="mx-auto mb-2 text-teal-600" size={28} />
-          <div className="text-sm">{lang === 'de' ? 'Grammatik' : 'Grammar'}</div>
-        </button>
-      </div>
-
-      {/* Progress Insight */}
-      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded-xl p-4 shadow-sm">
-        <div className="flex items-start gap-3">
-          <Lightbulb className="text-green-600 flex-shrink-0 mt-0.5" size={22} />
-          <div>
-            <h4 className="font-bold text-green-900 mb-1">
-              {lang === 'de' ? '💡 Fortschritts-Einblick' : '💡 Progress Insight'}
-            </h4>
-            <p className="text-sm text-green-800">
-              {srsDistribution.mastered >= 100 
-                ? (lang === 'de' ? '🎉 Großartig! Du hast über 100 Fragen gemeistert!' : '🎉 Amazing! You\'ve mastered over 100 questions!')
-                : answered < 50
-                ? (lang === 'de' ? `🚀 Beginne mit ${questionsPerDay} neuen Fragen pro Tag für ${daysRemaining} Tage!` : `🚀 Start with ${questionsPerDay} new questions per day for ${daysRemaining} days!`)
-                : dueCount > 20
-                ? (lang === 'de' ? `⏰ Fokussiere auf ${dueCount} fällige Wiederholungen heute!` : `⏰ Focus on ${dueCount} due reviews today!`)
-                : (lang === 'de' ? '📚 Weiter so! Balance neue Fragen mit Wiederholungen.' : '📚 Keep it up! Balance new questions with reviews.')}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Badges */}
-      {badges.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-md border-2 border-yellow-200">
-          <div className="flex items-center gap-2 mb-3">
-            <Award className="text-yellow-500" size={22} />
-            <h3 className="font-bold text-gray-800">{lang === 'de' ? '🏆 Abzeichen' : '🏆 Badges'}</h3>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {badges.map((b: any, i: any) => (
-              <span key={i} className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md">
-                {b}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface Answer {
-  selectedIndex: number;
-  isCorrect: boolean;
-}
-
-function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }: QuizPageProps) {
-  const [started, setStarted] = useState(false);
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [answers, setAnswers] = useState<Answer[]>([]);
-  const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
-  const [showTranslation, setShowTranslation] = useState(false);
-  const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
-  const [hoveredOption, setHoveredOption] = useState<number | null>(null);
-  const [resultSaved, setResultSaved] = useState(false);
-  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
-
-  // Create shuffled options with original indices - CALL HOOKS FIRST, BEFORE ANY RETURNS!
-  const shuffledOptions = useMemo(() => {
-    if (!quizQuestions[currentIdx]) return [];
-    const q = quizQuestions[currentIdx];
-    const opts = (lang === 'de' ? q.options_de : q.options_en).map((opt: string, idx: number) => ({
-      text: opt,
-      originalIndex: idx
-    }));
-    return shuffleArray(opts);
-  }, [quizQuestions, currentIdx, lang]);
-
-  // Calculate quiz results (score and category breakdown) - only when quiz is complete
-  const quizResults = useMemo(() => {
-    if (currentIdx < quizQuestions.length) return null;
-    
-    const score = answers.filter((ans: Answer) => ans?.isCorrect).length;
-    const categoryBreakdown: CategoryBreakdown = {};
-    
-    quizQuestions.forEach((q: Question, idx: number) => {
-      const cat = q.category;
-      if (!categoryBreakdown[cat]) {
-        categoryBreakdown[cat] = { correct: 0, total: 0 };
-      }
-      categoryBreakdown[cat].total++;
-      if (answers[idx]?.isCorrect) {
-        categoryBreakdown[cat].correct++;
-      }
-    });
-    
-    return { score, categoryBreakdown };
-  }, [currentIdx, quizQuestions, answers]);
-
-  // Save quiz result when completed (runs only once)
-  useEffect(() => {
-    if (quizResults && !resultSaved) {
-      saveQuizResult(quizResults.score, 33, quizResults.categoryBreakdown);
-      setResultSaved(true);
-    }
-  }, [quizResults, resultSaved, saveQuizResult]);
-
-  // Smart question selection using spaced repetition
-  const selectSmartQuestions = () => {
-    const weightedQuestions = questions.map((q: Question) => ({
-      ...q,
-      weight: calculateSRSWeight(progress[q.id])
-    })).sort((a: { weight: number }, b: { weight: number }) => b.weight - a.weight);
-
-    // Take top 50 weighted questions, then randomly select 33 from them
-    const topWeighted = weightedQuestions.slice(0, Math.min(50, questions.length));
-    return shuffleArray(topWeighted).slice(0, 33);
-  };
-
-  const startQuiz = () => {
-    const selected = selectSmartQuestions();
-    setQuizQuestions(selected);
-    setStarted(true);
-    setCurrentIdx(0);
-    setAnswers([]);
-    setShowTranslation(false);
-    setResultSaved(false); // Reset result saved flag
-  };
-
-  // NOW it's safe to have conditional returns
-  if (!started) {
-    return (
-      <div className="p-4">
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-indigo-100 p-3 rounded-full">
-              <BookOpen className="text-indigo-600" size={24} />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800">{lang === 'de' ? 'Quiz Modus' : 'Quiz Mode'}</h2>
-          </div>
-          <div className="space-y-3 mb-6">
-            <p className="text-gray-700">{lang === 'de' ? '✓ 33 zufällige Fragen pro Quiz' : '✓ 33 random questions per quiz'}</p>
-            <p className="text-gray-700">{lang === 'de' ? '✓ Schwache Bereiche werden priorisiert' : '✓ Weak areas are prioritized'}</p>
-            <p className="text-gray-700">{lang === 'de' ? '✓ Mindestens 17 richtig zum Bestehen' : '✓ At least 17 correct to pass'}</p>
-            <p className="text-gray-700">{lang === 'de' ? '✓ Antworten werden jedes Mal gemischt' : '✓ Answers are shuffled each time'}</p>
-          </div>
-          <button onClick={startQuiz} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl py-4 font-bold shadow-lg">
-            {lang === 'de' ? 'Quiz starten' : 'Start Quiz'}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (currentIdx >= quizQuestions.length) {
-    if (!quizResults) return null; // Safety check
-    
-    const { score, categoryBreakdown } = quizResults;
-    const passed = score >= 17;
-    
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 flex items-center justify-center">
-        <div className="bg-white rounded-2xl p-8 shadow-2xl text-center max-w-2xl w-full">
-          <div className="text-8xl mb-6 animate-bounce">{passed ? '🎉' : '📚'}</div>
-          <h2 className="text-3xl font-bold mb-4 text-gray-800">
-            {lang === 'de' ? 'Quiz abgeschlossen!' : 'Quiz Completed!'}
-          </h2>
-          <div className={`text-7xl font-bold mb-6 ${passed ? 'text-green-600' : 'text-orange-600'}`}>
-            {score}/33
-          </div>
-          <div className="mb-6">
-            <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
-              <div 
-                className={`h-4 rounded-full transition-all duration-1000 ${
-                  passed ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-orange-400 to-orange-600'
-                }`}
-                style={{ width: `${(score / 33) * 100}%` }}
-              ></div>
-            </div>
-            <p className="text-2xl mb-6 font-bold">
-              {passed ? (
-                <span className="text-green-600">{lang === 'de' ? '✓ BESTANDEN' : '✓ PASSED'}</span>
-              ) : (
-                <span className="text-orange-600">{lang === 'de' ? 'Weiter üben!' : 'Keep practicing!'}</span>
-              )}
-            </p>
-          </div>
-          
-          {/* Performance Breakdown */}
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 mb-6 text-left shadow-inner">
-            <h3 className="font-bold text-gray-800 mb-4 text-lg flex items-center gap-2">
-              <BarChart3 size={20} className="text-indigo-600" />
-              {lang === 'de' ? 'Leistung nach Kategorie' : 'Performance by Category'}
-            </h3>
-            <div className="space-y-3">
-              {Object.entries(categoryBreakdown).map(([cat, stats]: [string, { correct: number; total: number }]) => {
-                const percentage = Math.round((stats.correct / stats.total) * 100);
-                const isGood = stats.correct / stats.total >= 0.7;
-                return (
-                  <div key={cat} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-700 font-medium">{cat}</span>
-                      <span className={`font-bold ${isGood ? 'text-green-600' : 'text-orange-600'}`}>
-                        {stats.correct}/{stats.total} ({percentage}%)
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all ${
-                          isGood ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-orange-400 to-orange-600'
-                        }`}
-                        style={{ width: `${percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          
-          <button 
-            onClick={() => setStarted(false)} 
-            className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl py-4 font-bold shadow-lg transform transition-all hover:scale-105"
-          >
-            {lang === 'de' ? 'Neues Quiz' : 'New Quiz'}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const q = quizQuestions[currentIdx];
-  if (!q) return null; // Safety check
-
-  const answered = answers[currentIdx] !== undefined;
-  const userAnswer = answers[currentIdx];
-
-  const handleAnswer = (originalIndex: number) => {
-    const isCorrect = originalIndex === q.correct_index;
-    const answerTime = Math.floor((Date.now() - questionStartTime) / 1000); // seconds
-    const newAnswers = [...answers];
-    newAnswers[currentIdx] = { selectedIndex: originalIndex, isCorrect };
-    setAnswers(newAnswers);
-    updateProgress(q.id, isCorrect, answerTime);
-  };
-
-  const CategoryIcon = CATEGORY_ICONS[q.category] || BookOpen;
-  const strengthColor = !progress[q.id] ? 'gray' : 
-    progress[q.id].strength === 'strong' ? 'green' :
-    progress[q.id].strength === 'medium' ? 'yellow' : 'red';
-
-  return (
-    <div className="p-4 space-y-4">
-      <div className="bg-white rounded-xl p-4 shadow-md">
-        <div className="flex justify-between items-center mb-3">
-          <span className="font-bold text-gray-800">{currentIdx + 1}/{quizQuestions.length}</span>
-          <div className="flex gap-2 items-center">
-            <div className={`w-2 h-2 rounded-full bg-${strengthColor}-400`}></div>
-            <CategoryIcon size={16} className="text-indigo-600" />
-            <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full font-semibold">
-              {q.category}
-            </span>
-          </div>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / quizQuestions.length) * 100}%` }}></div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl p-6 shadow-lg">
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="text-lg font-bold text-gray-800 flex-1">
-            <HighlightedText 
-              text={lang === 'de' ? q.question_de : q.question_en}
-              onClick={(word: string) => setSelectedVocab(word)}
-            />
-          </h3>
-          <button onClick={() => setShowTranslation(!showTranslation)} className="ml-2 p-2 text-gray-500 hover:text-indigo-600 transition">
-            {showTranslation ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
-        </div>
-        
-        {showTranslation && (
-          <p className="text-sm text-gray-600 mb-4 italic border-l-2 border-indigo-300 pl-3 bg-indigo-50 p-2 rounded">
-            {lang === 'de' ? q.question_en : q.question_de}
-          </p>
-        )}
-        
-        {/* Vocabulary Popup */}
-        {selectedVocab && (
-          <VocabPopup 
-            word={selectedVocab}
-            onClose={() => setSelectedVocab(null)}
-            lang={lang}
-          />
-        )}
-
-        <div className="space-y-3">
-          {shuffledOptions.map((opt, idx) => {
-            const isSelected = userAnswer?.selectedIndex === opt.originalIndex;
-            const isCorrectAnswer = opt.originalIndex === q.correct_index;
-            const showAsCorrect = answered && isCorrectAnswer;
-            const showAsWrong = answered && isSelected && !isCorrectAnswer;
-            const showingTranslation = hoveredOption === idx;
-            
-            // Get the translation text
-            const translationArray = lang === 'de' ? q.options_en : q.options_de;
-            const displayText = showingTranslation ? translationArray[opt.originalIndex] : opt.text;
-
-            return (
-              <div key={idx} className="relative flex gap-2">
-                <button
-                  onClick={() => !answered && handleAnswer(opt.originalIndex)}
-                  disabled={answered}
-                  className={`flex-1 text-left p-4 rounded-xl border-2 font-semibold transition-all ${
-                    showAsWrong ? 'bg-red-50 border-red-500 shadow-md' :
-                    showAsCorrect ? 'bg-green-50 border-green-500 shadow-md' :
-                    'border-gray-200 hover:border-indigo-400 hover:shadow-md active:scale-98'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                      showAsWrong ? 'bg-red-500 text-white' :
-                      showAsCorrect ? 'bg-green-500 text-white' :
-                      'bg-gray-200 text-gray-600'
-                    }`}>
-                      {answered && (showAsCorrect || showAsWrong) ? (
-                        isCorrectAnswer ? <Check size={16} /> : <X size={16} />
-                      ) : (
-                        String.fromCharCode(65 + idx)
-                      )}
-                    </span>
-                    <span className="flex-1">
-                      {showingTranslation ? (
-                        displayText
-                      ) : (
-                        <HighlightedText 
-                          text={opt.text}
-                          onClick={(word: string) => setSelectedVocab(word)}
-                        />
-                      )}
-                    </span>
-                  </div>
-                </button>
-                
-                {/* Translation Toggle Button */}
-                <button
-                  onMouseDown={() => setHoveredOption(idx)}
-                  onMouseUp={() => setHoveredOption(null)}
-                  onMouseLeave={() => setHoveredOption(null)}
-                  onTouchStart={() => setHoveredOption(idx)}
-                  onTouchEnd={() => setHoveredOption(null)}
-                  className={`px-3 py-2 rounded-xl border-2 transition-all ${
-                    showingTranslation 
-                      ? 'bg-blue-500 border-blue-500 text-white' 
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600'
-                  }`}
-                  title={lang === 'de' ? 'Übersetzung anzeigen (gedrückt halten)' : 'Show translation (hold)'}
-                >
-                  <Globe size={18} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {answered && (
-        <div className={`rounded-2xl p-4 shadow-lg ${userAnswer.isCorrect ? 'bg-green-50 border-l-4 border-green-500' : 'bg-orange-50 border-l-4 border-orange-500'}`}>
-          <div className="flex items-center gap-2 mb-2">
-            {userAnswer.isCorrect ? <Check className="text-green-600" size={24} /> : <X className="text-orange-600" size={24} />}
-            <span className={`font-bold text-lg ${userAnswer.isCorrect ? 'text-green-800' : 'text-orange-800'}`}>
-              {userAnswer.isCorrect ? (lang === 'de' ? 'Richtig!' : 'Correct!') : (lang === 'de' ? 'Falsch' : 'Wrong')}
-            </span>
-          </div>
-          {!userAnswer.isCorrect && (
-            <p className="text-sm text-gray-700 mt-2">
-              {lang === 'de' ? '✓ Richtige Antwort: ' : '✓ Correct answer: '}
-              <span className="font-semibold">{(lang === 'de' ? q.options_de : q.options_en)[q.correct_index]}</span>
-            </p>
-          )}
-        </div>
-      )}
-
-      <button
-        onClick={() => { 
-          if (answered) { 
-            setCurrentIdx(currentIdx + 1);
-            setShowTranslation(false);
-            setQuestionStartTime(Date.now()); // Reset timer for next question
-          } 
-        }}
-        disabled={!answered}
-        className={`w-full py-4 rounded-xl font-bold shadow-lg transition ${answered ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-      >
-        {currentIdx === quizQuestions.length - 1 ? (lang === 'de' ? 'Ergebnis anzeigen' : 'Show Result') : (lang === 'de' ? 'Weiter →' : 'Next →')}
-      </button>
-    </div>
-  );
-}
-
-// Training Page - Anki-style Spaced Repetition System
-function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPageProps) {
-  const [started, setStarted] = useState(false);
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [answers, setAnswers] = useState<Answer[]>([]);
-  const [trainingQuestions, setTrainingQuestions] = useState<Question[]>([]);
-  const [showTranslation, setShowTranslation] = useState(false);
-  const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
-  const [sessionStats, setSessionStats] = useState({ correct: 0, incorrect: 0, total: 0 });
-  const [hoveredOption, setHoveredOption] = useState<number | null>(null);
-  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
-
-  // Shuffled options with original indices
-  const shuffledOptions = useMemo(() => {
-    if (!trainingQuestions[currentIdx]) return [];
-    const q = trainingQuestions[currentIdx];
-    const opts = (lang === 'de' ? q.options_de : q.options_en).map((opt: any, idx: any) => ({
-      text: opt,
-      originalIndex: idx
-    }));
-    return shuffleArray(opts);
-  }, [trainingQuestions, currentIdx, lang]);
-
-  // Calculate dynamic session size (like Anki's new cards system)
-  const calculateSessionSize = () => {
-    const totalQuestions = questions.length;
-    const answeredCount = Object.keys(progress).length;
-    const strongCount = Object.values(progress).filter((p: any) => p.strength === 'strong').length;
-    
-    // Calculate actual accuracy rate (correct / total attempts)
-    const totalCorrect = Object.values(progress).reduce((sum: number, p: any) => sum + (p.correct || 0), 0);
-    const totalAttempts = Object.values(progress).reduce((sum: number, p: any) => sum + (p.correct || 0) + (p.incorrect || 0), 0);
-    const accuracyRate = totalAttempts > 0 ? totalCorrect / totalAttempts : 0;
-    
-    // Start with 20 questions for beginners
-    let baseSize = 20;
-    
-    // Increase gradually as user progresses (based on both answered count AND accuracy)
-    if (answeredCount > 50 && accuracyRate > 0.6) baseSize = 25;
-    if (answeredCount > 100 && accuracyRate > 0.7) baseSize = 30;
-    if (answeredCount > 150 && accuracyRate > 0.75) baseSize = 35;
-    if (answeredCount > 200 && accuracyRate > 0.8) baseSize = 40;
-    
-    // Don't exceed remaining questions
-    const remaining = totalQuestions - strongCount;
-    return Math.min(baseSize, Math.max(10, remaining));
-  };
-
-  // Smart question selection for training with CATEGORY BALANCING
-  const selectTrainingQuestions = (count: number) => {
-    // First, get all categories and their question counts
-    const categories = [...new Set(questions.map((q: any) => q.category))];
-    const categoryStats = categories.map(cat => {
-      const catQuestions = questions.filter((q: any) => q.category === cat);
-      const answered = catQuestions.filter((q: any) => progress[q.id]).length;
-      const weak = catQuestions.filter((q: any) => progress[q.id]?.strength === 'weak').length;
-      const avgAccuracy = catQuestions.reduce((acc, q: any) => {
-        const p = progress[q.id];
-        if (!p) return acc;
-        const total = p.correct + p.incorrect;
-        return acc + (total > 0 ? p.correct / total : 0);
-      }, 0) / Math.max(1, answered);
-      
-      return {
-        category: cat,
-        total: catQuestions.length,
-        answered,
-        weak,
-        avgAccuracy,
-        coverage: answered / catQuestions.length,
-        priority: (1 - (answered / catQuestions.length)) * 2 + (weak / catQuestions.length) + (1 - avgAccuracy)
-      };
-    }).sort((a, b) => b.priority - a.priority);
-
-    // Calculate how many questions to take from each category
-    const questionsPerCategory: Record<string, number> = {};
-    const basePerCategory = Math.floor(count / categories.length);
-    let remaining = count - (basePerCategory * categories.length);
-    
-    // Distribute questions proportionally with priority for weak categories
-    categoryStats.forEach(stat => {
-      questionsPerCategory[stat.category] = basePerCategory;
-      if (stat.priority > 2 && remaining > 0) {
-        questionsPerCategory[stat.category]++;
-        remaining--;
-      }
-    });
-    
-    // Distribute any remaining questions to highest priority categories
-    categoryStats.forEach(stat => {
-      if (remaining > 0) {
-        questionsPerCategory[stat.category]++;
-        remaining--;
-      }
-    });
-
-    // Now select questions from each category using SRS weighting
-    const selectedQuestions: any[] = [];
-    
-    categories.forEach(cat => {
-      const catQuestions = questions.filter((q: any) => q.category === cat);
-      const targetCount = questionsPerCategory[cat];
-      
-      // Weight questions by SRS score
-      const weightedCatQuestions = catQuestions.map((q: any) => ({
-        ...q,
-        srsWeight: calculateSRSWeight(progress[q.id])
-      })).sort((a: any, b: any) => b.srsWeight - a.srsWeight);
-
-      // Take the highest priority questions from this category
-      selectedQuestions.push(...weightedCatQuestions.slice(0, targetCount));
-    });
-
-    // Shuffle the final selection to mix categories
-    return shuffleArray(selectedQuestions).slice(0, count);
-  };
-
-  const startTraining = () => {
-    const sessionSize = calculateSessionSize();
-    const selected = selectTrainingQuestions(sessionSize);
-    setTrainingQuestions(selected);
-    setStarted(true);
-    setCurrentIdx(0);
-    setAnswers([]);
-    setShowTranslation(false);
-    setSessionStats({ correct: 0, incorrect: 0, total: 0 });
-  };
-
-  if (!started) {
-    // Calculate session recommendations
-    const newCount = questions.filter((q: any) => !progress[q.id]).length;
-    const weakCount = questions.filter((q: any) => progress[q.id]?.strength === 'weak').length;
-    const mediumCount = questions.filter((q: any) => progress[q.id]?.strength === 'medium').length;
-    const strongCount = questions.filter((q: any) => progress[q.id]?.strength === 'strong').length;
-    const dueCount = questions.filter((q: any) => {
-      if (!progress[q.id]) return false;
-      const daysSince = Math.floor((Date.now() - new Date(progress[q.id].lastSeen).getTime()) / (1000 * 60 * 60 * 24));
-      return daysSince >= 1;
-    }).length;
-    
-    const sessionSize = calculateSessionSize();
-    const answeredCount = Object.keys(progress).length;
-    const accuracyRate = answeredCount > 0 ? (strongCount / answeredCount * 100).toFixed(0) : 0;
-
-    return (
-      <div className="p-4">
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-gradient-to-br from-purple-500 to-pink-500 p-3 rounded-full">
-              <Brain className="text-white" size={24} />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800">{lang === 'de' ? 'Training Modus' : 'Training Mode'}</h2>
-          </div>
-
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 mb-6 border-l-4 border-purple-500">
-            <h3 className="font-bold text-purple-900 mb-2 flex items-center gap-2">
-              <Sparkles size={18} />
-              {lang === 'de' ? 'Intelligentes Lern-System (wie Anki)' : 'Smart Learning System (like Anki)'}
-            </h3>
-            <p className="text-sm text-purple-800 mb-3">
-              {lang === 'de' 
-                ? 'Adaptives Wiederholungssystem das sich an deinen Fortschritt anpasst. Schwache Bereiche werden häufiger wiederholt!' 
-                : 'Adaptive spaced repetition system that adjusts to your progress. Weak areas are repeated more frequently!'}
-            </p>
-            <div className="flex items-center gap-4 text-sm">
-              <div className="bg-white px-3 py-2 rounded-lg">
-                <span className="text-purple-600 font-bold text-2xl">{sessionSize}</span>
-                <span className="text-purple-800 ml-2">{lang === 'de' ? 'Fragen' : 'questions'}</span>
-              </div>
-              <div className="text-purple-700">
-                {sessionSize > 20 && (
-                  <div className="flex items-center gap-1">
-                    <BarChart3 size={16} />
-                    <span className="text-xs font-semibold">
-                      {lang === 'de' ? `Erhöht! ${accuracyRate}% Genauigkeit` : `Increased! ${accuracyRate}% accuracy`}
-                    </span>
-                  </div>
-                )}
-                {sessionSize === 20 && (
-                  <span className="text-xs">{lang === 'de' ? 'Standard-Sitzung' : 'Standard session'}</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3 mb-6">
-            <div className="bg-blue-50 rounded-lg p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
-                  {newCount}
-                </div>
-                <div>
-                  <p className="font-semibold text-blue-900">{lang === 'de' ? 'Neue Fragen' : 'New Questions'}</p>
-                  <p className="text-xs text-blue-700">{lang === 'de' ? 'Noch nie gesehen' : 'Never seen before'}</p>
-                </div>
-              </div>
-              <Zap className="text-blue-500" size={24} />
-            </div>
-
-            <div className="bg-red-50 rounded-lg p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-red-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
-                  {weakCount}
-                </div>
-                <div>
-                  <p className="font-semibold text-red-900">{lang === 'de' ? 'Schwache Bereiche' : 'Weak Areas'}</p>
-                  <p className="text-xs text-red-700">{lang === 'de' ? 'Brauchen Wiederholung' : 'Need reinforcement'}</p>
-                </div>
-              </div>
-              <AlertCircle className="text-red-500" size={24} />
-            </div>
-
-            <div className="bg-yellow-50 rounded-lg p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-yellow-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
-                  {mediumCount}
-                </div>
-                <div>
-                  <p className="font-semibold text-yellow-900">{lang === 'de' ? 'In Bearbeitung' : 'Learning'}</p>
-                  <p className="text-xs text-yellow-700">{lang === 'de' ? 'Mittlere Genauigkeit' : 'Medium accuracy'}</p>
-                </div>
-              </div>
-              <Target className="text-yellow-500" size={24} />
-            </div>
-
-            <div className="bg-orange-50 rounded-lg p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-orange-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
-                  {dueCount}
-                </div>
-                <div>
-                  <p className="font-semibold text-orange-900">{lang === 'de' ? 'Zur Wiederholung fällig' : 'Due for Review'}</p>
-                  <p className="text-xs text-orange-700">{lang === 'de' ? 'Basierend auf Zeitintervallen' : 'Based on time intervals'}</p>
-                </div>
-              </div>
-              <Clock className="text-orange-500" size={24} />
-            </div>
-
-            <div className="bg-green-50 rounded-lg p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-green-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
-                  {strongCount}
-                </div>
-                <div>
-                  <p className="font-semibold text-green-900">{lang === 'de' ? 'Bekannte Fragen' : 'Known Questions'}</p>
-                  <p className="text-xs text-green-700">{lang === 'de' ? 'Stark gemeistert' : 'Strong mastery'}</p>
-                </div>
-              </div>
-              <CheckCircle2 className="text-green-500" size={24} />
-            </div>
-          </div>
-
-          {/* Category Coverage Indicator */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-6 border-2 border-indigo-200">
-            <h4 className="font-bold text-indigo-900 mb-3 flex items-center gap-2">
-              <BarChart3 className="text-indigo-600" size={18} />
-              {lang === 'de' ? '📚 Kategorieabdeckung' : '📚 Category Coverage'}
-            </h4>
-            {(() => {
-              const categories = [...new Set(questions.map((q: any) => q.category))];
-              const categoryProgress = categories.map(cat => {
-                const catQuestions = questions.filter((q: any) => q.category === cat);
-                const answered = catQuestions.filter((q: any) => progress[q.id]).length;
-                const coverage = (answered / catQuestions.length) * 100;
-                return { category: cat, coverage, answered, total: catQuestions.length };
-              }).sort((a, b) => a.coverage - b.coverage);
-
-              const weakCategories = categoryProgress.filter(c => c.coverage < 50);
-              const strongCategories = categoryProgress.filter(c => c.coverage >= 80);
-
-              return (
-                <div>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className="bg-white rounded-lg p-3 text-center">
-                      <div className="text-2xl font-bold text-red-600">{weakCategories.length}</div>
-                      <div className="text-xs text-gray-600">{lang === 'de' ? 'Schwache' : 'Weak'}</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 text-center">
-                      <div className="text-2xl font-bold text-green-600">{strongCategories.length}</div>
-                      <div className="text-xs text-gray-600">{lang === 'de' ? 'Stark' : 'Strong'}</div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-indigo-700 bg-white rounded-lg p-2">
-                    💡 {lang === 'de' 
-                      ? 'Training wählt automatisch Fragen aus allen Kategorien für ausgewogene Vorbereitung!' 
-                      : 'Training automatically selects questions from all categories for balanced preparation!'}
-                  </p>
-                </div>
-              );
-            })()}
-          </div>
-
-          <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <h4 className="font-bold text-gray-800 mb-3">{lang === 'de' ? '🎯 Wie funktioniert Training?' : '🎯 How Training Works'}</h4>
-            <ul className="space-y-2 text-sm text-gray-700">
-              <li className="flex items-start gap-2">
-                <span className="text-purple-600 font-bold">1.</span>
-                <span>{lang === 'de' ? `${sessionSize} Fragen ausgewählt nach deinem Fortschritt` : `${sessionSize} questions selected based on your progress`}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-600 font-bold">2.</span>
-                <span>{lang === 'de' ? 'Schwache Fragen kommen öfter zurück' : 'Weak questions come back more often'}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-600 font-bold">3.</span>
-                <span>{lang === 'de' ? 'Starke Fragen werden nach Tagen wiederholt' : 'Strong questions reviewed after days'}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-600 font-bold">4.</span>
-                <span>{lang === 'de' ? 'Sitzungsgröße steigt mit deinem Fortschritt (bis 40!)' : 'Session size grows with your progress (up to 40!)'}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-600 font-bold">5.</span>
-                <span>{lang === 'de' ? 'Vokabel-Highlighting für sofortiges Lernen' : 'Vocabulary highlighting for instant learning'}</span>
-              </li>
-            </ul>
-          </div>
-
-          <button onClick={startTraining} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl py-4 font-bold shadow-lg flex items-center justify-center gap-2">
-            <Brain size={24} />
-            {lang === 'de' ? `Training starten (${sessionSize} Fragen)` : `Start Training (${sessionSize} Questions)`}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (currentIdx >= trainingQuestions.length) {
-    const score = answers.filter((ans: any) => ans?.isCorrect).length;
-    const accuracy = Math.round((score / trainingQuestions.length) * 100);
-    
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 p-4 flex items-center justify-center">
-        <div className="bg-white rounded-2xl p-8 shadow-2xl text-center max-w-2xl w-full">
-          <div className="text-8xl mb-6 animate-bounce">
-            {accuracy >= 80 ? '🎉' : accuracy >= 60 ? '👍' : '📚'}
-          </div>
-          <h2 className="text-3xl font-bold mb-4 text-gray-800">
-            {lang === 'de' ? 'Training abgeschlossen!' : 'Training Completed!'}
-          </h2>
-          <div className={`text-7xl font-bold mb-6 ${
-            accuracy >= 80 ? 'text-green-600' : 
-            accuracy >= 60 ? 'text-yellow-600' : 'text-orange-600'
-          }`}>
-            {score}/{trainingQuestions.length}
-          </div>
-          
-          <div className="mb-6">
-            <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
-              <div 
-                className={`h-4 rounded-full transition-all duration-1000 ${
-                  accuracy >= 80 ? 'bg-gradient-to-r from-green-400 to-green-600' : 
-                  accuracy >= 60 ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 
-                  'bg-gradient-to-r from-orange-400 to-orange-600'
-                }`}
-                style={{ width: `${accuracy}%` }}
-              ></div>
-            </div>
-            <p className="text-2xl font-bold text-gray-700">
-              {lang === 'de' ? 'Genauigkeit' : 'Accuracy'}: {accuracy}%
-            </p>
-          </div>
-
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 mb-6 shadow-inner">
-            <h3 className="font-bold text-gray-800 mb-4 text-lg flex items-center justify-center gap-2">
-              <Brain size={20} className="text-purple-600" />
-              {lang === 'de' ? 'Sitzungsstatistik' : 'Session Stats'}
-            </h3>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="bg-white rounded-lg p-4 shadow-sm">
-                <div className="text-4xl font-bold text-green-600 mb-1">{sessionStats.correct}</div>
-                <div className="text-sm text-gray-600 font-medium">{lang === 'de' ? 'Richtig' : 'Correct'}</div>
-              </div>
-              <div className="bg-white rounded-lg p-4 shadow-sm">
-                <div className="text-4xl font-bold text-red-600 mb-1">{sessionStats.incorrect}</div>
-                <div className="text-sm text-gray-600 font-medium">{lang === 'de' ? 'Falsch' : 'Wrong'}</div>
-              </div>
-              <div className="bg-white rounded-lg p-4 shadow-sm">
-                <div className="text-4xl font-bold text-purple-600 mb-1">{trainingQuestions.length}</div>
-                <div className="text-sm text-gray-600 font-medium">{lang === 'de' ? 'Gesamt' : 'Total'}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <button 
-              onClick={() => setStarted(false)} 
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl py-4 font-bold shadow-lg transform transition-all hover:scale-105"
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
+        <div className="flex justify-around items-center h-16">
+          {[
+            { id: 'home', icon: '🏠', label: lang === 'de' ? 'Start' : 'Home' },
+            { id: 'training', icon: '📚', label: lang === 'de' ? 'Üben' : 'Train' },
+            { id: 'quiz', icon: '📝', label: lang === 'de' ? 'Quiz' : 'Quiz' },
+            { id: 'vocab', icon: '📖', label: lang === 'de' ? 'Wörter' : 'Vocab' },
+            { id: 'stats', icon: '📊', label: lang === 'de' ? 'Stats' : 'Stats' },
+            { id: 'settings', icon: '⚙️', label: lang === 'de' ? 'Mehr' : 'More' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setPage(item.id)}
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-all active:scale-95 ${
+                page === item.id
+                  ? 'text-indigo-600 bg-indigo-50'
+                  : 'text-gray-500 active:bg-gray-100'
+              }`}
             >
-              {lang === 'de' ? 'Neue Training-Sitzung' : 'New Training Session'}
+              <span className="text-xl mb-0.5">{item.icon}</span>
+              <span className="text-xs font-medium">{item.label}</span>
             </button>
-            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-              <p className="text-sm text-purple-800 font-medium flex items-center justify-center gap-2">
-                <Lightbulb size={16} className="text-purple-600" />
-                {lang === 'de' 
-                  ? 'Tipp: Komme morgen zurück für optimale Wiederholung!' 
-                  : 'Tip: Come back tomorrow for optimal review!'}
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
-      </div>
-    );
-  }
-
-  const q = trainingQuestions[currentIdx];
-  if (!q) return null;
-
-  const answered = answers[currentIdx] !== undefined;
-  const userAnswer = answers[currentIdx];
-
-  const handleAnswer = (originalIndex: any) => {
-    const isCorrect = originalIndex === q.correct_index;
-    const answerTime = Math.floor((Date.now() - questionStartTime) / 1000); // seconds
-    const newAnswers = [...answers];
-    newAnswers[currentIdx] = { selectedIndex: originalIndex, isCorrect };
-    setAnswers(newAnswers);
-    updateProgress(q.id, isCorrect, answerTime);
-    
-    // Update session stats
-    setSessionStats(prev => ({
-      ...prev,
-      correct: prev.correct + (isCorrect ? 1 : 0),
-      incorrect: prev.incorrect + (isCorrect ? 0 : 1),
-      total: prev.total + 1
-    }));
-  };
-
-  const CategoryIcon = CATEGORY_ICONS[q.category] || BookOpen;
-  const strengthColor = !progress[q.id] ? 'gray' : 
-    progress[q.id].strength === 'strong' ? 'green' :
-    progress[q.id].strength === 'medium' ? 'yellow' : 'red';
-
-  return (
-    <div className="p-4 space-y-4">
-      {/* Header */}
-      <div className="bg-white rounded-xl p-4 shadow-md">
-        <div className="flex justify-between items-center mb-3">
-          <span className="font-bold text-gray-800">{currentIdx + 1}/{trainingQuestions.length}</span>
-          <div className="flex gap-2 items-center">
-            <div className={`w-2 h-2 rounded-full bg-${strengthColor}-400`}></div>
-            <CategoryIcon size={16} className="text-purple-600" />
-            <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full font-semibold">
-              {q.category}
-            </span>
-          </div>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / trainingQuestions.length) * 100}%` }}></div>
-        </div>
-      </div>
-
-      {/* Session Stats */}
-      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-3 shadow-sm flex justify-around text-center">
-        <div>
-          <div className="text-lg font-bold text-green-600">{sessionStats.correct}</div>
-          <div className="text-xs text-gray-600">✓</div>
-        </div>
-        <div>
-          <div className="text-lg font-bold text-red-600">{sessionStats.incorrect}</div>
-          <div className="text-xs text-gray-600">✗</div>
-        </div>
-        <div>
-          <div className="text-lg font-bold text-purple-600">{Math.round((sessionStats.correct / Math.max(1, sessionStats.total)) * 100)}%</div>
-          <div className="text-xs text-gray-600">{lang === 'de' ? 'Genauigkeit' : 'Accuracy'}</div>
-        </div>
-      </div>
-
-      {/* Question Card */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg">
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="text-lg font-bold text-gray-800 flex-1">
-            <HighlightedText 
-              text={lang === 'de' ? q.question_de : q.question_en}
-              onClick={(word: string) => setSelectedVocab(word)}
-            />
-          </h3>
-          <button onClick={() => setShowTranslation(!showTranslation)} className="ml-2 p-2 text-gray-500 hover:text-purple-600 transition">
-            {showTranslation ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
-        </div>
-        
-        {showTranslation && (
-          <p className="text-sm text-gray-600 mb-4 italic border-l-2 border-purple-300 pl-3 bg-purple-50 p-2 rounded">
-            {lang === 'de' ? q.question_en : q.question_de}
-          </p>
-        )}
-        
-        {selectedVocab && (
-          <VocabPopup 
-            word={selectedVocab}
-            onClose={() => setSelectedVocab(null)}
-            lang={lang}
-          />
-        )}
-
-        <div className="space-y-3">
-          {shuffledOptions.map((opt: any, idx: number) => {
-            const isSelected = userAnswer?.selectedIndex === opt.originalIndex;
-            const isCorrectAnswer = opt.originalIndex === q.correct_index;
-            const showAsCorrect = answered && isCorrectAnswer;
-            const showAsWrong = answered && isSelected && !isCorrectAnswer;
-            const showingTranslation = hoveredOption === idx;
-            
-            // Get the translation text
-            const translationArray = lang === 'de' ? q.options_en : q.options_de;
-            const displayText = showingTranslation ? translationArray[opt.originalIndex] : opt.text;
-
-            return (
-              <div key={idx} className="relative flex gap-2">
-                <button
-                  onClick={() => !answered && handleAnswer(opt.originalIndex)}
-                  disabled={answered}
-                  className={`flex-1 text-left p-4 rounded-xl border-2 font-semibold transition-all ${
-                    showAsWrong ? 'bg-red-50 border-red-500 shadow-md' :
-                    showAsCorrect ? 'bg-green-50 border-green-500 shadow-md' :
-                    'border-gray-200 hover:border-purple-400 hover:shadow-md active:scale-98'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                      showAsWrong ? 'bg-red-500 text-white' :
-                      showAsCorrect ? 'bg-green-500 text-white' :
-                      'bg-gray-200 text-gray-600'
-                    }`}>
-                      {answered && (showAsCorrect || showAsWrong) ? (
-                        isCorrectAnswer ? <Check size={16} /> : <X size={16} />
-                      ) : (
-                        String.fromCharCode(65 + idx)
-                      )}
-                    </span>
-                    <span className="flex-1">
-                      {showingTranslation ? (
-                        displayText
-                      ) : (
-                        <HighlightedText 
-                          text={opt.text}
-                          onClick={(word: string) => setSelectedVocab(word)}
-                        />
-                      )}
-                    </span>
-                  </div>
-                </button>
-                
-                {/* Translation Toggle Button */}
-                <button
-                  onMouseDown={() => setHoveredOption(idx)}
-                  onMouseUp={() => setHoveredOption(null)}
-                  onMouseLeave={() => setHoveredOption(null)}
-                  onTouchStart={() => setHoveredOption(idx)}
-                  onTouchEnd={() => setHoveredOption(null)}
-                  className={`px-3 py-2 rounded-xl border-2 transition-all ${
-                    showingTranslation 
-                      ? 'bg-blue-500 border-blue-500 text-white' 
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600'
-                  }`}
-                  title={lang === 'de' ? 'Übersetzung anzeigen (gedrückt halten)' : 'Show translation (hold)'}
-                >
-                  <Globe size={18} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Feedback */}
-      {answered && (
-        <div className={`rounded-2xl p-4 shadow-lg ${userAnswer.isCorrect ? 'bg-green-50 border-l-4 border-green-500' : 'bg-orange-50 border-l-4 border-orange-500'}`}>
-          <div className="flex items-center gap-2 mb-2">
-            {userAnswer.isCorrect ? <CheckCircle2 className="text-green-600" size={24} /> : <X className="text-orange-600" size={24} />}
-            <span className={`font-bold text-lg ${userAnswer.isCorrect ? 'text-green-800' : 'text-orange-800'}`}>
-              {userAnswer.isCorrect ? (lang === 'de' ? 'Richtig! ✓' : 'Correct! ✓') : (lang === 'de' ? 'Falsch ✗' : 'Wrong ✗')}
-            </span>
-          </div>
-          {!userAnswer.isCorrect && (
-            <p className="text-sm text-gray-700 mt-2">
-              {lang === 'de' ? '✓ Richtige Antwort: ' : '✓ Correct answer: '}
-              <span className="font-semibold">{(lang === 'de' ? q.options_de : q.options_en)[q.correct_index]}</span>
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Next Button */}
-      <button
-        onClick={() => { 
-          if (answered) { 
-            setCurrentIdx(currentIdx + 1); 
-            setShowTranslation(false); 
-            setSelectedVocab(null);
-            setQuestionStartTime(Date.now()); // Reset timer for next question
-          } 
-        }}
-        disabled={!answered}
-        className={`w-full py-4 rounded-xl font-bold shadow-lg transition ${answered ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-      >
-        {currentIdx === trainingQuestions.length - 1 ? (lang === 'de' ? 'Ergebnis anzeigen' : 'Show Result') : (lang === 'de' ? 'Weiter →' : 'Next →')}
-      </button>
+      </nav>
     </div>
+    </ErrorBoundary>
   );
 }
 
-function CardsPage({ lang, questions, updateProgress, progress }: CardsPageProps) {
-  const [started, setStarted] = useState(false);
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [flipped, setFlipped] = useState(false);
-  const [cards, setCards] = useState<Question[]>([]);
-  const [cardStartTime, setCardStartTime] = useState<number>(Date.now());
-
-  const startCards = () => {
-    const weightedCards = questions.map((q: Question) => ({
-      ...q,
-      weight: calculateSRSWeight(progress[q.id])
-    })).sort((a: { weight: number }, b: { weight: number }) => b.weight - a.weight);
-    
-    setCards(weightedCards);
-    setStarted(true);
-    setCurrentIdx(0);
-    setFlipped(false);
-    setCardStartTime(Date.now());
-  };
-
-  if (!started) {
-    return (
-      <div className="p-4">
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">{lang === 'de' ? 'Kartenset Modus' : 'Flashcard Mode'}</h2>
-          <div className="space-y-3 mb-6">
-            <p className="text-gray-700">{lang === 'de' ? '✓ Intelligente Reihenfolge basiert auf deinen Schwächen' : '✓ Smart order based on your weaknesses'}</p>
-            <p className="text-gray-700">{lang === 'de' ? '✓ Tippe auf die Karte zum Umdrehen' : '✓ Tap card to flip'}</p>
-            <p className="text-gray-700">{lang === 'de' ? '✓ Bewerte dein Wissen selbst' : '✓ Self-assess your knowledge'}</p>
-          </div>
-          <button onClick={startCards} className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl py-4 font-bold shadow-lg">{lang === 'de' ? 'Kartenset starten' : 'Start Flashcards'}</button>
-        </div>
-      </div>
-    );
-  }
-
-  if (currentIdx >= cards.length) {
-    return (
-      <div className="p-4">
-        <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
-          <div className="text-6xl mb-4">🎊</div>
-          <h2 className="text-2xl font-bold mb-4">{lang === 'de' ? 'Alle Karten durchgegangen!' : 'All cards reviewed!'}</h2>
-          <p className="text-gray-700 mb-6">{lang === 'de' ? 'Ausgezeichnete Arbeit!' : 'Excellent work!'}</p>
-          <button onClick={() => setStarted(false)} className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl py-3 font-bold shadow-lg">{lang === 'de' ? 'Neu starten' : 'Restart'}</button>
-        </div>
-      </div>
-    );
-  }
-
-  const q = cards[currentIdx];
-  if (!q) return null;
-
-  const CategoryIcon = CATEGORY_ICONS[q.category] || BookOpen;
-  const strengthColor = !progress[q.id] ? 'bg-gray-400' : 
-    progress[q.id].strength === 'strong' ? 'bg-green-400' :
-    progress[q.id].strength === 'medium' ? 'bg-yellow-400' : 'bg-red-400';
-
-  return (
-    <div className="p-4 space-y-4">
-      <div className="bg-white rounded-xl p-4 shadow-md flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-gray-800">{currentIdx + 1}/{cards.length}</span>
-          <div className={`w-3 h-3 rounded-full ${strengthColor}`}></div>
-        </div>
-        <div className="flex items-center gap-2">
-          <CategoryIcon size={16} className="text-green-600" />
-          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold">{q.category}</span>
-        </div>
-      </div>
-
-      <div onClick={() => setFlipped(!flipped)} className={`rounded-2xl p-8 min-h-72 cursor-pointer flex items-center justify-center text-center shadow-xl transition-all duration-500 transform ${flipped ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-blue-500 to-purple-600'} text-white hover:scale-105`}>
-        <div className="w-full">
-          <div className="text-sm opacity-80 mb-4 font-semibold uppercase tracking-wide">
-            {flipped ? (lang === 'de' ? 'Antwort' : 'Answer') : (lang === 'de' ? 'Frage' : 'Question')}
-          </div>
-          <div className="text-xl font-bold leading-relaxed">
-            {flipped ? (lang === 'de' ? q.options_de[q.correct_index] : q.options_en[q.correct_index]) : (lang === 'de' ? q.question_de : q.question_en)}
-          </div>
-          <div className="mt-6 text-sm opacity-75">
-            {flipped ? '✓' : (lang === 'de' ? '👆 Tippen zum Umdrehen' : '👆 Tap to flip')}
-          </div>
-        </div>
-      </div>
-
-      {flipped ? (
-        <div className="flex gap-3">
-          <button onClick={(e) => { 
-            e.stopPropagation(); 
-            const answerTime = Math.floor((Date.now() - cardStartTime) / 1000);
-            updateProgress(q.id, false, answerTime); 
-            setFlipped(false); 
-            setCurrentIdx(currentIdx + 1);
-            setCardStartTime(Date.now());
-          }} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl font-bold shadow-lg transition">
-            {lang === 'de' ? '✗ Nicht gewusst' : '✗ Didn\'t Know'}
-          </button>
-          <button onClick={(e) => { 
-            e.stopPropagation(); 
-            const answerTime = Math.floor((Date.now() - cardStartTime) / 1000);
-            updateProgress(q.id, true, answerTime); 
-            setFlipped(false); 
-            setCurrentIdx(currentIdx + 1);
-            setCardStartTime(Date.now());
-          }} className="flex-1 bg-green-500 hover:bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg transition">
-            {lang === 'de' ? '✓ Gewusst' : '✓ Knew It'}
-          </button>
-        </div>
-      ) : (
-        <button onClick={() => setFlipped(true)} className="w-full bg-white text-gray-800 py-4 rounded-xl font-bold shadow-md border-2 border-gray-200 hover:border-indigo-400 transition">
-          {lang === 'de' ? '🔄 Karte umdrehen' : '🔄 Flip Card'}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function ProgressPage({ lang, questions, progress, badges, quizHistory }: ProgressPageProps) {
-  const categories = [...new Set(questions.map((q: any) => q.category))];
-
-  const getStats = (category: any) => {
-    const catQs = questions.filter((q: any) => q.category === category);
-    const correct = catQs.reduce((sum: number, q: any) => sum + (progress[q.id]?.correct || 0), 0);
-    const attempts = catQs.reduce((sum: number, q: any) => sum + ((progress[q.id]?.correct || 0) + (progress[q.id]?.incorrect || 0)), 0);
-    return { correct, attempts, total: catQs.length };
-  };
-
-  const strengthGroups = {
-    strong: questions.filter((q: any) => progress[q.id]?.strength === 'strong'),
-    medium: questions.filter((q: any) => progress[q.id]?.strength === 'medium'),
-    weak: questions.filter((q: any) => progress[q.id]?.strength === 'weak'),
-    unanswered: questions.filter((q: any) => !progress[q.id])
-  };
-
-  const avgScore = quizHistory.length > 0 
-    ? Math.round(quizHistory.reduce((sum: number, q: any) => sum + q.percentage, 0) / quizHistory.length)
-    : 0;
-
-  return (
-    <div className="p-4 space-y-4">
-      <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-2xl p-6 shadow-xl">
-        <div className="flex items-center gap-3 mb-2">
-          <BarChart3 size={28} />
-          <h2 className="text-2xl font-bold">{lang === 'de' ? 'Dein Fortschritt' : 'Your Progress'}</h2>
-        </div>
-        <p className="opacity-90 text-sm">{lang === 'de' ? 'Verfolge deine Lernfortschritte' : 'Track your learning progress'}</p>
-      </div>
-
-      {/* Quiz History */}
-      {quizHistory.length > 0 && (
-        <div className="bg-white rounded-xl p-6 shadow-lg">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <BarChart3 size={20} />
-            {lang === 'de' ? 'Quiz-Verlauf' : 'Quiz History'}
-          </h3>
-          <div className="mb-4">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-600">{lang === 'de' ? 'Durchschnittliche Punktzahl' : 'Average Score'}</span>
-              <span className={`text-2xl font-bold ${
-                avgScore >= 75 ? 'text-green-600' : 
-                avgScore >= 60 ? 'text-yellow-600' : 'text-red-600'
-              }`}>{avgScore}%</span>
-            </div>
-          </div>
-          <div className="space-y-2">
-            {quizHistory.slice(0, 5).map((quiz: any, idx: number) => (
-              <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <span className="text-sm text-gray-600">
-                    {new Date(quiz.date).toLocaleDateString(lang === 'de' ? 'de-DE' : 'en-US')}
-                  </span>
-                  <span className="text-xs text-gray-500 ml-2">
-                    {new Date(quiz.date).toLocaleTimeString(lang === 'de' ? 'de-DE' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-lg font-bold ${
-                    quiz.percentage >= 75 ? 'text-green-600' : 
-                    quiz.percentage >= 52 ? 'text-yellow-600' : 'text-red-600'
-                  }`}>{quiz.score}/{quiz.total}</span>
-                  <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
-                    quiz.percentage >= 75 ? 'bg-green-100 text-green-800' : 
-                    quiz.percentage >= 52 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-                  }`}>{quiz.percentage}%</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-green-500">
-          <div className="text-3xl font-bold text-green-600">{strengthGroups.strong.length}</div>
-          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '💪 Stark' : '💪 Strong'}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-yellow-500">
-          <div className="text-3xl font-bold text-yellow-600">{strengthGroups.medium.length}</div>
-          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '📚 Mittel' : '📚 Medium'}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-red-500">
-          <div className="text-3xl font-bold text-red-600">{strengthGroups.weak.length}</div>
-          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '🔄 Schwach' : '🔄 Weak'}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-gray-400">
-          <div className="text-3xl font-bold text-gray-600">{strengthGroups.unanswered.length}</div>
-          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '❓ Neu' : '❓ New'}</div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl p-6 shadow-lg">
-        <h3 className="text-lg font-bold mb-4 text-gray-800">{lang === 'de' ? 'Nach Kategorie' : 'By Category'}</h3>
-        <div className="space-y-4">
-          {categories.map(cat => {
-            const stats = getStats(cat);
-            const pct = stats.attempts > 0 ? Math.round((stats.correct / stats.attempts) * 100) : 0;
-            const CategoryIcon = CATEGORY_ICONS[cat] || BookOpen;
-            return (
-              <div key={cat}>
-                <div className="flex justify-between items-center mb-2">
-                  <div className="flex items-center gap-2">
-                    <CategoryIcon size={16} className="text-indigo-600" />
-                    <span className="font-semibold text-sm">{cat}</span>
-                  </div>
-                  <span className="text-xs text-gray-600 font-semibold">{stats.correct}/{stats.attempts} ({pct}%)</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-3 rounded-full transition-all" style={{ width: `${pct}%` }}></div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {badges.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <div className="flex items-center gap-2 mb-4">
-            <Award className="text-yellow-500" size={24} />
-            <h3 className="text-lg font-bold text-gray-800">{lang === 'de' ? 'Abzeichen' : 'Badges'} ({badges.length})</h3>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {badges.map((b, i) => (
-              <div key={i} className="bg-gradient-to-br from-yellow-400 to-orange-400 text-white px-4 py-2 rounded-xl font-bold shadow-md flex items-center gap-2">
-                <span className="text-2xl">🏆</span>
-                <span>{b}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
