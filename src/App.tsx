@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+ import { useState, useEffect, useMemo } from 'react';
 import { 
   Globe, BookOpen, Award, ChevronRight, Check, X, Eye, EyeOff, BarChart3,
   Target, Clock, Lightbulb, Flame, GraduationCap,
@@ -6,14 +6,14 @@ import {
 } from 'lucide-react';
 import { QUESTIONS, CATEGORY_ICONS } from './data.js';
 import { CITIZENSHIP_VOCABULARY } from './vacabulary.js';
-import { VocabPage, StudyPlanPage, VocabPopup, HighlightedText, VocabTrainingPage } from './components.tsx';
+import { VocabPage, VocabPopup, HighlightedText, VocabTrainingPage } from './components.tsx';
 import { GrammarLessonsPage } from './GrammarLessons.tsx';
 import { PerformancePage } from './PerformancePage.tsx';
 import { 
-  SRS_CONFIG,
   updateProgress as updateSRSProgress,
   calculateTestReadiness,
-  daysSinceLastSeen
+  daysSinceLastSeen,
+  calculateSRSWeight
 } from './srsAlgorithm';
 import type { Question, QuestionProgress, QuizResult, CategoryBreakdown, VocabProgress, HomePageProps, QuizPageProps, TrainingPageProps, CardsPageProps, ProgressPageProps } from './types';
 
@@ -27,86 +27,6 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return shuffled;
 };
 
-// Enhanced Spaced Repetition Algorithm (Anki/SM-2 style)
-// This algorithm determines when items should appear based on:
-// 1. NEW items: Never seen (highest priority after due items)
-// 2. LEARNING: Recently incorrect or weak (shown frequently - intervals: 1min, 10min, 1day)
-// 3. REVIEW: Items that need review based on interval (strong items with increasing intervals)
-// 4. Known/Strong items appear less frequently with exponentially increasing intervals
-
-const calculateQuestionWeight = (progress: QuestionProgress | undefined): number => {
-  if (!progress) return 8000; // NEW - Never seen, high priority (but lower than due items)
-  
-  const { correct, incorrect, lastSeen, strength } = progress;
-  const total = correct + incorrect;
-  const accuracy = total > 0 ? correct / total : 0;
-  
-  // Calculate days since last seen
-  const daysSinceLastSeen = lastSeen ? 
-    Math.floor((Date.now() - new Date(lastSeen).getTime()) / (1000 * 60 * 60 * 24)) : 999;
-  
-  let weight = 100;
-  
-  // Determine review interval based on strength (Anki-style)
-  let reviewInterval = 1; // days
-  
-  if (strength === 'strong') {
-    // Strong items: exponential backoff (1 → 3 → 7 → 14 → 30 days)
-    if (correct >= 8) reviewInterval = 30;
-    else if (correct >= 6) reviewInterval = 14;
-    else if (correct >= 4) reviewInterval = 7;
-    else if (correct >= 3) reviewInterval = 3;
-    else reviewInterval = 1;
-  } else if (strength === 'medium') {
-    // Medium items: slower progression (1 → 2 days)
-    reviewInterval = correct >= 3 ? 2 : 1;
-  } else if (strength === 'weak') {
-    // Weak items: keep reviewing frequently (0.5 days = 12 hours)
-    reviewInterval = 0.5;
-  } else {
-    // Unanswered/new in learning phase
-    reviewInterval = 0.1; // Review very soon
-  }
-  
-  // PRIORITY 1: DUE for review (items past their interval) - HIGHEST
-  if (daysSinceLastSeen >= reviewInterval) {
-    const overdueDays = daysSinceLastSeen - reviewInterval;
-    weight = 9000 + (overdueDays * 100); // Most important: overdue items
-  }
-  
-  // PRIORITY 2: WEAK items (need practice) - Even if not due yet, weak items get priority
-  else if (strength === 'weak' || accuracy < 0.5) {
-    weight = 7000 + (daysSinceLastSeen * 10);
-  }
-  
-  // PRIORITY 3: MEDIUM items (moderate priority)
-  else if (strength === 'medium') {
-    weight = 3000 + (daysSinceLastSeen * 5);
-  }
-  
-  // PRIORITY 4: STRONG items (lower priority, only when due or occasionally for review)
-  else if (strength === 'strong') {
-    // Strong items only show up when due or occasionally
-    if (daysSinceLastSeen >= reviewInterval * 0.8) {
-      weight = 1000 + (daysSinceLastSeen * 2);
-    } else {
-      weight = 50; // Very low priority - not due yet
-    }
-  }
-  
-  // NEW items (never seen) - high priority but let due items go first
-  if (total === 0) {
-    weight = 8000;
-  }
-  
-  // Boost for items with more incorrect than correct
-  if (incorrect > correct) {
-    weight *= 1.3;
-  }
-  
-  return weight;
-};
-
 // Target exam date - December 2, 2025
 const EXAM_DATE = new Date('2025-12-02');
 
@@ -117,18 +37,6 @@ const getDaysRemaining = () => {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };
 
-// Calculate weeks remaining
-// const getWeeksRemaining = () => {
-//   return Math.ceil(getDaysRemaining() / 7);
-// };
-
-// Get current week number (1-8) based on 8-week study plan
-// const getCurrentWeek = () => {
-//   const totalWeeks = 8;
-//   const weeksRemaining = getWeeksRemaining();
-//   return Math.max(1, Math.min(totalWeeks, totalWeeks - weeksRemaining + 1));
-// };
-
 export default function App() {
   const [page, setPage] = useState('home');
   const [lang, setLang] = useState('de');
@@ -138,7 +46,6 @@ export default function App() {
   const [studyStreak, setStudyStreak] = useState(0);
   const [vocabProgress, setVocabProgress] = useState<Record<string, VocabProgress>>({});
   const [favoriteVocab, setFavoriteVocab] = useState<string[]>([]);
-  // const [startDate, setStartDate] = useState<string | null>(null);
   const [vocabMode, setVocabMode] = useState('learn'); // 'learn' or 'training'
 
   useEffect(() => {
@@ -215,53 +122,21 @@ export default function App() {
         console.error('Error parsing favorite vocab:', e);
       }
     }
-
-    // Load or set start date
-    /* Unused for now
-    const savedStartDate = localStorage.getItem('startDate');
-    if (savedStartDate) {
-      setStartDate(savedStartDate);
-    } else {
-      const today = new Date().toISOString();
-      localStorage.setItem('startDate', today);
-      setStartDate(today);
-    }
-    */
   }, []);
 
-  const calculateStrength = (correct: number, incorrect: number): 'weak' | 'medium' | 'strong' | 'unanswered' => {
-    const total = correct + incorrect;
-    if (total === 0) return 'unanswered';
-    const ratio = correct / total;
-    if (ratio >= 0.8 && correct >= 3) return 'strong';
-    if (ratio >= 0.5) return 'medium';
-    return 'weak';
-  };
-
-  const updateProgress = (qId: number, correct: boolean) => {
+  const updateProgress = (qId: number, correct: boolean, answerTime: number = 5) => {
     const existing = progress[qId];
-    const newCorrect = (existing?.correct || 0) + (correct ? 1 : 0);
-    const newIncorrect = (existing?.incorrect || 0) + (correct ? 0 : 1);
+    
+    // Use the proper SRS algorithm to calculate new progress
+    const updated = updateSRSProgress(existing, correct, answerTime) as QuestionProgress;
     
     const newProgress = {
       ...progress,
-      [qId]: {
-        correct: newCorrect,
-        incorrect: newIncorrect,
-        lastSeen: new Date().toISOString(),
-        strength: calculateStrength(newCorrect, newIncorrect),
-        // New SRS fields with defaults for backward compatibility
-        srsLevel: existing?.srsLevel || 'new',
-        easeFactor: existing?.easeFactor || SRS_CONFIG.DEFAULT_EASE,
-        interval: existing?.interval || 0,
-        repetitions: existing?.repetitions || 0,
-        lapses: existing?.lapses || 0,
-        averageTime: existing?.averageTime || 0,
-        lastConfidence: existing?.lastConfidence
-      }
+      [qId]: updated
     };
+    
     setProgress(newProgress);
-    localStorage.setItem(`q_${qId}`, JSON.stringify(newProgress[qId]));
+    localStorage.setItem(`q_${qId}`, JSON.stringify(updated));
     updateStudyStreak();
     checkBadges(newProgress);
   };
@@ -330,7 +205,6 @@ export default function App() {
     cards: { de: 'Karten', en: 'Cards' },
     vocab: { de: 'Vokabeln', en: 'Vocab' },
     grammar: { de: 'Grammatik', en: 'Grammar' },
-    studyplan: { de: 'Plan', en: 'Plan' },
     progress: { de: 'Stats', en: 'Stats' },
     performance: { de: '📊 Leistung', en: '📊 Performance' }
   };
@@ -411,7 +285,6 @@ export default function App() {
           </div>
         )}
         {page === 'grammar' && <GrammarLessonsPage lang={lang as 'de' | 'en'} />}
-        {page === 'studyplan' && <StudyPlanPage lang={lang} progress={progress} questions={QUESTIONS} quizHistory={quizHistory} studyStreak={studyStreak} />}
         {page === 'progress' && <ProgressPage lang={lang} questions={QUESTIONS} progress={progress} badges={badges} quizHistory={quizHistory} />}
         {page === 'performance' && <PerformancePage lang={lang as 'de' | 'en'} progress={progress} questions={QUESTIONS} quizHistory={quizHistory} studyStreak={studyStreak} vocabProgress={vocabProgress} vocabulary={CITIZENSHIP_VOCABULARY} />}
       </main>
@@ -677,6 +550,7 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
   const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
   const [hoveredOption, setHoveredOption] = useState<number | null>(null);
   const [resultSaved, setResultSaved] = useState(false);
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
 
   // Create shuffled options with original indices - CALL HOOKS FIRST, BEFORE ANY RETURNS!
   const shuffledOptions = useMemo(() => {
@@ -689,31 +563,40 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
     return shuffleArray(opts);
   }, [quizQuestions, currentIdx, lang]);
 
-  // Save quiz result when completed
+  // Calculate quiz results (score and category breakdown) - only when quiz is complete
+  const quizResults = useMemo(() => {
+    if (currentIdx < quizQuestions.length) return null;
+    
+    const score = answers.filter((ans: Answer) => ans?.isCorrect).length;
+    const categoryBreakdown: CategoryBreakdown = {};
+    
+    quizQuestions.forEach((q: Question, idx: number) => {
+      const cat = q.category;
+      if (!categoryBreakdown[cat]) {
+        categoryBreakdown[cat] = { correct: 0, total: 0 };
+      }
+      categoryBreakdown[cat].total++;
+      if (answers[idx]?.isCorrect) {
+        categoryBreakdown[cat].correct++;
+      }
+    });
+    
+    return { score, categoryBreakdown };
+  }, [currentIdx, quizQuestions, answers]);
+
+  // Save quiz result when completed (runs only once)
   useEffect(() => {
-    if (started && quizQuestions.length > 0 && currentIdx >= quizQuestions.length && !resultSaved) {
-      const score = answers.filter((ans: Answer) => ans?.isCorrect).length;
-      const categoryBreakdown: CategoryBreakdown = {};
-      quizQuestions.forEach((q: Question, idx: number) => {
-        const cat = q.category;
-        if (!categoryBreakdown[cat]) {
-          categoryBreakdown[cat] = { correct: 0, total: 0 };
-        }
-        categoryBreakdown[cat].total++;
-        if (answers[idx]?.isCorrect) {
-          categoryBreakdown[cat].correct++;
-        }
-      });
-      saveQuizResult(score, 33, categoryBreakdown);
+    if (quizResults && !resultSaved) {
+      saveQuizResult(quizResults.score, 33, quizResults.categoryBreakdown);
       setResultSaved(true);
     }
-  }, [started, currentIdx, quizQuestions.length, answers, resultSaved, quizQuestions, saveQuizResult]);
+  }, [quizResults, resultSaved, saveQuizResult]);
 
   // Smart question selection using spaced repetition
   const selectSmartQuestions = () => {
     const weightedQuestions = questions.map((q: Question) => ({
       ...q,
-      weight: calculateQuestionWeight(progress[q.id])
+      weight: calculateSRSWeight(progress[q.id])
     })).sort((a: { weight: number }, b: { weight: number }) => b.weight - a.weight);
 
     // Take top 50 weighted questions, then randomly select 33 from them
@@ -757,21 +640,10 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
   }
 
   if (currentIdx >= quizQuestions.length) {
-    const score = answers.filter((ans: Answer) => ans?.isCorrect).length;
-    const passed = score >= 17;
+    if (!quizResults) return null; // Safety check
     
-    // Calculate category breakdown
-    const categoryBreakdown: CategoryBreakdown = {};
-    quizQuestions.forEach((q: Question, idx: number) => {
-      const cat = q.category;
-      if (!categoryBreakdown[cat]) {
-        categoryBreakdown[cat] = { correct: 0, total: 0 };
-      }
-      categoryBreakdown[cat].total++;
-      if (answers[idx]?.isCorrect) {
-        categoryBreakdown[cat].correct++;
-      }
-    });
+    const { score, categoryBreakdown } = quizResults;
+    const passed = score >= 17;
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 flex items-center justify-center">
@@ -852,10 +724,11 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
 
   const handleAnswer = (originalIndex: number) => {
     const isCorrect = originalIndex === q.correct_index;
+    const answerTime = Math.floor((Date.now() - questionStartTime) / 1000); // seconds
     const newAnswers = [...answers];
     newAnswers[currentIdx] = { selectedIndex: originalIndex, isCorrect };
     setAnswers(newAnswers);
-    updateProgress(q.id, isCorrect);
+    updateProgress(q.id, isCorrect, answerTime);
   };
 
   const CategoryIcon = CATEGORY_ICONS[q.category] || BookOpen;
@@ -999,8 +872,9 @@ function QuizPage({ lang, questions, updateProgress, progress, saveQuizResult }:
       <button
         onClick={() => { 
           if (answered) { 
-            setCurrentIdx(currentIdx + 1); 
-            setShowTranslation(false); 
+            setCurrentIdx(currentIdx + 1);
+            setShowTranslation(false);
+            setQuestionStartTime(Date.now()); // Reset timer for next question
           } 
         }}
         disabled={!answered}
@@ -1022,6 +896,7 @@ function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPag
   const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
   const [sessionStats, setSessionStats] = useState({ correct: 0, incorrect: 0, total: 0 });
   const [hoveredOption, setHoveredOption] = useState<number | null>(null);
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
 
   // Shuffled options with original indices
   const shuffledOptions = useMemo(() => {
@@ -1034,69 +909,21 @@ function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPag
     return shuffleArray(opts);
   }, [trainingQuestions, currentIdx, lang]);
 
-  // Advanced Anki-style spaced repetition algorithm
-  const calculateSRSWeight = (qProgress: any) => {
-    if (!qProgress) return 10000; // New cards - highest priority
-    
-    const { correct, incorrect, lastSeen, strength } = qProgress;
-    const total = correct + incorrect;
-    const accuracy = total > 0 ? correct / total : 0;
-    
-    // Calculate days since last seen
-    const daysSince = lastSeen ? 
-      Math.floor((Date.now() - new Date(lastSeen).getTime()) / (1000 * 60 * 60 * 24)) : 999;
-    
-    // Base interval based on strength (like Anki)
-    let interval = 1;
-    if (strength === 'strong' && correct >= 5) interval = 7; // Week 1: Review weekly
-    else if (strength === 'strong' && correct >= 3) interval = 3; // Strong but new
-    else if (strength === 'medium') interval = 1.5; // Review every 1.5 days
-    else if (strength === 'weak') interval = 0.5; // Review same day
-    
-    // Calculate weight (lower = more urgent to review)
-    let weight = 100;
-    
-    // Priority 1: Due for review (hasn't been seen in longer than interval)
-    if (daysSince >= interval) {
-      weight = 10 + (daysSince * 10); // Overdue items get high priority
-    }
-    
-    // Priority 2: Weak items that need reinforcement
-    if (strength === 'weak') {
-      weight += 1000;
-    } else if (strength === 'medium') {
-      weight += 500;
-    }
-    
-    // Priority 3: New cards (never seen)
-    if (total === 0) {
-      weight += 5000;
-    }
-    
-    // Priority 4: Items with low accuracy
-    if (accuracy < 0.5 && total >= 2) {
-      weight += 800;
-    }
-    
-    // Reduce priority for well-known items
-    if (strength === 'strong' && daysSince < interval) {
-      weight = Math.max(1, weight - 500);
-    }
-    
-    return weight;
-  };
-
   // Calculate dynamic session size (like Anki's new cards system)
   const calculateSessionSize = () => {
     const totalQuestions = questions.length;
     const answeredCount = Object.keys(progress).length;
     const strongCount = Object.values(progress).filter((p: any) => p.strength === 'strong').length;
-    const accuracyRate = answeredCount > 0 ? strongCount / answeredCount : 0;
+    
+    // Calculate actual accuracy rate (correct / total attempts)
+    const totalCorrect = Object.values(progress).reduce((sum: number, p: any) => sum + (p.correct || 0), 0);
+    const totalAttempts = Object.values(progress).reduce((sum: number, p: any) => sum + (p.correct || 0) + (p.incorrect || 0), 0);
+    const accuracyRate = totalAttempts > 0 ? totalCorrect / totalAttempts : 0;
     
     // Start with 20 questions for beginners
     let baseSize = 20;
     
-    // Increase gradually as user progresses
+    // Increase gradually as user progresses (based on both answered count AND accuracy)
     if (answeredCount > 50 && accuracyRate > 0.6) baseSize = 25;
     if (answeredCount > 100 && accuracyRate > 0.7) baseSize = 30;
     if (answeredCount > 150 && accuracyRate > 0.75) baseSize = 35;
@@ -1472,10 +1299,11 @@ function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPag
 
   const handleAnswer = (originalIndex: any) => {
     const isCorrect = originalIndex === q.correct_index;
+    const answerTime = Math.floor((Date.now() - questionStartTime) / 1000); // seconds
     const newAnswers = [...answers];
     newAnswers[currentIdx] = { selectedIndex: originalIndex, isCorrect };
     setAnswers(newAnswers);
-    updateProgress(q.id, isCorrect);
+    updateProgress(q.id, isCorrect, answerTime);
     
     // Update session stats
     setSessionStats(prev => ({
@@ -1649,6 +1477,7 @@ function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPag
             setCurrentIdx(currentIdx + 1); 
             setShowTranslation(false); 
             setSelectedVocab(null);
+            setQuestionStartTime(Date.now()); // Reset timer for next question
           } 
         }}
         disabled={!answered}
@@ -1665,17 +1494,19 @@ function CardsPage({ lang, questions, updateProgress, progress }: CardsPageProps
   const [currentIdx, setCurrentIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [cards, setCards] = useState<Question[]>([]);
+  const [cardStartTime, setCardStartTime] = useState<number>(Date.now());
 
   const startCards = () => {
     const weightedCards = questions.map((q: Question) => ({
       ...q,
-      weight: calculateQuestionWeight(progress[q.id])
+      weight: calculateSRSWeight(progress[q.id])
     })).sort((a: { weight: number }, b: { weight: number }) => b.weight - a.weight);
     
     setCards(weightedCards);
     setStarted(true);
     setCurrentIdx(0);
     setFlipped(false);
+    setCardStartTime(Date.now());
   };
 
   if (!started) {
@@ -1744,10 +1575,24 @@ function CardsPage({ lang, questions, updateProgress, progress }: CardsPageProps
 
       {flipped ? (
         <div className="flex gap-3">
-          <button onClick={(e) => { e.stopPropagation(); updateProgress(q.id, false); setFlipped(false); setCurrentIdx(currentIdx + 1); }} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl font-bold shadow-lg transition">
+          <button onClick={(e) => { 
+            e.stopPropagation(); 
+            const answerTime = Math.floor((Date.now() - cardStartTime) / 1000);
+            updateProgress(q.id, false, answerTime); 
+            setFlipped(false); 
+            setCurrentIdx(currentIdx + 1);
+            setCardStartTime(Date.now());
+          }} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl font-bold shadow-lg transition">
             {lang === 'de' ? '✗ Nicht gewusst' : '✗ Didn\'t Know'}
           </button>
-          <button onClick={(e) => { e.stopPropagation(); updateProgress(q.id, true); setFlipped(false); setCurrentIdx(currentIdx + 1); }} className="flex-1 bg-green-500 hover:bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg transition">
+          <button onClick={(e) => { 
+            e.stopPropagation(); 
+            const answerTime = Math.floor((Date.now() - cardStartTime) / 1000);
+            updateProgress(q.id, true, answerTime); 
+            setFlipped(false); 
+            setCurrentIdx(currentIdx + 1);
+            setCardStartTime(Date.now());
+          }} className="flex-1 bg-green-500 hover:bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg transition">
             {lang === 'de' ? '✓ Gewusst' : '✓ Knew It'}
           </button>
         </div>
@@ -1759,46 +1604,6 @@ function CardsPage({ lang, questions, updateProgress, progress }: CardsPageProps
     </div>
   );
 }
-
-/* InfoPage is declared but never used - commented out
-function InfoPage({ lang }: { lang: string }) {
-  return (
-    <div className="p-4 space-y-4">
-      <div className="bg-white rounded-2xl p-6 shadow-lg">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">{lang === 'de' ? 'Über den Test' : 'About the Test'}</h2>
-        <div className="space-y-4 text-gray-700">
-          <div>
-            <h3 className="font-bold text-lg mb-2">{lang === 'de' ? '📋 Test-Format' : '📋 Test Format'}</h3>
-            <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>{lang === 'de' ? '33 Multiple-Choice-Fragen' : '33 multiple-choice questions'}</li>
-              <li>{lang === 'de' ? '4 Antwortmöglichkeiten pro Frage' : '4 answer options per question'}</li>
-              <li>{lang === 'de' ? '60 Minuten Zeit' : '60 minutes time'}</li>
-              <li>{lang === 'de' ? 'Mindestens 17 richtige Antworten zum Bestehen' : 'At least 17 correct answers to pass'}</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold text-lg mb-2">{lang === 'de' ? '🎯 Lern-Features' : '🎯 Learning Features'}</h3>
-            <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>{lang === 'de' ? 'Intelligentes Lernsystem priorisiert schwache Bereiche' : 'Smart learning system prioritizes weak areas'}</li>
-              <li>{lang === 'de' ? 'Antworten werden zufällig gemischt' : 'Answers are randomly shuffled'}</li>
-              <li>{lang === 'de' ? 'Fortschritt wird automatisch gespeichert' : 'Progress is automatically saved'}</li>
-              <li>{lang === 'de' ? 'Zweisprachig: Deutsch & Englisch' : 'Bilingual: German & English'}</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold text-lg mb-2">{lang === 'de' ? '🏆 Abzeichen' : '🏆 Badges'}</h3>
-            <ul className="list-disc list-inside space-y-1 ml-2">
-              <li><span className="font-semibold">Beginner:</span> {lang === 'de' ? '10 Fragen beantwortet' : '10 questions answered'}</li>
-              <li><span className="font-semibold">Complete:</span> {lang === 'de' ? 'Alle Fragen beantwortet' : 'All questions answered'}</li>
-              <li><span className="font-semibold">Expert:</span> {lang === 'de' ? '20+ starke Bereiche' : '20+ strong areas'}</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-*/
 
 function ProgressPage({ lang, questions, progress, badges, quizHistory }: ProgressPageProps) {
   const categories = [...new Set(questions.map((q: any) => q.category))];
