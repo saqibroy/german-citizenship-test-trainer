@@ -209,11 +209,12 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     progress[q.id].strength === 'medium' ? 'yellow' : 'red';
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="bg-white rounded-xl p-4 shadow-md">
-        <div className="flex justify-between items-center mb-3">
-          <span className="font-bold text-gray-800">{currentIdx + 1}/{quizQuestions.length}</span>
-          <div className="flex gap-2 items-center">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+      {/* Compact Header - Fixed */}
+      <div className="flex-none bg-white shadow-md p-3 md:p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 md:gap-3">
+            <span className="font-bold text-gray-800 text-sm md:text-base">{currentIdx + 1}/{quizQuestions.length}</span>
             <div className={`w-2 h-2 rounded-full bg-${strengthColor}-400`}></div>
             <CategoryIcon size={16} className="text-indigo-600" />
             <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full font-semibold">
@@ -221,12 +222,15 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
             </span>
           </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / quizQuestions.length) * 100}%` }}></div>
+        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / quizQuestions.length) * 100}%` }}></div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-4 md:p-6 shadow-lg">
+      {/* Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {/* Question Card */}
+        <div className="bg-white rounded-2xl p-4 md:p-6 shadow-lg max-w-4xl mx-auto">
         <div className="relative mb-4">
           <h3 className="text-base md:text-lg font-bold text-gray-800 pr-12">
             <HighlightedText 
@@ -330,37 +334,122 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
           })}
         </div>
       </div>
+      </div>
 
+      {/* Fixed Footer with Next Button */}
+      <div className="flex-none bg-white border-t border-gray-200 p-4">
+        <div className="max-w-4xl mx-auto">
+          <button
+            onClick={() => { 
+              if (answered) { 
+                setCurrentIdx(currentIdx + 1);
+                setShowTranslation(false);
+                setQuestionStartTime(Date.now());
+              } 
+            }}
+            disabled={!answered}
+            className={`w-full py-4 rounded-xl font-bold shadow-lg transition-all ${
+              answered 
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:shadow-xl transform hover:scale-[1.02]' 
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {currentIdx === quizQuestions.length - 1 
+              ? (lang === 'de' ? 'Ergebnis anzeigen' : 'Show Result') 
+              : (lang === 'de' ? 'Weiter →' : 'Next →')
+            }
+          </button>
+        </div>
+      </div>
+
+      {/* Feedback Modal Overlay */}
       {answered && (
-        <div className={`rounded-2xl p-4 shadow-lg ${userAnswer.isCorrect ? 'bg-green-50 border-l-4 border-green-500' : 'bg-orange-50 border-l-4 border-orange-500'}`}>
-          <div className="flex items-center gap-2 mb-2">
-            {userAnswer.isCorrect ? <Check className="text-green-600" size={24} /> : <X className="text-orange-600" size={24} />}
-            <span className={`font-bold text-lg ${userAnswer.isCorrect ? 'text-green-800' : 'text-orange-800'}`}>
-              {userAnswer.isCorrect ? (lang === 'de' ? 'Richtig!' : 'Correct!') : (lang === 'de' ? 'Falsch' : 'Wrong')}
-            </span>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn" style={{ animation: 'fadeIn 0.3s ease-out' }}>
+          <div 
+            className={`bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl transform ${
+              userAnswer.isCorrect ? 'border-4 border-green-500' : 'border-4 border-red-500'
+            }`}
+            style={{ animation: 'scaleIn 0.3s ease-out' }}
+          >
+            <div className="text-center">
+              {/* Icon */}
+              <div className={`text-7xl md:text-8xl mb-4 ${userAnswer.isCorrect ? 'animate-bounce' : 'animate-shake'}`}>
+                {userAnswer.isCorrect ? '🎉' : '😞'}
+              </div>
+              
+              {/* Message */}
+              <h2 className={`text-3xl md:text-4xl font-bold mb-4 ${
+                userAnswer.isCorrect ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {userAnswer.isCorrect 
+                  ? (lang === 'de' ? 'RICHTIG!' : 'CORRECT!') 
+                  : (lang === 'de' ? 'FALSCH' : 'WRONG')
+                }
+              </h2>
+              
+              {/* Correct answer for wrong answers */}
+              {!userAnswer.isCorrect && (
+                <div className="bg-green-50 border-2 border-green-300 rounded-xl p-4 mb-6 text-left">
+                  <p className="text-sm text-gray-600 mb-1 font-semibold">
+                    {lang === 'de' ? '✓ Richtige Antwort:' : '✓ Correct answer:'}
+                  </p>
+                  <p className="font-bold text-green-700 text-base">
+                    {(lang === 'de' ? q.options_de : q.options_en)[q.correct_index]}
+                  </p>
+                </div>
+              )}
+              
+              {/* Quick stats */}
+              <div className="flex justify-around mb-6 py-3 bg-gray-50 rounded-xl">
+                <div className="text-center">
+                  <div className="text-xl font-bold text-indigo-600">{currentIdx + 1}</div>
+                  <div className="text-xs text-gray-500">{lang === 'de' ? 'Frage' : 'Question'}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-purple-600">{answers.filter((a: Answer) => a.isCorrect).length}</div>
+                  <div className="text-xs text-gray-500">{lang === 'de' ? 'Richtig' : 'Correct'}</div>
+                </div>
+              </div>
+              
+              {/* Continue button */}
+              <button 
+                onClick={() => { 
+                  setCurrentIdx(currentIdx + 1);
+                  setShowTranslation(false);
+                  setQuestionStartTime(Date.now());
+                }}
+                className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all transform hover:scale-105 ${
+                  userAnswer.isCorrect
+                    ? 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-xl'
+                    : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:shadow-xl'
+                }`}
+              >
+                {currentIdx === quizQuestions.length - 1 
+                  ? (lang === 'de' ? 'Ergebnis ansehen →' : 'View Results →') 
+                  : (lang === 'de' ? 'Weiter →' : 'Continue →')
+                }
+              </button>
+            </div>
           </div>
-          {!userAnswer.isCorrect && (
-            <p className="text-sm text-gray-700 mt-2">
-              {lang === 'de' ? '✓ Richtige Antwort: ' : '✓ Correct answer: '}
-              <span className="font-semibold">{(lang === 'de' ? q.options_de : q.options_en)[q.correct_index]}</span>
-            </p>
-          )}
         </div>
       )}
 
-      <button
-        onClick={() => { 
-          if (answered) { 
-            setCurrentIdx(currentIdx + 1);
-            setShowTranslation(false);
-            setQuestionStartTime(Date.now()); // Reset timer for next question
-          } 
-        }}
-        disabled={!answered}
-        className={`w-full py-4 rounded-xl font-bold shadow-lg transition ${answered ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-      >
-        {currentIdx === quizQuestions.length - 1 ? (lang === 'de' ? 'Ergebnis anzeigen' : 'Show Result') : (lang === 'de' ? 'Weiter →' : 'Next →')}
-      </button>
+      {/* Add animations */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { transform: scale(0.9); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-10px); }
+          75% { transform: translateX(10px); }
+        }
+      `}</style>
     </div>
   );
 }
