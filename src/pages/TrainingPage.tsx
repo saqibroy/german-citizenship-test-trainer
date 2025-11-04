@@ -1,10 +1,13 @@
 import { useState, useMemo } from 'react';
 import {
   Brain, Sparkles, BarChart3, AlertCircle, Target, Clock, CheckCircle2,
-  Zap, Check, X, Eye, EyeOff, Globe
+  Zap
 } from 'lucide-react';
 import { calculateSRSWeight } from '../srsAlgorithm';
-import { VocabPopup, HighlightedText } from '../components.tsx';
+import { VocabPopup } from '../components.tsx';
+import { QuestionCard } from '../components/QuestionCard';
+import { AnswerOption } from '../components/AnswerOption';
+import { ProgressHeader } from '../components/ProgressHeader';
 import { TrainingCompletion } from '../components/TrainingCompletion';
 import { shuffleArray } from '../utils/shuffleArray';
 import type { Question, TrainingPageProps } from '../types';
@@ -155,146 +158,135 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
     
     const sessionSize = calculateSessionSize();
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 p-4 flex items-center justify-center">
-        <div className="max-w-2xl w-full">
-          <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
-            {/* Header with Gradient */}
-            <div className="bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 p-8 text-white">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl">
-                  <Brain size={32} />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-bold">{lang === 'de' ? 'Training Modus' : 'Training Mode'}</h2>
-                  <p className="text-purple-100 text-sm">{lang === 'de' ? 'Intelligentes adaptives Lernen' : 'Smart adaptive learning'}</p>
-                </div>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-20 md:pb-6">
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 rounded-2xl p-6 text-white shadow-xl mb-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
+                <Brain size={28} />
               </div>
-              
-              {/* Session Size Badge */}
-              <div className="inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm rounded-full px-6 py-3 border border-white/30">
-                <Sparkles size={20} />
-                <div>
-                  <span className="text-3xl font-bold">{sessionSize}</span>
-                  <span className="ml-2 text-sm opacity-90">{lang === 'de' ? 'Fragen heute' : 'questions today'}</span>
-                </div>
+              <div>
+                <h2 className="text-2xl font-bold">{lang === 'de' ? 'Training' : 'Training'}</h2>
+                <p className="text-purple-100 text-xs">{lang === 'de' ? 'Intelligentes Lernen' : 'Smart Learning'}</p>
               </div>
             </div>
-
-            {/* Content */}
-            <div className="p-8 space-y-6">
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl p-5 border border-blue-200/50">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="bg-blue-500 text-white w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-lg">
-                      {newCount}
-                    </div>
-                    <Zap className="text-blue-500" size={24} />
-                  </div>
-                  <p className="font-semibold text-blue-900 text-sm">{lang === 'de' ? 'Neue Fragen' : 'New Questions'}</p>
-                  <p className="text-xs text-blue-600 mt-1">{lang === 'de' ? 'Noch nie gesehen' : 'Never seen before'}</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-red-50 to-red-100/50 rounded-2xl p-5 border border-red-200/50">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="bg-red-500 text-white w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-lg">
-                      {weakCount}
-                    </div>
-                    <AlertCircle className="text-red-500" size={24} />
-                  </div>
-                  <p className="font-semibold text-red-900 text-sm">{lang === 'de' ? 'Schwache Bereiche' : 'Weak Areas'}</p>
-                  <p className="text-xs text-red-600 mt-1">{lang === 'de' ? 'Brauchen Wiederholung' : 'Need reinforcement'}</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-2xl p-5 border border-yellow-200/50">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="bg-yellow-500 text-white w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-lg">
-                      {mediumCount}
-                    </div>
-                    <Target className="text-yellow-500" size={24} />
-                  </div>
-                  <p className="font-semibold text-yellow-900 text-sm">{lang === 'de' ? 'In Bearbeitung' : 'Learning'}</p>
-                  <p className="text-xs text-yellow-600 mt-1">{lang === 'de' ? 'Mittlere Genauigkeit' : 'Medium accuracy'}</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-green-50 to-green-100/50 rounded-2xl p-5 border border-green-200/50">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="bg-green-500 text-white w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-lg">
-                      {strongCount}
-                    </div>
-                    <CheckCircle2 className="text-green-500" size={24} />
-                  </div>
-                  <p className="font-semibold text-green-900 text-sm">{lang === 'de' ? 'Bekannte Fragen' : 'Known Questions'}</p>
-                  <p className="text-xs text-green-600 mt-1">{lang === 'de' ? 'Stark gemeistert' : 'Strong mastery'}</p>
-                </div>
-              </div>
-
-              {/* Due for Review Card */}
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-2xl p-5 border border-orange-200/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-orange-500 text-white w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-lg">
-                      {dueCount}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-orange-900 text-sm">{lang === 'de' ? 'Zur Wiederholung fällig' : 'Due for Review'}</p>
-                      <p className="text-xs text-orange-600 mt-1">{lang === 'de' ? 'Basierend auf Zeitintervallen' : 'Based on time intervals'}</p>
-                    </div>
-                  </div>
-                  <Clock className="text-orange-500" size={24} />
-                </div>
-              </div>
-
-              {/* Category Coverage */}
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-200/50">
-                <h4 className="font-bold text-indigo-900 mb-4 flex items-center gap-2">
-                  <BarChart3 className="text-indigo-600" size={20} />
-                  {lang === 'de' ? '📚 Kategorieabdeckung' : '📚 Category Balance'}
-                </h4>
-                {(() => {
-                  const categories = [...new Set(questions.map((q: any) => q.category))];
-                  const categoryProgress = categories.map(cat => {
-                    const catQuestions = questions.filter((q: any) => q.category === cat);
-                    const answered = catQuestions.filter((q: any) => progress[q.id]).length;
-                    const coverage = (answered / catQuestions.length) * 100;
-                    return { category: cat, coverage, answered, total: catQuestions.length };
-                  }).sort((a, b) => a.coverage - b.coverage);
-
-                  const weakCategories = categoryProgress.filter(c => c.coverage < 50);
-                  const strongCategories = categoryProgress.filter(c => c.coverage >= 80);
-
-                  return (
-                    <div>
-                      <div className="grid grid-cols-2 gap-3 mb-3">
-                        <div className="bg-white rounded-xl p-4 text-center shadow-sm">
-                          <div className="text-3xl font-bold text-red-600 mb-1">{weakCategories.length}</div>
-                          <div className="text-xs text-gray-600">{lang === 'de' ? 'Brauchen Fokus' : 'Need Focus'}</div>
-                        </div>
-                        <div className="bg-white rounded-xl p-4 text-center shadow-sm">
-                          <div className="text-3xl font-bold text-green-600 mb-1">{strongCategories.length}</div>
-                          <div className="text-xs text-gray-600">{lang === 'de' ? 'Kompetent' : 'Proficient'}</div>
-                        </div>
-                      </div>
-                      <p className="text-xs text-indigo-700 bg-white/70 rounded-lg p-3">
-                        💡 {lang === 'de' 
-                          ? 'Fragen werden aus allen Kategorien ausgeglichen für umfassendes Lernen' 
-                          : 'Questions are balanced across all categories for comprehensive learning'}
-                      </p>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Start Button */}
-              <button 
-                onClick={startTraining}
-                className="w-full bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 text-white rounded-2xl py-5 font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
-              >
-                <Brain size={24} />
-                {lang === 'de' ? `Training starten (${sessionSize} Fragen)` : `Start Training (${sessionSize} Questions)`}
-              </button>
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-5 py-2.5 border border-white/30">
+              <Sparkles size={18} />
+              <span className="text-2xl font-bold">{sessionSize}</span>
+              <span className="text-xs opacity-90">{lang === 'de' ? 'Fragen' : 'questions'}</span>
             </div>
           </div>
+
+          {/* Stats Grid */}
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white rounded-xl p-3 shadow-md">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="bg-blue-500 text-white w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm">
+                    {newCount}
+                  </div>
+                  <Zap className="text-blue-500" size={18} />
+                </div>
+                <p className="font-semibold text-gray-900 text-xs">{lang === 'de' ? 'Neue' : 'New'}</p>
+              </div>
+
+              <div className="bg-white rounded-xl p-3 shadow-md">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="bg-red-500 text-white w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm">
+                    {weakCount}
+                  </div>
+                  <AlertCircle className="text-red-500" size={18} />
+                </div>
+                <p className="font-semibold text-gray-900 text-xs">{lang === 'de' ? 'Schwach' : 'Weak'}</p>
+              </div>
+
+              <div className="bg-white rounded-xl p-3 shadow-md">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="bg-yellow-500 text-white w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm">
+                    {mediumCount}
+                  </div>
+                  <Target className="text-yellow-500" size={18} />
+                </div>
+                <p className="font-semibold text-gray-900 text-xs">{lang === 'de' ? 'Lernen' : 'Learning'}</p>
+              </div>
+
+              <div className="bg-white rounded-xl p-3 shadow-md">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="bg-green-500 text-white w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm">
+                    {strongCount}
+                  </div>
+                  <CheckCircle2 className="text-green-500" size={18} />
+                </div>
+                <p className="font-semibold text-gray-900 text-xs">{lang === 'de' ? 'Bekannt' : 'Known'}</p>
+              </div>
+            </div>
+
+            {/* Due Review */}
+            <div className="bg-white rounded-xl p-4 shadow-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-orange-500 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold">
+                    {dueCount}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">{lang === 'de' ? 'Fällig zur Wiederholung' : 'Due for Review'}</p>
+                    <p className="text-xs text-gray-500">{lang === 'de' ? 'Zeitbasiert' : 'Time-based'}</p>
+                  </div>
+                </div>
+                <Clock className="text-orange-500" size={20} />
+              </div>
+            </div>
+
+            {/* Category Coverage */}
+            <div className="bg-white rounded-xl p-4 shadow-md">
+              <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+                <BarChart3 className="text-purple-600" size={18} />
+                {lang === 'de' ? 'Kategorien' : 'Categories'}
+              </h4>
+              {(() => {
+                const categories = [...new Set(questions.map((q: any) => q.category))];
+                const categoryProgress = categories.map(cat => {
+                  const catQuestions = questions.filter((q: any) => q.category === cat);
+                  const answered = catQuestions.filter((q: any) => progress[q.id]).length;
+                  const coverage = (answered / catQuestions.length) * 100;
+                  return { category: cat, coverage, answered, total: catQuestions.length };
+                }).sort((a, b) => a.coverage - b.coverage);
+
+                const weakCategories = categoryProgress.filter(c => c.coverage < 50);
+                const strongCategories = categoryProgress.filter(c => c.coverage >= 80);
+
+                return (
+                  <div>
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div className="bg-red-50 rounded-lg p-3 text-center">
+                        <div className="text-2xl font-bold text-red-600 mb-0.5">{weakCategories.length}</div>
+                        <div className="text-xs text-gray-600">{lang === 'de' ? 'Fokus' : 'Focus'}</div>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-3 text-center">
+                        <div className="text-2xl font-bold text-green-600 mb-0.5">{strongCategories.length}</div>
+                        <div className="text-xs text-gray-600">{lang === 'de' ? 'Gut' : 'Strong'}</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 bg-purple-50 rounded-lg p-2">
+                      💡 {lang === 'de' 
+                        ? 'Ausgeglichene Fragenauswahl' 
+                        : 'Balanced question mix'}
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Start Button */}
+          <button 
+            onClick={startTraining}
+            className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-2xl py-4 font-bold text-lg shadow-xl active:scale-98 transition-transform flex items-center justify-center gap-2"
+          >
+            <Brain size={22} />
+            {lang === 'de' ? 'Starten' : 'Start'}
+          </button>
         </div>
       </div>
     );
@@ -362,207 +354,81 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
     }));
   };
 
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
-      {/* Minimal Top Bar */}
-      <div className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-lg z-50 border-b border-gray-200/50">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <span className="text-lg font-bold text-gray-800">{currentIdx + 1}/{trainingQuestions.length}</span>
-              <div className="flex items-center gap-4 text-sm">
-                <span className="flex items-center gap-1 text-green-600 font-semibold">
-                  <Check size={16} /> {sessionStats.correct}
-                </span>
-                <span className="flex items-center gap-1 text-red-600 font-semibold">
-                  <X size={16} /> {sessionStats.incorrect}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">
-                {q.category}
-              </span>
-              <span className="text-purple-600 font-bold text-sm hidden sm:inline">
-                {Math.round((sessionStats.correct / Math.max(1, sessionStats.total)) * 100)}%
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="h-1 bg-gray-100">
-          <div 
-            className="h-full bg-gradient-to-r from-purple-600 to-pink-500 transition-all duration-500"
-            style={{ width: `${((currentIdx + 1) / trainingQuestions.length) * 100}%` }}
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-20 md:pb-6">
+      <ProgressHeader
+        currentIndex={currentIdx}
+        total={trainingQuestions.length}
+        correct={sessionStats.correct}
+        incorrect={sessionStats.incorrect}
+        showTranslation={showTranslation}
+        onToggleTranslation={() => setShowTranslation(!showTranslation)}
+        lang={lang}
+      />
+
+      <div className="max-w-3xl mx-auto px-4 py-4">
+        <QuestionCard
+          question={lang === 'de' ? q.question_de : q.question_en}
+          translation={lang === 'de' ? q.question_en : q.question_de}
+          showTranslation={showTranslation}
+          onWordClick={setSelectedVocab}
+          lang={lang}
+        />
+
+        {selectedVocab && (
+          <VocabPopup 
+            word={selectedVocab}
+            onClose={() => setSelectedVocab(null)}
+            lang={lang}
           />
+        )}
+
+        <div className="space-y-3 mb-4">
+          {shuffledOptions.map((opt: any, idx: number) => {
+            const isSelected = userAnswer?.selectedIndex === opt.originalIndex;
+            const isCorrectAnswer = opt.originalIndex === q.correct_index;
+            const showAsCorrect = answered && isCorrectAnswer;
+            const showAsWrong = answered && isSelected && !isCorrectAnswer;
+            const translationArray = lang === 'de' ? q.options_en : q.options_de;
+
+            return (
+              <AnswerOption
+                key={idx}
+                text={opt.text}
+                translation={translationArray[opt.originalIndex]}
+                index={idx}
+                isSelected={isSelected}
+                isCorrect={isCorrectAnswer}
+                showAsCorrect={showAsCorrect}
+                showAsWrong={showAsWrong}
+                answered={answered}
+                showingTranslation={hoveredOption === idx}
+                onSelect={() => !answered && handleAnswer(opt.originalIndex)}
+                onWordClick={setSelectedVocab}
+                onTranslationToggle={(show) => setHoveredOption(show ? idx : null)}
+                lang={lang}
+              />
+            );
+          })}
         </div>
-      </div>
 
-      {/* Question Content */}
-      <div className="pt-20 pb-8 px-4 flex items-center justify-center min-h-screen">
-        <div className="max-w-3xl w-full">
-          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
-            {/* Question Header */}
-            <div className="p-8 pb-6">
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 leading-relaxed flex-1">
-                  <HighlightedText 
-                    text={lang === 'de' ? q.question_de : q.question_en}
-                    onClick={(word: string) => setSelectedVocab(word)}
-                  />
-                </h3>
-                <button 
-                  onClick={() => setShowTranslation(!showTranslation)}
-                  className={`p-3 rounded-xl transition-all flex-shrink-0 ${
-                    showTranslation 
-                      ? 'bg-purple-600 text-white shadow-lg' 
-                      : 'bg-gray-100 text-gray-500 hover:bg-purple-100 hover:text-purple-600'
-                  }`}
-                  title={lang === 'de' ? 'Übersetzung anzeigen' : 'Show translation'}
-                >
-                  {showTranslation ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-              
-              {showTranslation && (
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border-l-4 border-purple-400 mb-6">
-                  <p className="text-sm text-gray-700 italic">
-                    {lang === 'de' ? q.question_en : q.question_de}
-                  </p>
-                </div>
-              )}
-              
-              {selectedVocab && (
-                <VocabPopup 
-                  word={selectedVocab}
-                  onClose={() => setSelectedVocab(null)}
-                  lang={lang}
-                />
-              )}
-            </div>
-
-            {/* Answer Options */}
-            <div className="px-8 pb-8 space-y-3">
-              {shuffledOptions.map((opt: any, idx: number) => {
-                const isSelected = userAnswer?.selectedIndex === opt.originalIndex;
-                const isCorrectAnswer = opt.originalIndex === q.correct_index;
-                const showAsCorrect = answered && isCorrectAnswer;
-                const showAsWrong = answered && isSelected && !isCorrectAnswer;
-                const showingTranslation = hoveredOption === idx;
-                const translationArray = lang === 'de' ? q.options_en : q.options_de;
-                const displayText = showingTranslation ? translationArray[opt.originalIndex] : opt.text;
-
-                return (
-                  <div key={idx} className="relative group">
-                    <button
-                      onClick={() => !answered && handleAnswer(opt.originalIndex)}
-                      disabled={answered}
-                      className={`w-full text-left p-5 pr-14 rounded-2xl border-2 transition-all duration-300 ${
-                        showAsWrong ? 'bg-red-50 border-red-400 shadow-lg shadow-red-100' :
-                        showAsCorrect ? 'bg-green-50 border-green-400 shadow-lg shadow-green-100' :
-                        isSelected ? 'border-purple-400 bg-purple-50 shadow-md' :
-                        answered ? 'border-gray-200 bg-gray-50 opacity-60' :
-                        'border-gray-200 bg-white hover:border-purple-300 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0'
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 transition-all ${
-                          showAsWrong ? 'bg-red-500 text-white shadow-lg' :
-                          showAsCorrect ? 'bg-green-500 text-white shadow-lg' :
-                          isSelected ? 'bg-purple-600 text-white shadow-lg' :
-                          'bg-gray-100 text-gray-600 group-hover:bg-purple-100 group-hover:text-purple-600'
-                        }`}>
-                          {showAsWrong ? <X size={18} /> :
-                           showAsCorrect ? <Check size={18} /> :
-                           String.fromCharCode(65 + idx)}
-                        </div>
-                        <span className="flex-1 text-base font-medium text-gray-800">
-                          {showingTranslation ? (
-                            displayText
-                          ) : (
-                            <HighlightedText 
-                              text={opt.text}
-                              onClick={(word: string) => setSelectedVocab(word)}
-                            />
-                          )}
-                        </span>
-                      </div>
-                    </button>
-                    
-                    <button
-                      onMouseDown={() => setHoveredOption(idx)}
-                      onMouseUp={() => setHoveredOption(null)}
-                      onMouseLeave={() => setHoveredOption(null)}
-                      onTouchStart={() => setHoveredOption(idx)}
-                      onTouchEnd={() => setHoveredOption(null)}
-                      className={`absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-xl transition-all ${
-                        showingTranslation 
-                          ? 'bg-blue-500 text-white shadow-lg' 
-                          : 'bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-600 opacity-0 group-hover:opacity-100'
-                      }`}
-                      title={lang === 'de' ? 'Übersetzung anzeigen (gedrückt halten)' : 'Show translation (hold)'}
-                    >
-                      <Globe size={16} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Feedback Section */}
-            {answered && (
-              <div className="px-8 pb-8">
-                <div className={`rounded-2xl p-6 ${
-                  userAnswer.isCorrect 
-                    ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200' 
-                    : 'bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200'
-                }`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    {userAnswer.isCorrect ? (
-                      <div className="bg-green-500 text-white p-2 rounded-xl">
-                        <CheckCircle2 size={24} />
-                      </div>
-                    ) : (
-                      <div className="bg-orange-500 text-white p-2 rounded-xl">
-                        <X size={24} />
-                      </div>
-                    )}
-                    <span className={`font-bold text-xl ${
-                      userAnswer.isCorrect ? 'text-green-800' : 'text-orange-800'
-                    }`}>
-                      {userAnswer.isCorrect 
-                        ? (lang === 'de' ? 'Ausgezeichnet! ✓' : 'Excellent! ✓') 
-                        : (lang === 'de' ? 'Nicht ganz ✗' : 'Not quite ✗')}
-                    </span>
-                  </div>
-                  {!userAnswer.isCorrect && (
-                    <div className="bg-white/70 rounded-xl p-4 mt-3">
-                      <p className="text-sm text-gray-700">
-                        <span className="font-semibold text-green-700">{lang === 'de' ? 'Richtige Antwort:' : 'Correct answer:'}</span>
-                        <span className="ml-2 font-medium">{(lang === 'de' ? q.options_de : q.options_en)[q.correct_index]}</span>
-                      </p>
-                    </div>
-                  )}
-                  
-                  <button
-                    onClick={() => { 
-                      setCurrentIdx(currentIdx + 1); 
-                      setShowTranslation(false); 
-                      setSelectedVocab(null);
-                      setHoveredOption(null);
-                      setQuestionStartTime(Date.now());
-                    }}
-                    className="w-full mt-4 py-4 rounded-xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    {currentIdx === trainingQuestions.length - 1 
-                      ? (lang === 'de' ? 'Ergebnis anzeigen' : 'Show Result') 
-                      : (lang === 'de' ? 'Nächste Frage →' : 'Next Question →')}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Continue Button */}
+        {answered && (
+          <button
+            onClick={() => { 
+              setCurrentIdx(currentIdx + 1); 
+              setShowTranslation(false); 
+              setSelectedVocab(null);
+              setHoveredOption(null);
+              setQuestionStartTime(Date.now());
+            }}
+            className="w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-2xl text-lg active:scale-98 transition-transform"
+          >
+            {currentIdx === trainingQuestions.length - 1 
+              ? (lang === 'de' ? '🎯 Ergebnis anzeigen' : '🎯 Show Results') 
+              : (lang === 'de' ? 'Weiter →' : 'Continue →')}
+          </button>
+        )}
       </div>
     </div>
   );
