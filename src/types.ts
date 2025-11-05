@@ -28,6 +28,8 @@ export interface QuestionProgress {
   lastConfidence?: ConfidenceRating;
 }
 
+export type Progress = Record<number, QuestionProgress>;
+
 export interface VocabProgress {
   correct: number;
   incorrect: number;
