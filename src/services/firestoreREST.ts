@@ -57,11 +57,32 @@ function convertToFirestoreFields(obj: any): any {
     if (typeof value === 'string') {
       fields[key] = { stringValue: value };
     } else if (typeof value === 'number') {
-      fields[key] = { integerValue: value.toString() };
+      // Check if it's an integer or float
+      if (Number.isInteger(value)) {
+        fields[key] = { integerValue: value.toString() };
+      } else {
+        fields[key] = { doubleValue: value };
+      }
     } else if (typeof value === 'boolean') {
       fields[key] = { booleanValue: value };
     } else if (value === null) {
       fields[key] = { nullValue: null };
+    } else if (Array.isArray(value)) {
+      fields[key] = {
+        arrayValue: {
+          values: value.map(item => {
+            if (typeof item === 'string') return { stringValue: item };
+            if (typeof item === 'number') {
+              return Number.isInteger(item) 
+                ? { integerValue: item.toString() }
+                : { doubleValue: item };
+            }
+            if (typeof item === 'boolean') return { booleanValue: item };
+            if (typeof item === 'object') return { mapValue: { fields: convertToFirestoreFields(item) } };
+            return { nullValue: null };
+          })
+        }
+      };
     } else if (typeof value === 'object') {
       fields[key] = { mapValue: { fields: convertToFirestoreFields(value) } };
     }
