@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -15,22 +15,16 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with explicit database name and settings
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-  experimentalAutoDetectLongPolling: false,
-  ignoreUndefinedProperties: true,
-}, '(default)'); // Explicitly specify the default database
+// Initialize Firestore with standard configuration
+export const db = getFirestore(app);
 
 // Initialize Auth
 export const auth = getAuth(app);
 
 // Log initialization for debugging
-console.log('Firebase initialized with long polling:', {
+console.log('Firebase initialized:', {
   projectId: firebaseConfig.projectId,
   authDomain: firebaseConfig.authDomain,
-  databaseURL: `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)`,
-  longPolling: true
 });
 
 // TEMPORARILY DISABLED: IndexedDB Persistence
