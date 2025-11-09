@@ -25,9 +25,12 @@ const CardsPage = lazy(() => import('./pages/CardsPage.tsx').then(m => ({ defaul
 const GrammarLessonsPage = lazy(() => import('./GrammarLessons.tsx').then(m => ({ default: m.GrammarLessonsPage })));
 const StatsPage = lazy(() => import('./StatsPage.tsx').then(m => ({ default: m.StatsPage })));
 const SettingsPage = lazy(() => import('./SettingsPage.tsx').then(m => ({ default: m.SettingsPage })));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const FAQPage = lazy(() => import('./pages/FAQPage'));
+const UpgradePage = lazy(() => import('./pages/UpgradePage'));
 
 // Loading component with skeleton based on current page
 function PageLoader({ page }: { page: string }) {
@@ -52,15 +55,21 @@ function PageLoader({ page }: { page: string }) {
 // Auth wrapper component
 function AuthenticatedApp() {
   const { currentUser, logout } = useAuth();
-  const [page, setPage] = useState('home');
+  const [page, setPage] = useState('landing');
 
-  // If user is not logged in, show landing/login page
+  // If user is not logged in, show landing/login/signup pages
   if (!currentUser) {
     return (
       <Suspense fallback={<PageLoader page={page} />}>
         {page === 'signup' && <SignupPage onNavigate={setPage} />}
         {page === 'forgot-password' && <ForgotPasswordPage onNavigate={setPage} />}
-        {(page === 'login' || page === 'home') && <LoginPage onNavigate={setPage} />}
+        {page === 'login' && <LoginPage onNavigate={setPage} />}
+        {(page === 'landing' || page === 'home') && (
+          <LandingPage 
+            lang="de" 
+            onGetStarted={() => setPage('login')} 
+          />
+        )}
       </Suspense>
     );
   }
@@ -142,6 +151,8 @@ function MainApp({ currentUser, logout }: { currentUser: any; logout: () => Prom
     vocab: { de: 'Vokabeln', en: 'Vocab' },
     grammar: { de: 'Grammatik', en: 'Grammar' },
     stats: { de: 'Statistik', en: 'Stats' },
+    faq: { de: 'FAQ', en: 'FAQ' },
+    upgrade: { de: 'Premium', en: 'Upgrade' },
     settings: { de: 'Einstellungen', en: 'Settings' }
   };
 
@@ -209,7 +220,7 @@ function MainApp({ currentUser, logout }: { currentUser: any; logout: () => Prom
         
         {/* Desktop Navigation - Hidden on mobile */}
         <nav className="hidden md:flex border-t overflow-x-auto">
-          {['home', 'training', 'quiz', 'vocab', 'grammar', 'stats', 'settings'].map(p => (
+          {['home', 'training', 'quiz', 'vocab', 'grammar', 'stats', 'faq', 'settings'].map(p => (
             <button key={p} onClick={() => setPage(p)} className={`flex-1 py-3 text-sm font-semibold whitespace-nowrap px-2 transition-colors ${page === p ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
               {t[p as keyof typeof t][lang as 'de' | 'en']}
             </button>
@@ -247,25 +258,29 @@ function MainApp({ currentUser, logout }: { currentUser: any; logout: () => Prom
           )}
           {page === 'grammar' && <GrammarLessonsPage lang={lang as 'de' | 'en'} />}
           {page === 'stats' && <StatsPage lang={lang as 'de' | 'en'} progress={progress} questions={QUESTIONS} badges={badges} quizHistory={quizHistory} studyStreak={studyStreak} />}
+          {page === 'faq' && <FAQPage lang={lang as 'de' | 'en'} />}
+          {page === 'upgrade' && <UpgradePage onNavigate={setPage} />}
           {page === 'settings' && <SettingsPage lang={lang as 'de' | 'en'} />}
         </Suspense>
       </main>
 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
-        <div className="flex justify-around items-center h-16">
+        <div className="grid grid-cols-4 gap-0">
           {[
             { id: 'home', icon: '🏠', label: lang === 'de' ? 'Start' : 'Home' },
             { id: 'training', icon: '📚', label: lang === 'de' ? 'Üben' : 'Train' },
             { id: 'quiz', icon: '📝', label: lang === 'de' ? 'Quiz' : 'Quiz' },
             { id: 'vocab', icon: '📖', label: lang === 'de' ? 'Wörter' : 'Vocab' },
+            { id: 'grammar', icon: '✍️', label: lang === 'de' ? 'Grammatik' : 'Grammar' },
             { id: 'stats', icon: '📊', label: lang === 'de' ? 'Stats' : 'Stats' },
+            { id: 'faq', icon: '❓', label: 'FAQ' },
             { id: 'settings', icon: '⚙️', label: lang === 'de' ? 'Mehr' : 'More' },
           ].map((item) => (
             <button
               key={item.id}
               onClick={() => setPage(item.id)}
-              className={`flex flex-col items-center justify-center flex-1 h-full transition-all active:scale-95 ${
+              className={`flex flex-col items-center justify-center py-2 h-16 transition-all active:scale-95 ${
                 page === item.id
                   ? 'text-indigo-600 bg-indigo-50'
                   : 'text-gray-500 active:bg-gray-100'

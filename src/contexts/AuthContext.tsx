@@ -13,6 +13,14 @@ import {
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import { UserProfile, DEFAULT_USER_SETTINGS } from '../types/user';
+import {
+  loadProgressFromCloud,
+  loadQuizHistoryFromCloud,
+  loadVocabProgressFromCloud,
+  syncProgressToCloud,
+  syncQuizHistoryToCloud,
+  syncVocabProgressToCloud,
+} from '../services/dataService';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -24,6 +32,8 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  syncDataToCloud: () => Promise<void>;
+  loadDataFromCloud: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -80,7 +90,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Load user profile from Firestore
   const loadUserProfile = async (user: User): Promise<void> => {
+    // Set basic profile immediately so app works right away
+    const fallbackProfile: UserProfile = {
+      uid: user.uid,
+      email: user.email!,
+      displayName: user.displayName || '',
+      photoURL: user.photoURL,
+      subscription: 'free',
+      dailyGoal: 10,
+      createdAt: new Date(),
+      settings: DEFAULT_USER_SETTINGS,
+    };
+    
+    setUserProfile(fallbackProfile);
+
     try {
+      // Then try to load from Firestore in background
       const userRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userRef);
 
@@ -92,21 +117,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           lastSyncedAt: data.lastSyncedAt ? new Date(data.lastSyncedAt) : undefined,
         } as UserProfile);
       } else {
+        // Create profile in Firestore for future
         await createUserProfile(user);
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
-      // If offline or error, set a basic profile so app can still work
-      setUserProfile({
-        uid: user.uid,
-        email: user.email!,
-        displayName: user.displayName || '',
-        photoURL: user.photoURL,
-        subscription: 'free',
-        dailyGoal: 10,
-        createdAt: new Date(),
-        settings: DEFAULT_USER_SETTINGS,
-      });
+      // Keep using fallback profile - already set above
     }
   };
 
@@ -133,10 +149,119 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await createUserProfile(userCredential.user);
   };
 
+  // Sync local data to Firestore
+  const syncDataToCloud = async (): Promise<void> => {
+    if (!currentUser) return;
+
+    try {
+      // Get data from localStorage
+      const progress: any = {};
+      const quizHistory: any[] = [];
+      const vocabProgress: any = {};
+
+      // Collect progress data
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('q_')) {
+          const qId = key.replace('q_', '');
+          try {
+            progress[qId] = JSON.parse(localStorage.getItem(key) || '{}');
+          } catch (e) {
+            console.error(`Error parsing ${key}:`, e);
+          }
+        }
+      });
+
+      // Get quiz history
+      const savedQuizHistory = localStorage.getItem('quizHistory');
+      if (savedQuizHistory) {
+        quizHistory.push(...JSON.parse(savedQuizHistory));
+      }
+
+      // Get vocab progress
+      const savedVocabProgress = localStorage.getItem('vocabProgress');
+      if (savedVocabProgress) {
+        Object.assign(vocabProgress, JSON.parse(savedVocabProgress));
+      }
+
+      // Sync to cloud
+      await Promise.all([
+        Object.keys(progress).length > 0 ? syncProgressToCloud(currentUser.uid, progress) : Promise.resolve(),
+        quizHistory.length > 0 ? syncQuizHistoryToCloud(currentUser.uid, quizHistory) : Promise.resolve(),
+        Object.keys(vocabProgress).length > 0 ? syncVocabProgressToCloud(currentUser.uid, vocabProgress) : Promise.resolve(),
+      ]);
+
+      console.log('Data synced to cloud successfully');
+    } catch (error) {
+      console.error('Error syncing data to cloud:', error);
+    }
+  };
+
+  // Load data from Firestore
+  const loadDataFromCloud = async (): Promise<void> => {
+    if (!currentUser) return;
+
+    try {
+      // Load data from cloud
+      const [progress, quizHistory, vocabProgress] = await Promise.all([
+        loadProgressFromCloud(currentUser.uid),
+        loadQuizHistoryFromCloud(currentUser.uid),
+        loadVocabProgressFromCloud(currentUser.uid),
+      ]);
+
+      // Save to localStorage
+      Object.entries(progress).forEach(([qId, data]) => {
+        localStorage.setItem(`q_${qId}`, JSON.stringify(data));
+      });
+
+      if (quizHistory.length > 0) {
+        localStorage.setItem('quizHistory', JSON.stringify(quizHistory));
+      }
+
+      if (Object.keys(vocabProgress).length > 0) {
+        localStorage.setItem('vocabProgress', JSON.stringify(vocabProgress));
+      }
+
+      console.log('Data loaded from cloud successfully');
+      
+      // Reload the page to reflect the new data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error loading data from cloud:', error);
+    }
+  };
+
   // Logout
   const logout = async (): Promise<void> => {
-    await signOut(auth);
-    setUserProfile(null);
+    try {
+      // Sync data before logout
+      await syncDataToCloud();
+      
+      // Sign out from Firebase
+      await signOut(auth);
+      
+      // Clear all user data from localStorage
+      const keysToRemove: string[] = [];
+      Object.keys(localStorage).forEach(key => {
+        if (
+          key.startsWith('q_') ||
+          key === 'quizHistory' ||
+          key === 'badges' ||
+          key === 'studyStreak' ||
+          key === 'vocabProgress' ||
+          key === 'favoriteVocab' ||
+          key === 'appSettings'
+        ) {
+          keysToRemove.push(key);
+        }
+      });
+      
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      setUserProfile(null);
+    } catch (error) {
+      console.error('Error during logout:', error);
+      throw error;
+    }
   };
 
   // Reset password
@@ -156,20 +281,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Listen to auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      setLoading(false); // Set loading false immediately
       
       if (user) {
-        try {
-          await loadUserProfile(user);
-        } catch (error) {
+        // Load profile in background - don't block UI
+        loadUserProfile(user).catch((error) => {
           console.error('Error loading user profile:', error);
-        }
+        });
+        
+        // Load user's data from cloud in background
+        loadDataFromCloud().catch((error) => {
+          console.error('Error loading data from cloud:', error);
+        });
       } else {
         setUserProfile(null);
       }
-      
-      setLoading(false);
     });
 
     return unsubscribe;
@@ -185,6 +313,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loginWithGoogle,
     resetPassword,
     updateUserProfile,
+    syncDataToCloud,
+    loadDataFromCloud,
   };
 
   return (
