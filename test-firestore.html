@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore Connection Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #667eea; margin-top: 0; }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #764ba2; }
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 6px;
+            min-height: 100px;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+        .info { color: #17a2b8; }
+        pre {
+            background: #2d3748;
+            color: #68d391;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firestore Connection Test</h1>
+        <p>This will test if your Firestore database is accessible.</p>
+        
+        <div>
+            <button onclick="testAuth()">1. Test Auth</button>
+            <button onclick="testWrite()">2. Test Write</button>
+            <button onclick="testRead()">3. Test Read</button>
+            <button onclick="clearOutput()">Clear</button>
+        </div>
+
+        <div id="output">
+            <p class="info">👆 Click "Test Auth" first, then try the other tests.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcU8VaOO3relHamA_vKew-bNZZCmdey4Q",
+            authDomain: "german-citizenship-trainer.firebaseapp.com",
+            projectId: "german-citizenship-trainer",
+            storageBucket: "german-citizenship-trainer.firebasestorage.app",
+            messagingSenderId: "788924415217",
+            appId: "1:788924415217:web:b42a7a7dda36f8aa9bfd50"
+        };
+
+        console.log('🔥 Initializing Firebase...');
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        const output = document.getElementById('output');
+
+        function log(message, type = 'info') {
+            const p = document.createElement('p');
+            p.className = type;
+            p.innerHTML = message;
+            output.appendChild(p);
+            console.log(message);
+        }
+
+        window.clearOutput = () => {
+            output.innerHTML = '<p class="info">Output cleared. Run tests again.</p>';
+        };
+
+        window.testAuth = async () => {
+            try {
+                log('🔐 Testing Anonymous Authentication...', 'info');
+                const result = await signInAnonymously(auth);
+                log(`✅ AUTH SUCCESSFUL! UID: ${result.user.uid}`, 'success');
+                log('Now try "Test Write"', 'info');
+            } catch (error) {
+                log(`❌ AUTH FAILED: ${error.code}`, 'error');
+                log(`Error: ${error.message}`, 'error');
+                console.error('Full auth error:', error);
+            }
+        };
+
+        window.testWrite = async () => {
+            try {
+                if (!auth.currentUser) {
+                    log('⚠️ Not authenticated! Click "Test Auth" first.', 'warning');
+                    return;
+                }
+
+                log('📝 Testing Firestore WRITE...', 'info');
+                log(`User: ${auth.currentUser.uid}`, 'info');
+                
+                const testDoc = doc(db, 'test', 'diagnostic-' + Date.now());
+                const testData = {
+                    timestamp: new Date().toISOString(),
+                    test: true,
+                    message: 'Diagnostic test from test-firestore.html',
+                    userAgent: navigator.userAgent
+                };
+
+                log('Attempting to write document...', 'info');
+                await setDoc(testDoc, testData);
+                
+                log('✅ WRITE SUCCESSFUL!', 'success');
+                log('Data written:', 'success');
+                const pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(testData, null, 2);
+                output.appendChild(pre);
+                
+                log('🎉 Your Firestore is working! The 400 errors are from somewhere else.', 'success');
+                
+            } catch (error) {
+                log(`❌ WRITE FAILED: ${error.code}`, 'error');
+                log(`Message: ${error.message}`, 'error');
+                
+                if (error.code === 'permission-denied') {
+                    log('⚠️ Issue: Security rules are blocking writes', 'warning');
+                    log('Solution: Update security rules to allow authenticated writes', 'info');
+                } else if (error.code === 'unavailable') {
+                    log('⚠️ Issue: Firestore API might not be enabled', 'warning');
+                    log('Solution: Enable Firestore API in Cloud Console', 'info');
+                    log('Link: https://console.cloud.google.com/apis/library/firestore.googleapis.com?project=german-citizenship-trainer', 'info');
+                } else if (error.code === 'failed-precondition') {
+                    log('⚠️ Issue: Database not properly initialized', 'warning');
+                    log('Solution: Check Firebase Console → Firestore → Data', 'info');
+                }
+                
+                console.error('Full write error:', error);
+            }
+        };
+
+        window.testRead = async () => {
+            try {
+                if (!auth.currentUser) {
+                    log('⚠️ Not authenticated! Click "Test Auth" first.', 'warning');
+                    return;
+                }
+
+                log('📖 Testing Firestore READ...', 'info');
+                
+                const testDoc = doc(db, 'test', 'test123');
+                const docSnap = await getDoc(testDoc);
+                
+                if (docSnap.exists()) {
+                    log('✅ READ SUCCESSFUL! Document exists:', 'success');
+                    const pre = document.createElement('pre');
+                    pre.textContent = JSON.stringify(docSnap.data(), null, 2);
+                    output.appendChild(pre);
+                } else {
+                    log('✅ READ SUCCESSFUL! (document doesn\'t exist, but read operation worked)', 'success');
+                    log('This means Firestore reads are working.', 'info');
+                }
+                
+            } catch (error) {
+                log(`❌ READ FAILED: ${error.code}`, 'error');
+                log(`Message: ${error.message}`, 'error');
+                console.error('Full read error:', error);
+            }
+        };
+
+        // Auto-log initialization
+        log('🚀 Firebase initialized successfully', 'success');
+        log(`📦 Project: ${firebaseConfig.projectId}`, 'info');
+        log(`🗄️ Database: (default) in europe-west4`, 'info');
+        log('', 'info');
+        log('👆 Click "Test Auth" to begin', 'info');
+    </script>
+</body>
+</html>

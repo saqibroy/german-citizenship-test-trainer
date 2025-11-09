@@ -197,16 +197,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         Object.assign(vocabProgress, JSON.parse(savedVocabProgress));
       }
 
+      console.log('Syncing data to cloud:', {
+        progressItems: Object.keys(progress).length,
+        quizItems: quizHistory.length,
+        vocabItems: Object.keys(vocabProgress).length
+      });
+
       // Sync to cloud (with individual error handling)
-      await Promise.allSettled([
-        Object.keys(progress).length > 0 ? syncProgressToCloud(currentUser.uid, progress).catch(e => console.warn('Progress sync failed:', e.message)) : Promise.resolve(),
-        quizHistory.length > 0 ? syncQuizHistoryToCloud(currentUser.uid, quizHistory).catch(e => console.warn('Quiz history sync failed:', e.message)) : Promise.resolve(),
-        Object.keys(vocabProgress).length > 0 ? syncVocabProgressToCloud(currentUser.uid, vocabProgress).catch(e => console.warn('Vocab progress sync failed:', e.message)) : Promise.resolve(),
+      const results = await Promise.allSettled([
+        Object.keys(progress).length > 0 ? syncProgressToCloud(currentUser.uid, progress) : Promise.resolve(),
+        quizHistory.length > 0 ? syncQuizHistoryToCloud(currentUser.uid, quizHistory) : Promise.resolve(),
+        Object.keys(vocabProgress).length > 0 ? syncVocabProgressToCloud(currentUser.uid, vocabProgress) : Promise.resolve(),
       ]);
 
-      console.log('Data sync completed (check console for any failures)');
+      // Log results
+      results.forEach((result, index) => {
+        const names = ['Progress', 'Quiz History', 'Vocab Progress'];
+        if (result.status === 'rejected') {
+          console.error(`${names[index]} sync failed:`, result.reason);
+        } else {
+          console.log(`${names[index]} sync succeeded`);
+        }
+      });
+
+      console.log('Data sync completed');
     } catch (error: any) {
-      console.warn('Error syncing data to cloud (continuing anyway):', error.message || error);
+      console.error('Error syncing data to cloud:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
       // Don't throw - we don't want sync failures to block the app
     }
   };

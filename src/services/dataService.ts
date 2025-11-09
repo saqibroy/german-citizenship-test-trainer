@@ -30,14 +30,20 @@ export const syncProgressToCloud = async (
 
     await batch.commit();
 
-    // Update last synced timestamp
-    await updateDoc(doc(db, 'users', userId), {
+    // Update last synced timestamp - use setDoc with merge to create parent if missing
+    await setDoc(doc(db, 'users', userId), {
       lastSyncedAt: new Date().toISOString(),
-    });
+    }, { merge: true });
 
     console.log('Progress synced to cloud successfully');
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error syncing progress to cloud:', error);
+    console.error('Error details:', {
+      code: error.code,
+      message: error.message,
+      userId,
+      progressCount: Object.keys(progress).length
+    });
     throw error;
   }
 };

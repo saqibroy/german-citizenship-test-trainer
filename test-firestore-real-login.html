@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore Test - Real Login</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #667eea; margin-top: 0; }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #764ba2; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 6px;
+            min-height: 100px;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+        .info { color: #17a2b8; }
+        pre {
+            background: #2d3748;
+            color: #68d391;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .login-form {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firestore Test - With Real Login</h1>
+        
+        <div class="login-form">
+            <h3>Step 1: Login with your account</h3>
+            <input type="email" id="email" placeholder="Your email" value="">
+            <input type="password" id="password" placeholder="Your password" value="">
+            <button onclick="login()">Login</button>
+            <p style="font-size: 12px; color: #666;">Use the same account you use in your app</p>
+        </div>
+
+        <div>
+            <h3>Step 2: Test Firestore</h3>
+            <button onclick="testWrite()" id="writeBtn" disabled>Test Write</button>
+            <button onclick="testRead()" id="readBtn" disabled>Test Read</button>
+            <button onclick="clearOutput()">Clear</button>
+        </div>
+
+        <div id="output">
+            <p class="info">👆 Login first, then test Firestore operations.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcU8VaOO3relHamA_vKew-bNZZCmdey4Q",
+            authDomain: "german-citizenship-trainer.firebaseapp.com",
+            projectId: "german-citizenship-trainer",
+            storageBucket: "german-citizenship-trainer.firebasestorage.app",
+            messagingSenderId: "788924415217",
+            appId: "1:788924415217:web:b42a7a7dda36f8aa9bfd50"
+        };
+
+        console.log('🔥 Initializing Firebase...');
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        const output = document.getElementById('output');
+        const writeBtn = document.getElementById('writeBtn');
+        const readBtn = document.getElementById('readBtn');
+
+        function log(message, type = 'info') {
+            const p = document.createElement('p');
+            p.className = type;
+            p.innerHTML = message;
+            output.appendChild(p);
+            console.log(message);
+        }
+
+        window.clearOutput = () => {
+            output.innerHTML = '<p class="info">Output cleared. Run tests again.</p>';
+        };
+
+        window.login = async () => {
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                if (!email || !password) {
+                    log('⚠️ Please enter both email and password', 'warning');
+                    return;
+                }
+
+                log('🔐 Attempting login...', 'info');
+                const result = await signInWithEmailAndPassword(auth, email, password);
+                
+                log(`✅ LOGIN SUCCESSFUL!`, 'success');
+                log(`👤 User: ${result.user.email}`, 'success');
+                log(`🆔 UID: ${result.user.uid}`, 'info');
+                log('Now click "Test Write" to test Firestore!', 'info');
+                
+                // Enable test buttons
+                writeBtn.disabled = false;
+                readBtn.disabled = false;
+                
+            } catch (error) {
+                log(`❌ LOGIN FAILED: ${error.code}`, 'error');
+                log(`Error: ${error.message}`, 'error');
+                
+                if (error.code === 'auth/invalid-credential') {
+                    log('💡 Wrong email or password. Try again.', 'warning');
+                } else if (error.code === 'auth/user-not-found') {
+                    log('💡 User not found. Check your email.', 'warning');
+                } else if (error.code === 'auth/wrong-password') {
+                    log('💡 Wrong password. Try again.', 'warning');
+                }
+                
+                console.error('Full login error:', error);
+            }
+        };
+
+        window.testWrite = async () => {
+            try {
+                if (!auth.currentUser) {
+                    log('⚠️ Not authenticated! Login first.', 'warning');
+                    return;
+                }
+
+                log('📝 Testing Firestore WRITE...', 'info');
+                log(`User: ${auth.currentUser.email}`, 'info');
+                log(`UID: ${auth.currentUser.uid}`, 'info');
+                
+                // Try writing to users/{uid}/test/diagnostic
+                const testDoc = doc(db, `users/${auth.currentUser.uid}/test/diagnostic-${Date.now()}`);
+                const testData = {
+                    timestamp: new Date().toISOString(),
+                    test: true,
+                    message: 'Diagnostic test from test page',
+                    userAgent: navigator.userAgent
+                };
+
+                log('Attempting to write to: users/' + auth.currentUser.uid + '/test/diagnostic-...', 'info');
+                await setDoc(testDoc, testData);
+                
+                log('✅ WRITE SUCCESSFUL!', 'success');
+                log('🎉 Your Firestore is WORKING!', 'success');
+                log('Data written:', 'success');
+                const pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(testData, null, 2);
+                output.appendChild(pre);
+                
+                log('', 'info');
+                log('✅ This means your app SHOULD work now!', 'success');
+                log('Go to your app and try training again.', 'info');
+                log('', 'info');
+                log('📊 Check Firestore Console:', 'info');
+                log('https://console.firebase.google.com/project/german-citizenship-trainer/firestore/data', 'info');
+                log('Look for: users/' + auth.currentUser.uid + '/test', 'info');
+                
+            } catch (error) {
+                log(`❌ WRITE FAILED: ${error.code}`, 'error');
+                log(`Message: ${error.message}`, 'error');
+                
+                if (error.code === 'permission-denied') {
+                    log('', 'info');
+                    log('⚠️ ISSUE: Security rules are blocking writes', 'warning');
+                    log('', 'info');
+                    log('SOLUTION:', 'info');
+                    log('1. Go to Firestore Console → Rules', 'info');
+                    log('2. Make sure your rules allow authenticated users to write', 'info');
+                    log('3. Your rules should have: allow read, write: if request.auth != null', 'info');
+                } else if (error.code === 'unavailable' || error.code === 'failed-precondition') {
+                    log('', 'info');
+                    log('⚠️ ISSUE: Firestore API not enabled or database not initialized', 'warning');
+                    log('', 'info');
+                    log('SOLUTION 1: Enable Firestore API', 'info');
+                    log('https://console.cloud.google.com/apis/library/firestore.googleapis.com?project=german-citizenship-trainer', 'info');
+                    log('', 'info');
+                    log('SOLUTION 2: Manually create a collection in Firestore Console', 'info');
+                    log('Go to Firestore → Data → Start collection', 'info');
+                }
+                
+                console.error('Full write error:', error);
+            }
+        };
+
+        window.testRead = async () => {
+            try {
+                if (!auth.currentUser) {
+                    log('⚠️ Not authenticated! Login first.', 'warning');
+                    return;
+                }
+
+                log('📖 Testing Firestore READ...', 'info');
+                
+                const testDoc = doc(db, `users/${auth.currentUser.uid}`);
+                const docSnap = await getDoc(testDoc);
+                
+                if (docSnap.exists()) {
+                    log('✅ READ SUCCESSFUL! Your user profile exists:', 'success');
+                    const pre = document.createElement('pre');
+                    pre.textContent = JSON.stringify(docSnap.data(), null, 2);
+                    output.appendChild(pre);
+                } else {
+                    log('✅ READ SUCCESSFUL! (profile document doesn\'t exist yet)', 'success');
+                    log('This is normal for new users.', 'info');
+                    log('Reads are working - Firestore is accessible!', 'success');
+                }
+                
+            } catch (error) {
+                log(`❌ READ FAILED: ${error.code}`, 'error');
+                log(`Message: ${error.message}`, 'error');
+                console.error('Full read error:', error);
+            }
+        };
+
+        // Auto-log initialization
+        log('🚀 Firebase initialized successfully', 'success');
+        log(`📦 Project: ${firebaseConfig.projectId}`, 'info');
+        log(`🗄️ Database: (default) in europe-west4`, 'info');
+        log('', 'info');
+        log('👆 Enter your email and password, then click Login', 'info');
+    </script>
+</body>
+</html>

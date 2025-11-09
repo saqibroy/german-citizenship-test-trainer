@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Firestore Test - German Citizenship Trainer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status.running {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        button.secondary {
+            background: #6b7280;
+        }
+        button.danger {
+            background: #ef4444;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .log {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px 0;
+            border-bottom: 1px solid #334155;
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-entry .timestamp {
+            color: #94a3b8;
+            margin-right: 10px;
+        }
+        .log-entry.success {
+            color: #86efac;
+        }
+        .log-entry.error {
+            color: #fca5a5;
+        }
+        .log-entry.info {
+            color: #93c5fd;
+        }
+        .log-entry.warning {
+            color: #fde047;
+        }
+        .user-info {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .user-info p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .user-info strong {
+            color: #667eea;
+        }
+        .progress-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            font-size: 13px;
+            border-left: 3px solid #667eea;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .stat-card .label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Complete Firestore Test</h1>
+        <p class="subtitle">Test all aspects of your Firebase/Firestore integration</p>
+
+        <!-- Step 1: Authentication -->
+        <div class="section">
+            <h2>
+                <span>1️⃣ Authentication</span>
+                <span class="status pending" id="auth-status">Pending</span>
+            </h2>
+            <div id="auth-section">
+                <input type="email" id="email" placeholder="Email" value="">
+                <input type="password" id="password" placeholder="Password" value="">
+                <button onclick="login()">Login</button>
+                <button onclick="signup()" class="secondary">Sign Up</button>
+            </div>
+            <div id="user-info" style="display:none;"></div>
+        </div>
+
+        <!-- Step 2: Write Progress -->
+        <div class="section">
+            <h2>
+                <span>2️⃣ Write Training Progress</span>
+                <span class="status pending" id="write-status">Pending</span>
+            </h2>
+            <p style="margin-bottom: 15px; font-size: 14px; color: #666;">
+                Simulate answering questions and syncing to Firestore
+            </p>
+            <button onclick="simulateTraining()" id="simulate-btn" disabled>Simulate 10 Questions</button>
+            <button onclick="simulateLargeTraining()" id="simulate-large-btn" disabled>Simulate 50 Questions</button>
+            <div id="write-stats"></div>
+        </div>
+
+        <!-- Step 3: Read Progress -->
+        <div class="section">
+            <h2>
+                <span>3️⃣ Read Progress from Cloud</span>
+                <span class="status pending" id="read-status">Pending</span>
+            </h2>
+            <p style="margin-bottom: 15px; font-size: 14px; color: #666;">
+                Load progress from Firestore (simulates cross-device sync)
+            </p>
+            <button onclick="loadProgress()" id="load-btn" disabled>Load from Cloud</button>
+            <button onclick="clearLocalStorage()" class="secondary">Clear Local Storage</button>
+            <div id="read-stats"></div>
+        </div>
+
+        <!-- Step 4: Test Logout -->
+        <div class="section">
+            <h2>
+                <span>4️⃣ Logout with Sync</span>
+                <span class="status pending" id="logout-status">Pending</span>
+            </h2>
+            <p style="margin-bottom: 15px; font-size: 14px; color: #666;">
+                Test if logout properly syncs data before signing out
+            </p>
+            <button onclick="testLogout()" id="logout-btn" disabled class="danger">Logout & Sync</button>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="section">
+            <h2>📊 Activity Log</h2>
+            <button onclick="clearLog()" class="secondary">Clear Log</button>
+            <div class="log" id="log"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            getDoc,
+            getDocs,
+            collection,
+            writeBatch,
+            query,
+            orderBy,
+            limit
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAo-1g1mEb35jSH0r_j8xDUlZcE0g5dFn8",
+            authDomain: "german-citizenship-trainer.firebaseapp.com",
+            projectId: "german-citizenship-trainer",
+            storageBucket: "german-citizenship-trainer.firebasestorage.app",
+            messagingSenderId: "1032835516031",
+            appId: "1:1032835516031:web:66d0d7ff10a6e5889cb36b",
+            measurementId: "G-L1K79FR4TG"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+
+        // Make functions global
+        window.login = login;
+        window.signup = signup;
+        window.simulateTraining = simulateTraining;
+        window.simulateLargeTraining = simulateLargeTraining;
+        window.loadProgress = loadProgress;
+        window.clearLocalStorage = clearLocalStorage;
+        window.testLogout = testLogout;
+        window.clearLog = clearLog;
+
+        // Logging functions
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `<span class="timestamp">[${timestamp}]</span>${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function updateStatus(elementId, status, text) {
+            const element = document.getElementById(elementId);
+            element.className = `status ${status}`;
+            element.textContent = text || status.charAt(0).toUpperCase() + status.slice(1);
+        }
+
+        // Auth state listener
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                updateStatus('auth-status', 'success', 'Logged In');
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('user-info').style.display = 'block';
+                document.getElementById('user-info').innerHTML = `
+                    <div class="user-info">
+                        <p><strong>Email:</strong> ${user.email}</p>
+                        <p><strong>UID:</strong> ${user.uid}</p>
+                        <p><strong>Status:</strong> <span style="color: #10b981;">✓ Authenticated</span></p>
+                    </div>
+                `;
+                
+                // Enable buttons
+                document.getElementById('simulate-btn').disabled = false;
+                document.getElementById('simulate-large-btn').disabled = false;
+                document.getElementById('load-btn').disabled = false;
+                document.getElementById('logout-btn').disabled = false;
+                
+                log(`✓ User authenticated: ${user.email}`, 'success');
+            } else {
+                currentUser = null;
+                updateStatus('auth-status', 'pending', 'Not Logged In');
+                document.getElementById('auth-section').style.display = 'block';
+                document.getElementById('user-info').style.display = 'none';
+                
+                // Disable buttons
+                document.getElementById('simulate-btn').disabled = true;
+                document.getElementById('simulate-large-btn').disabled = true;
+                document.getElementById('load-btn').disabled = true;
+                document.getElementById('logout-btn').disabled = true;
+                
+                log('User logged out', 'info');
+            }
+        });
+
+        // Authentication functions
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                log('⚠ Please enter email and password', 'warning');
+                return;
+            }
+
+            try {
+                updateStatus('auth-status', 'running', 'Logging in...');
+                log(`Attempting login: ${email}`, 'info');
+                
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                log(`✓ Login successful: ${userCredential.user.email}`, 'success');
+                
+                // Ensure user document exists
+                await ensureUserDocument(userCredential.user);
+            } catch (error) {
+                updateStatus('auth-status', 'error', 'Login Failed');
+                log(`✗ Login error: ${error.code} - ${error.message}`, 'error');
+            }
+        }
+
+        async function signup() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                log('⚠ Please enter email and password', 'warning');
+                return;
+            }
+
+            if (password.length < 6) {
+                log('⚠ Password must be at least 6 characters', 'warning');
+                return;
+            }
+
+            try {
+                updateStatus('auth-status', 'running', 'Creating account...');
+                log(`Creating account: ${email}`, 'info');
+                
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                log(`✓ Account created: ${userCredential.user.email}`, 'success');
+                
+                // Create user document
+                await ensureUserDocument(userCredential.user);
+            } catch (error) {
+                updateStatus('auth-status', 'error', 'Signup Failed');
+                log(`✗ Signup error: ${error.code} - ${error.message}`, 'error');
+            }
+        }
+
+        async function ensureUserDocument(user) {
+            try {
+                log('Checking user document...', 'info');
+                const userRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userRef);
+                
+                if (!userDoc.exists()) {
+                    log('Creating user document in Firestore...', 'info');
+                    await setDoc(userRef, {
+                        uid: user.uid,
+                        email: user.email,
+                        displayName: user.displayName || '',
+                        photoURL: user.photoURL || null,
+                        subscription: 'free',
+                        dailyGoal: 10,
+                        createdAt: new Date().toISOString(),
+                        lastSyncedAt: new Date().toISOString()
+                    });
+                    log('✓ User document created', 'success');
+                } else {
+                    log('✓ User document exists', 'success');
+                }
+            } catch (error) {
+                log(`✗ Error with user document: ${error.message}`, 'error');
+            }
+        }
+
+        // Simulate training progress
+        async function simulateTraining() {
+            if (!currentUser) {
+                log('⚠ Please login first', 'warning');
+                return;
+            }
+
+            try {
+                updateStatus('write-status', 'running', 'Writing...');
+                log('Starting training simulation (10 questions)...', 'info');
+                
+                const progress = {};
+                const startTime = Date.now();
+                
+                // Generate 10 random questions
+                for (let i = 1; i <= 10; i++) {
+                    const questionId = Math.floor(Math.random() * 300) + 1;
+                    const isCorrect = Math.random() > 0.3; // 70% correct
+                    
+                    progress[questionId] = {
+                        correct: isCorrect ? 1 : 0,
+                        incorrect: isCorrect ? 0 : 1,
+                        lastAnswered: new Date().toISOString(),
+                        nextReview: new Date(Date.now() + 86400000).toISOString(),
+                        srsLevel: isCorrect ? 'learning' : 'weak',
+                        easeFactor: 2.5,
+                        interval: isCorrect ? 1 : 0
+                    };
+                    
+                    // Save to localStorage (simulating app behavior)
+                    localStorage.setItem(`q_${questionId}`, JSON.stringify(progress[questionId]));
+                }
+                
+                log(`Generated progress for ${Object.keys(progress).length} questions`, 'info');
+                
+                // Sync to Firestore
+                await syncProgressToCloud(currentUser.uid, progress);
+                
+                const elapsed = Date.now() - startTime;
+                updateStatus('write-status', 'success', 'Written');
+                log(`✓ Training data synced in ${elapsed}ms`, 'success');
+                
+                // Display stats
+                displayWriteStats(progress);
+            } catch (error) {
+                updateStatus('write-status', 'error', 'Failed');
+                log(`✗ Simulation error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function simulateLargeTraining() {
+            if (!currentUser) {
+                log('⚠ Please login first', 'warning');
+                return;
+            }
+
+            try {
+                updateStatus('write-status', 'running', 'Writing 50...');
+                log('Starting large training simulation (50 questions)...', 'info');
+                
+                const progress = {};
+                const startTime = Date.now();
+                
+                // Generate 50 random questions
+                for (let i = 1; i <= 50; i++) {
+                    const questionId = Math.floor(Math.random() * 300) + 1;
+                    const correctCount = Math.floor(Math.random() * 5);
+                    const incorrectCount = Math.floor(Math.random() * 3);
+                    
+                    progress[questionId] = {
+                        correct: correctCount,
+                        incorrect: incorrectCount,
+                        lastAnswered: new Date().toISOString(),
+                        nextReview: new Date(Date.now() + 86400000).toISOString(),
+                        srsLevel: correctCount > 3 ? 'mature' : (correctCount > 1 ? 'learning' : 'weak'),
+                        easeFactor: 2.5,
+                        interval: correctCount
+                    };
+                    
+                    localStorage.setItem(`q_${questionId}`, JSON.stringify(progress[questionId]));
+                }
+                
+                log(`Generated progress for ${Object.keys(progress).length} questions`, 'info');
+                
+                // Sync to Firestore
+                await syncProgressToCloud(currentUser.uid, progress);
+                
+                const elapsed = Date.now() - startTime;
+                updateStatus('write-status', 'success', 'Written');
+                log(`✓ Large training data synced in ${elapsed}ms`, 'success');
+                
+                displayWriteStats(progress);
+            } catch (error) {
+                updateStatus('write-status', 'error', 'Failed');
+                log(`✗ Simulation error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function syncProgressToCloud(userId, progress) {
+            try {
+                log('Creating batch write...', 'info');
+                const batch = writeBatch(db);
+                let count = 0;
+
+                Object.entries(progress).forEach(([questionId, data]) => {
+                    const ref = doc(db, `users/${userId}/progress/${questionId}`);
+                    batch.set(ref, data, { merge: true });
+                    count++;
+                });
+
+                log(`Committing batch with ${count} documents...`, 'info');
+                await batch.commit();
+                log(`✓ Batch commit successful (${count} docs)`, 'success');
+
+                // Update last synced timestamp - use setDoc with merge
+                log('Updating lastSyncedAt timestamp...', 'info');
+                await setDoc(doc(db, 'users', userId), {
+                    lastSyncedAt: new Date().toISOString(),
+                }, { merge: true });
+                log('✓ Timestamp updated', 'success');
+
+                log('✓ Progress synced to cloud successfully', 'success');
+            } catch (error) {
+                log(`✗ Sync error: ${error.code} - ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        function displayWriteStats(progress) {
+            const stats = {
+                total: Object.keys(progress).length,
+                correct: 0,
+                incorrect: 0
+            };
+
+            Object.values(progress).forEach(p => {
+                stats.correct += p.correct;
+                stats.incorrect += p.incorrect;
+            });
+
+            document.getElementById('write-stats').innerHTML = `
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="value">${stats.total}</div>
+                        <div class="label">Questions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value">${stats.correct}</div>
+                        <div class="label">Correct</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value">${stats.incorrect}</div>
+                        <div class="label">Incorrect</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Load progress from cloud
+        async function loadProgress() {
+            if (!currentUser) {
+                log('⚠ Please login first', 'warning');
+                return;
+            }
+
+            try {
+                updateStatus('read-status', 'running', 'Loading...');
+                log('Loading progress from Firestore...', 'info');
+                
+                const startTime = Date.now();
+                const progressRef = collection(db, `users/${currentUser.uid}/progress`);
+                const snapshot = await getDocs(progressRef);
+                
+                const progress = {};
+                snapshot.forEach(doc => {
+                    progress[doc.id] = doc.data();
+                });
+                
+                const elapsed = Date.now() - startTime;
+                updateStatus('read-status', 'success', 'Loaded');
+                log(`✓ Loaded ${snapshot.size} documents in ${elapsed}ms`, 'success');
+                
+                // Display loaded data
+                displayReadStats(progress);
+            } catch (error) {
+                updateStatus('read-status', 'error', 'Failed');
+                log(`✗ Load error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function displayReadStats(progress) {
+            const stats = {
+                total: Object.keys(progress).length,
+                weak: 0,
+                learning: 0,
+                mature: 0,
+                mastered: 0
+            };
+
+            Object.values(progress).forEach(p => {
+                if (p.srsLevel === 'weak') stats.weak++;
+                else if (p.srsLevel === 'learning') stats.learning++;
+                else if (p.srsLevel === 'mature') stats.mature++;
+                else if (p.srsLevel === 'mastered') stats.mastered++;
+            });
+
+            let html = `
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="value">${stats.total}</div>
+                        <div class="label">Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value">${stats.weak}</div>
+                        <div class="label">Weak</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value">${stats.learning}</div>
+                        <div class="label">Learning</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value">${stats.mature}</div>
+                        <div class="label">Mature</div>
+                    </div>
+                </div>
+            `;
+
+            // Show sample items
+            const sampleItems = Object.entries(progress).slice(0, 5);
+            if (sampleItems.length > 0) {
+                html += '<p style="margin-top: 15px; font-size: 13px; color: #666;">Sample items:</p>';
+                sampleItems.forEach(([qId, data]) => {
+                    html += `
+                        <div class="progress-item">
+                            <strong>Q${qId}:</strong> 
+                            ${data.correct} correct, ${data.incorrect} incorrect, 
+                            Level: <strong>${data.srsLevel}</strong>
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('read-stats').innerHTML = html;
+        }
+
+        function clearLocalStorage() {
+            const count = Object.keys(localStorage).filter(k => k.startsWith('q_')).length;
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('q_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+            log(`✓ Cleared ${count} items from localStorage`, 'success');
+        }
+
+        // Test logout
+        async function testLogout() {
+            if (!currentUser) {
+                log('⚠ Already logged out', 'warning');
+                return;
+            }
+
+            try {
+                updateStatus('logout-status', 'running', 'Syncing...');
+                log('Testing logout with sync...', 'info');
+                
+                // First sync any data in localStorage
+                const progress = {};
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('q_')) {
+                        const qId = key.replace('q_', '');
+                        try {
+                            progress[qId] = JSON.parse(localStorage.getItem(key));
+                        } catch (e) {
+                            log(`⚠ Error parsing ${key}`, 'warning');
+                        }
+                    }
+                });
+
+                if (Object.keys(progress).length > 0) {
+                    log(`Syncing ${Object.keys(progress).length} items before logout...`, 'info');
+                    await syncProgressToCloud(currentUser.uid, progress);
+                }
+
+                log('Signing out...', 'info');
+                await signOut(auth);
+                
+                updateStatus('logout-status', 'success', 'Logged Out');
+                log('✓ Logout successful!', 'success');
+            } catch (error) {
+                updateStatus('logout-status', 'error', 'Failed');
+                log(`✗ Logout error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // Initial log
+        log('🔥 Firestore test page loaded', 'info');
+        log('Please login or create an account to start testing', 'info');
+    </script>
+</body>
+</html>
