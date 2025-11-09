@@ -10,7 +10,7 @@ import {
   signInWithPopup,
   updateProfile,
 } from 'firebase/auth';
-import { doc, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import { UserProfile, DEFAULT_USER_SETTINGS } from '../types/user';
 import {
@@ -21,6 +21,7 @@ import {
   syncQuizHistoryToCloud,
   syncVocabProgressToCloud,
 } from '../services/dataService';
+import { writeDocument } from '../services/firestoreREST';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -72,13 +73,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         settings: DEFAULT_USER_SETTINGS,
       };
 
-      // Use batch instead of setDoc to avoid hanging
-      const batch = writeBatch(db);
-      batch.set(userRef, {
+      // Use REST API to create user profile
+      await writeDocument('users', user.uid, {
         ...newProfile,
         createdAt: new Date().toISOString(),
       });
-      await batch.commit();
 
       setUserProfile(newProfile);
     } else {
@@ -238,10 +237,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Logout
   const logout = async (): Promise<void> => {
     try {
-      // Sync data before logout
-      await syncDataToCloud();
+      // Start sync in background (don't wait for it)
+      syncDataToCloud().catch(err => {
+        console.warn('Background sync on logout failed:', err);
+      });
       
-      // Sign out from Firebase
+      // Sign out immediately without waiting for sync
       await signOut(auth);
       
       // Clear all user data from localStorage
@@ -278,8 +279,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateUserProfile = async (updates: Partial<UserProfile>): Promise<void> => {
     if (!currentUser) throw new Error('No user logged in');
 
-    const userRef = doc(db, 'users', currentUser.uid);
-    await updateDoc(userRef, updates);
+    await writeDocument('users', currentUser.uid, updates);
 
     setUserProfile((prev) => (prev ? { ...prev, ...updates } : null));
   };

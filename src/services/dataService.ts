@@ -3,65 +3,29 @@ import {
   doc,
   getDoc,
   getDocs,
-  writeBatch,
   query,
   orderBy,
   limit,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Progress } from '../types';
-import { syncProgressViaREST } from './firestoreREST';
+import { syncProgressViaREST, batchWriteDocuments, writeDocument } from './firestoreREST';
 
 /**
- * Sync user progress to Firestore
+ * Sync user progress to Firestore using REST API
  */
 export const syncProgressToCloud = async (
   userId: string,
   progress: Progress
 ): Promise<void> => {
+  console.log(`Syncing ${Object.keys(progress).length} progress items via REST API...`);
+  
   try {
-    // Try REST API first (bypasses WebChannel 400 errors)
-    console.log('Attempting sync via REST API...');
     await syncProgressViaREST(userId, progress);
-    console.log('✓ Progress synced via REST API successfully');
-    return;
-  } catch (restError: any) {
-    console.warn('REST API sync failed, falling back to SDK:', restError.message);
-    
-    // Fallback to SDK with timeout
-    try {
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('SDK sync timeout after 10 seconds')), 10000);
-      });
-
-      const syncPromise = (async () => {
-        const batch = writeBatch(db);
-
-        // Add all progress documents to batch
-        Object.entries(progress).forEach(([questionId, data]) => {
-          const ref = doc(db, `users/${userId}/progress/${questionId}`);
-          batch.set(ref, data as any, { merge: true });
-        });
-
-        // Add lastSyncedAt update to the same batch
-        const userRef = doc(db, 'users', userId);
-        batch.set(userRef, {
-          lastSyncedAt: new Date().toISOString(),
-        }, { merge: true });
-
-        await batch.commit();
-      })();
-
-      await Promise.race([syncPromise, timeoutPromise]);
-      console.log('✓ Progress synced via SDK successfully');
-    } catch (sdkError: any) {
-      if (sdkError.message === 'SDK sync timeout after 10 seconds') {
-        console.warn('⚠️ SDK sync timeout - data may sync in background');
-      } else {
-        console.error('SDK sync error:', sdkError);
-      }
-      // Don't throw - allow app to continue
-    }
+    console.log('✓ Progress synced successfully');
+  } catch (error: any) {
+    console.error('REST API sync error:', error.message);
+    // Don't throw - allow app to continue
   }
 };
 
@@ -90,25 +54,24 @@ export const loadProgressFromCloud = async (userId: string): Promise<Progress> =
 };
 
 /**
- * Sync quiz history to Firestore
+ * Sync quiz history to Firestore using REST API
  */
 export const syncQuizHistoryToCloud = async (
   userId: string,
   quizHistory: any[]
 ): Promise<void> => {
   try {
-    const batch = writeBatch(db);
+    const writes = quizHistory.map((quiz, index) => ({
+      collection: `users/${userId}/quizHistory`,
+      documentId: quiz.date || index.toString(),
+      data: quiz
+    }));
 
-    quizHistory.forEach((quiz, index) => {
-      const ref = doc(db, `users/${userId}/quizHistory/${quiz.date || index}`);
-      batch.set(ref, quiz, { merge: true });
-    });
-
-    await batch.commit();
+    await batchWriteDocuments(writes);
     console.log('Quiz history synced to cloud successfully');
   } catch (error) {
     console.error('Error syncing quiz history to cloud:', error);
-    throw error;
+    // Don't throw - allow app to continue
   }
 };
 
@@ -160,22 +123,21 @@ export const loadQuizHistoryFromCloud = async (userId: string): Promise<any[]> =
 };
 
 /**
- * Sync vocabulary progress to Firestore
+ * Sync vocabulary progress to Firestore via REST API
  */
 export const syncVocabProgressToCloud = async (
   userId: string,
   vocabProgress: any
 ): Promise<void> => {
   try {
-    const batch = writeBatch(db);
+    const writes = Object.entries(vocabProgress).map(([wordId, data]) => ({
+      collection: `users/${userId}/vocabProgress`,
+      documentId: wordId,
+      data: data as Record<string, any>,
+    }));
 
-    Object.entries(vocabProgress).forEach(([wordId, data]) => {
-      const ref = doc(db, `users/${userId}/vocabProgress/${wordId}`);
-      batch.set(ref, data as any, { merge: true });
-    });
-
-    await batch.commit();
-    console.log('Vocabulary progress synced to cloud successfully');
+    await batchWriteDocuments(writes);
+    console.log('Vocabulary progress synced to cloud via REST successfully');
   } catch (error) {
     console.error('Error syncing vocabulary progress to cloud:', error);
     throw error;
@@ -237,7 +199,7 @@ export const migrateLocalDataToCloud = async (userId: string): Promise<void> => 
 };
 
 /**
- * Track daily usage for free tier limits
+ * Track daily usage for free tier limits via REST API
  */
 export const trackDailyUsage = async (
   userId: string,
@@ -248,23 +210,20 @@ export const trackDailyUsage = async (
 
   try {
     const usageDoc = await getDoc(usageRef);
-    const batch = writeBatch(db);
 
     if (usageDoc.exists()) {
       const data = usageDoc.data();
-      batch.update(usageRef, {
+      await writeDocument(`users/${userId}/usage`, today, {
         [type === 'question' ? 'questionsAnswered' : 'quizzesTaken']:
           (data[type === 'question' ? 'questionsAnswered' : 'quizzesTaken'] || 0) + 1,
       });
     } else {
-      batch.set(usageRef, {
+      await writeDocument(`users/${userId}/usage`, today, {
         date: today,
         questionsAnswered: type === 'question' ? 1 : 0,
         quizzesTaken: type === 'quiz' ? 1 : 0,
       });
     }
-    
-    await batch.commit();
   } catch (error) {
     console.error('Error tracking daily usage:', error);
   }

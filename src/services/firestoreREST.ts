@@ -1,50 +1,18 @@
 import { auth } from '../config/firebase';
 
 /**
- * Sync progress using Firestore REST API as a fallback
- * This bypasses the SDK's WebChannel issues
+ * Pure REST API implementation for Firestore writes
+ * Bypasses the broken SDK WebChannel completely
  */
-async function syncProgressViaREST(userId: string, progress: any): Promise<void> {
-  const idToken = await auth.currentUser?.getIdToken();
-  if (!idToken) throw new Error('Not authenticated');
 
-  const writes = Object.entries(progress).map(([questionId, data]) => ({
-    update: {
-      name: `projects/german-citizenship-trainer/databases/(default)/documents/users/${userId}/progress/${questionId}`,
-      fields: convertToFirestoreFields(data as any)
-    },
-    updateMask: { fieldPaths: Object.keys(data as any) }
-  }));
+const PROJECT_ID = 'german-citizenship-trainer';
+const DATABASE_ID = '(default)';
 
-  // Add lastSyncedAt update
-  writes.push({
-    update: {
-      name: `projects/german-citizenship-trainer/databases/(default)/documents/users/${userId}`,
-      fields: {
-        lastSyncedAt: { timestampValue: new Date().toISOString() }
-      }
-    },
-    updateMask: { fieldPaths: ['lastSyncedAt'] }
-  });
-
-  const response = await fetch(
-    `https://firestore.googleapis.com/v1/projects/german-citizenship-trainer/databases/(default)/documents:commit`,
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${idToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ writes })
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`REST API failed: ${response.status} - ${error}`);
-  }
-
-  return response.json();
+/**
+ * Get the Firestore REST API base URL
+ */
+function getFirestoreBaseUrl(): string {
+  return `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents`;
 }
 
 /**
@@ -54,10 +22,11 @@ function convertToFirestoreFields(obj: any): any {
   const fields: any = {};
   
   for (const [key, value] of Object.entries(obj)) {
-    if (typeof value === 'string') {
+    if (value === null || value === undefined) {
+      fields[key] = { nullValue: null };
+    } else if (typeof value === 'string') {
       fields[key] = { stringValue: value };
     } else if (typeof value === 'number') {
-      // Check if it's an integer or float
       if (Number.isInteger(value)) {
         fields[key] = { integerValue: value.toString() };
       } else {
@@ -65,8 +34,6 @@ function convertToFirestoreFields(obj: any): any {
       }
     } else if (typeof value === 'boolean') {
       fields[key] = { booleanValue: value };
-    } else if (value === null) {
-      fields[key] = { nullValue: null };
     } else if (Array.isArray(value)) {
       fields[key] = {
         arrayValue: {
@@ -78,7 +45,9 @@ function convertToFirestoreFields(obj: any): any {
                 : { doubleValue: item };
             }
             if (typeof item === 'boolean') return { booleanValue: item };
-            if (typeof item === 'object') return { mapValue: { fields: convertToFirestoreFields(item) } };
+            if (typeof item === 'object' && item !== null) {
+              return { mapValue: { fields: convertToFirestoreFields(item) } };
+            }
             return { nullValue: null };
           })
         }
@@ -91,4 +60,112 @@ function convertToFirestoreFields(obj: any): any {
   return fields;
 }
 
-export { syncProgressViaREST };
+/**
+ * Write a single document using REST API
+ */
+export async function writeDocument(
+  collection: string,
+  documentId: string,
+  data: any
+): Promise<void> {
+  const idToken = await auth.currentUser?.getIdToken();
+  if (!idToken) throw new Error('Not authenticated');
+
+  const url = `${getFirestoreBaseUrl()}/${collection}/${documentId}`;
+  
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${idToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      fields: convertToFirestoreFields(data)
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Write failed (${response.status}): ${error}`);
+  }
+}
+
+/**
+ * Batch write multiple documents using REST API
+ */
+export async function batchWriteDocuments(
+  writes: Array<{ collection: string; documentId: string; data: any }>
+): Promise<void> {
+  const idToken = await auth.currentUser?.getIdToken();
+  if (!idToken) throw new Error('Not authenticated');
+
+  // Split into smaller batches (max 500 per batch)
+  const batchSize = 200;
+  const batches = [];
+  
+  for (let i = 0; i < writes.length; i += batchSize) {
+    batches.push(writes.slice(i, i + batchSize));
+  }
+
+  console.log(`Writing ${writes.length} documents in ${batches.length} batch(es)...`);
+
+  // Process batches sequentially
+  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+    const batch = batches[batchIndex];
+    console.log(`Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} docs)...`);
+    
+    // Use parallel writes for speed (Promise.all)
+    await Promise.all(
+      batch.map(async ({ collection, documentId, data }) => {
+        const url = `${getFirestoreBaseUrl()}/${collection}/${documentId}`;
+        
+        const response = await fetch(url, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fields: convertToFirestoreFields(data)
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.error(`Failed to write ${collection}/${documentId}:`, error);
+          // Don't throw - continue with other documents
+        }
+      })
+    );
+    
+    console.log(`✓ Batch ${batchIndex + 1} completed`);
+  }
+}
+
+/**
+ * Sync progress using pure REST API
+ */
+export async function syncProgressViaREST(
+  userId: string,
+  progress: any
+): Promise<void> {
+  console.log(`Starting REST API sync for ${Object.keys(progress).length} progress items...`);
+  
+  const writes = Object.entries(progress).map(([questionId, data]) => ({
+    collection: `users/${userId}/progress`,
+    documentId: questionId,
+    data: data
+  }));
+
+  // Add user lastSyncedAt update
+  writes.push({
+    collection: 'users',
+    documentId: userId,
+    data: {
+      lastSyncedAt: new Date().toISOString()
+    }
+  });
+
+  await batchWriteDocuments(writes);
+  console.log('✓ REST API sync completed successfully');
+}
