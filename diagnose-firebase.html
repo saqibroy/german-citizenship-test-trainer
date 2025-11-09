@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firebase Diagnostic</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+        .section { margin: 20px 0; padding: 15px; background: #2d2d2d; border-left: 3px solid #4a9eff; }
+        .error { color: #f48771; }
+        .success { color: #89d185; }
+        .warning { color: #e5c07b; }
+        .info { color: #61afef; }
+        button { 
+            background: #4a9eff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            margin: 5px; 
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover { background: #3182ce; }
+        pre { background: #1e1e1e; padding: 10px; overflow-x: auto; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Firebase/Firestore Diagnostic Tool</h1>
+    
+    <div class="section">
+        <h2>Step 1: Test Firebase Connection</h2>
+        <button onclick="testConnection()">Test Connection</button>
+        <div id="connection-result"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 2: Test Authentication</h2>
+        <input type="email" id="email" placeholder="Email" style="padding: 8px; width: 250px;">
+        <input type="password" id="password" placeholder="Password" style="padding: 8px; width: 250px;">
+        <button onclick="testAuth()">Login & Test</button>
+        <div id="auth-result"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 3: Test Firestore Write (Simple)</h2>
+        <button onclick="testSimpleWrite()">Write Single Document</button>
+        <div id="write-result"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 4: Test Firestore Batch Write</h2>
+        <button onclick="testBatchWrite()">Write Batch</button>
+        <div id="batch-result"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 5: Test Firestore Read</h2>
+        <button onclick="testRead()">Read Documents</button>
+        <div id="read-result"></div>
+    </div>
+
+    <div class="section">
+        <h2>Console Logs</h2>
+        <button onclick="clearConsole()">Clear</button>
+        <pre id="console"></pre>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword,
+            onAuthStateChanged 
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            getDoc,
+            getDocs,
+            collection,
+            writeBatch
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        // Firebase configuration from your .env file
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcU8VaOO3relHamA_vKew-bNZZCmdey4Q",
+            authDomain: "german-citizenship-trainer.firebaseapp.com",
+            projectId: "german-citizenship-trainer",
+            storageBucket: "german-citizenship-trainer.firebasestorage.app",
+            messagingSenderId: "788924415217",
+            appId: "1:788924415217:web:b42a7a7dda36f8aa9bfd50",
+            measurementId: "G-GC2DN9Q572"
+        };
+
+        let app, auth, db, currentUser;
+
+        function log(message, type = 'info') {
+            const consoleDiv = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = {
+                'info': '#61afef',
+                'success': '#89d185',
+                'error': '#f48771',
+                'warning': '#e5c07b'
+            }[type];
+            consoleDiv.innerHTML += `<div style="color: ${color};">[${timestamp}] ${message}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '';
+        }
+
+        window.testConnection = async function() {
+            const resultDiv = document.getElementById('connection-result');
+            resultDiv.innerHTML = '<p class="info">Testing...</p>';
+            
+            try {
+                log('Initializing Firebase...', 'info');
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                
+                log('✓ Firebase initialized successfully', 'success');
+                log(`Project ID: ${firebaseConfig.projectId}`, 'info');
+                log(`Auth Domain: ${firebaseConfig.authDomain}`, 'info');
+                
+                // Test if we can reach Firestore
+                const testRef = doc(db, '_test_', 'connection');
+                log('Testing Firestore connectivity...', 'info');
+                
+                // This will trigger a connection attempt
+                try {
+                    await getDoc(testRef);
+                    log('✓ Firestore connection successful (or document not found, which is OK)', 'success');
+                } catch (e) {
+                    if (e.code === 'permission-denied') {
+                        log('✓ Firestore reachable (permission denied is expected for unauthenticated)', 'success');
+                    } else {
+                        throw e;
+                    }
+                }
+                
+                resultDiv.innerHTML = '<p class="success">✓ Firebase connection successful!</p>';
+            } catch (error) {
+                log(`✗ Connection failed: ${error.code} - ${error.message}`, 'error');
+                resultDiv.innerHTML = `<p class="error">✗ Error: ${error.message}</p>`;
+            }
+        };
+
+        window.testAuth = async function() {
+            const resultDiv = document.getElementById('auth-result');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                resultDiv.innerHTML = '<p class="warning">Please enter email and password</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p class="info">Authenticating...</p>';
+            
+            try {
+                if (!auth) {
+                    await window.testConnection();
+                }
+                
+                log(`Attempting login: ${email}`, 'info');
+                const userCred = await signInWithEmailAndPassword(auth, email, password);
+                currentUser = userCred.user;
+                
+                log(`✓ Login successful: ${currentUser.email}`, 'success');
+                log(`UID: ${currentUser.uid}`, 'info');
+                
+                // Check if user document exists
+                const userRef = doc(db, 'users', currentUser.uid);
+                const userDoc = await getDoc(userRef);
+                
+                if (userDoc.exists()) {
+                    log('✓ User document exists in Firestore', 'success');
+                    log(`User data: ${JSON.stringify(userDoc.data(), null, 2)}`, 'info');
+                } else {
+                    log('⚠ User document does not exist (will be created)', 'warning');
+                }
+                
+                resultDiv.innerHTML = `
+                    <p class="success">✓ Authentication successful!</p>
+                    <p>Email: ${currentUser.email}</p>
+                    <p>UID: ${currentUser.uid}</p>
+                    <p>User doc exists: ${userDoc.exists() ? 'Yes' : 'No'}</p>
+                `;
+            } catch (error) {
+                log(`✗ Auth failed: ${error.code} - ${error.message}`, 'error');
+                resultDiv.innerHTML = `<p class="error">✗ Error: ${error.message}</p>`;
+            }
+        };
+
+        window.testSimpleWrite = async function() {
+            const resultDiv = document.getElementById('write-result');
+            
+            if (!currentUser) {
+                resultDiv.innerHTML = '<p class="warning">Please login first</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p class="info">Writing...</p>';
+            
+            try {
+                log('Testing simple write operation...', 'info');
+                
+                // First, ensure user document exists
+                const userRef = doc(db, 'users', currentUser.uid);
+                log('Creating/updating user document...', 'info');
+                
+                await setDoc(userRef, {
+                    email: currentUser.email,
+                    lastTest: new Date().toISOString(),
+                    testType: 'simple-write'
+                }, { merge: true });
+                
+                log('✓ User document written', 'success');
+                
+                // Now write a progress document
+                const progressRef = doc(db, `users/${currentUser.uid}/progress/test-123`);
+                log('Writing progress document...', 'info');
+                
+                await setDoc(progressRef, {
+                    questionId: 123,
+                    correct: 1,
+                    incorrect: 0,
+                    lastAnswered: new Date().toISOString(),
+                    srsLevel: 'learning',
+                    testWrite: true
+                }, { merge: true });
+                
+                log('✓ Progress document written', 'success');
+                
+                // Verify by reading back
+                const readBack = await getDoc(progressRef);
+                if (readBack.exists()) {
+                    log('✓ Document verified (read back successful)', 'success');
+                    resultDiv.innerHTML = `
+                        <p class="success">✓ Write successful!</p>
+                        <pre>${JSON.stringify(readBack.data(), null, 2)}</pre>
+                    `;
+                } else {
+                    log('⚠ Document write may have failed (not found on read)', 'warning');
+                    resultDiv.innerHTML = '<p class="warning">Write completed but verification failed</p>';
+                }
+            } catch (error) {
+                log(`✗ Write failed: ${error.code} - ${error.message}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+                resultDiv.innerHTML = `
+                    <p class="error">✗ Error: ${error.code}</p>
+                    <p class="error">${error.message}</p>
+                `;
+            }
+        };
+
+        window.testBatchWrite = async function() {
+            const resultDiv = document.getElementById('batch-result');
+            
+            if (!currentUser) {
+                resultDiv.innerHTML = '<p class="warning">Please login first</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p class="info">Writing batch...</p>';
+            
+            try {
+                log('Testing batch write operation...', 'info');
+                
+                const batch = writeBatch(db);
+                
+                // Add 5 documents to the batch
+                for (let i = 1; i <= 5; i++) {
+                    const ref = doc(db, `users/${currentUser.uid}/progress/batch-test-${i}`);
+                    batch.set(ref, {
+                        questionId: i,
+                        correct: i % 2,
+                        incorrect: (i + 1) % 2,
+                        lastAnswered: new Date().toISOString(),
+                        srsLevel: 'learning',
+                        batchTest: true,
+                        batchNumber: i
+                    }, { merge: true });
+                    log(`Added document ${i} to batch`, 'info');
+                }
+                
+                log('Committing batch...', 'info');
+                await batch.commit();
+                log('✓ Batch committed successfully', 'success');
+                
+                // Update user doc with last sync
+                log('Updating user lastSyncedAt...', 'info');
+                await setDoc(doc(db, 'users', currentUser.uid), {
+                    lastSyncedAt: new Date().toISOString(),
+                    lastBatchTest: new Date().toISOString()
+                }, { merge: true });
+                log('✓ User document updated', 'success');
+                
+                resultDiv.innerHTML = '<p class="success">✓ Batch write successful!</p>';
+            } catch (error) {
+                log(`✗ Batch write failed: ${error.code} - ${error.message}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+                resultDiv.innerHTML = `
+                    <p class="error">✗ Error: ${error.code}</p>
+                    <p class="error">${error.message}</p>
+                `;
+            }
+        };
+
+        window.testRead = async function() {
+            const resultDiv = document.getElementById('read-result');
+            
+            if (!currentUser) {
+                resultDiv.innerHTML = '<p class="warning">Please login first</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p class="info">Reading...</p>';
+            
+            try {
+                log('Reading progress documents...', 'info');
+                
+                const progressRef = collection(db, `users/${currentUser.uid}/progress`);
+                const snapshot = await getDocs(progressRef);
+                
+                log(`✓ Found ${snapshot.size} documents`, 'success');
+                
+                let html = `<p class="success">✓ Found ${snapshot.size} documents</p>`;
+                
+                if (snapshot.size > 0) {
+                    html += '<p>Sample documents:</p>';
+                    snapshot.forEach((doc, index) => {
+                        if (index < 5) { // Show first 5
+                            html += `<pre>${doc.id}: ${JSON.stringify(doc.data(), null, 2)}</pre>`;
+                            log(`Document ${doc.id}: ${JSON.stringify(doc.data())}`, 'info');
+                        }
+                    });
+                }
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                log(`✗ Read failed: ${error.code} - ${error.message}`, 'error');
+                resultDiv.innerHTML = `
+                    <p class="error">✗ Error: ${error.code}</p>
+                    <p class="error">${error.message}</p>
+                `;
+            }
+        };
+
+        window.clearConsole = clearConsole;
+
+        // Auto-test connection on load
+        log('Diagnostic tool loaded', 'info');
+        log('Click "Test Connection" to start', 'info');
+    </script>
+</body>
+</html>

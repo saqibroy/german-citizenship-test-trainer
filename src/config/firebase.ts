@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -15,11 +15,22 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore
-export const db = getFirestore(app);
+// Initialize Firestore with experimental long polling to fix connection issues
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true, // Force long polling instead of WebChannel
+  experimentalAutoDetectLongPolling: false,
+});
 
 // Initialize Auth
 export const auth = getAuth(app);
+
+// Log initialization for debugging
+console.log('Firebase initialized with long polling:', {
+  projectId: firebaseConfig.projectId,
+  authDomain: firebaseConfig.authDomain,
+  databaseURL: `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)`,
+  longPolling: true
+});
 
 // TEMPORARILY DISABLED: IndexedDB Persistence
 // This was causing 400 errors. Will re-enable after testing.

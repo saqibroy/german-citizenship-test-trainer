@@ -273,8 +273,9 @@ export default function ProfilePage({ lang, onNavigate, userName, userEmail }: P
         </div>
 
         {/* Danger Zone */}
-        <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-3">
+                {/* Danger Zone */}
+        <div className="bg-red-50 border border-red-200 rounded-2xl shadow-lg p-6">
+          <div className="flex items-center gap-3 mb-4">
             <Trash2 className="text-red-600" size={24} />
             <h3 className="text-lg font-bold text-red-900">
               {lang === 'de' ? 'Gefahrenzone' : 'Danger Zone'}
@@ -290,6 +291,27 @@ export default function ProfilePage({ lang, onNavigate, userName, userEmail }: P
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
           >
             {lang === 'de' ? 'Konto löschen' : 'Delete Account'}
+          </button>
+        </div>
+
+        {/* Developer Tools - Firestore Diagnostic */}
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl shadow-lg p-6 mt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="text-2xl">🔧</div>
+            <h3 className="text-lg font-bold text-blue-900">
+              {lang === 'de' ? 'Entwickler-Tools' : 'Developer Tools'}
+            </h3>
+          </div>
+          <p className="text-blue-800 mb-4 text-sm">
+            {lang === 'de' 
+              ? 'Teste Firestore-Operationen und diagnostiziere Sync-Probleme'
+              : 'Test Firestore operations and diagnose sync issues'}
+          </p>
+          <button
+            onClick={() => onNavigate('diagnostic')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+          >
+            🔍 {lang === 'de' ? 'Firestore-Diagnose öffnen' : 'Open Firestore Diagnostic'}
           </button>
         </div>
       </div>

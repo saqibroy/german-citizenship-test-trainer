@@ -32,6 +32,7 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const FAQPage = lazy(() => import('./pages/FAQPage'));
 const UpgradePage = lazy(() => import('./pages/UpgradePage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const DiagnosticPage = lazy(() => import('./pages/DiagnosticPage').then(m => ({ default: m.DiagnosticPage })));
 
 // Loading component with skeleton based on current page
 function PageLoader({ page }: { page: string }) {
@@ -312,6 +313,7 @@ function MainApp({ currentUser, logout }: { currentUser: any; logout: () => Prom
           {page === 'upgrade' && <UpgradePage onNavigate={setPage} />}
           {page === 'profile' && <ProfilePage lang={lang as 'de' | 'en'} onNavigate={setPage} userName={currentUser?.displayName || ''} userEmail={currentUser?.email || ''} />}
           {page === 'settings' && <SettingsPage lang={lang as 'de' | 'en'} onNavigate={setPage} />}
+          {page === 'diagnostic' && <DiagnosticPage />}
         </Suspense>
       </main>
 

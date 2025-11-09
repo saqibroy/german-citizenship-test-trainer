@@ -3,8 +3,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  setDoc,
-  updateDoc,
   writeBatch,
   query,
   orderBy,
@@ -21,30 +19,49 @@ export const syncProgressToCloud = async (
   progress: Progress
 ): Promise<void> => {
   try {
-    const batch = writeBatch(db);
-
-    Object.entries(progress).forEach(([questionId, data]) => {
-      const ref = doc(db, `users/${userId}/progress/${questionId}`);
-      batch.set(ref, data as any, { merge: true });
+    // Set a timeout for the batch operation
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Sync timeout after 10 seconds')), 10000);
     });
 
-    await batch.commit();
+    const syncPromise = (async () => {
+      const batch = writeBatch(db);
 
-    // Update last synced timestamp - use setDoc with merge to create parent if missing
-    await setDoc(doc(db, 'users', userId), {
-      lastSyncedAt: new Date().toISOString(),
-    }, { merge: true });
+      // Add all progress documents to batch
+      Object.entries(progress).forEach(([questionId, data]) => {
+        const ref = doc(db, `users/${userId}/progress/${questionId}`);
+        batch.set(ref, data as any, { merge: true });
+      });
 
+      // Add lastSyncedAt update to the same batch (avoid separate setDoc call)
+      const userRef = doc(db, 'users', userId);
+      batch.set(userRef, {
+        lastSyncedAt: new Date().toISOString(),
+      }, { merge: true });
+
+      // Commit everything in one batch
+      await batch.commit();
+    })();
+
+    // Race between sync and timeout
+    await Promise.race([syncPromise, timeoutPromise]);
+    
     console.log('Progress synced to cloud successfully');
   } catch (error: any) {
-    console.error('Error syncing progress to cloud:', error);
-    console.error('Error details:', {
-      code: error.code,
-      message: error.message,
-      userId,
-      progressCount: Object.keys(progress).length
-    });
-    throw error;
+    if (error.message === 'Sync timeout after 10 seconds') {
+      console.warn('⚠️ Sync is taking longer than expected - continuing in background');
+      // Don't throw - allow the app to continue
+      // The sync will eventually complete in the background
+    } else {
+      console.error('Error syncing progress to cloud:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        userId,
+        progressCount: Object.keys(progress).length
+      });
+      // Don't throw - allow logout/app to continue even if sync fails
+    }
   }
 };
 
@@ -101,19 +118,44 @@ export const syncQuizHistoryToCloud = async (
 export const loadQuizHistoryFromCloud = async (userId: string): Promise<any[]> => {
   try {
     const quizHistoryRef = collection(db, `users/${userId}/quizHistory`);
-    const q = query(quizHistoryRef, orderBy('date', 'desc'), limit(50));
-    const snapshot = await getDocs(q);
+    
+    // Try with orderBy first
+    try {
+      const q = query(quizHistoryRef, orderBy('date', 'desc'), limit(50));
+      const snapshot = await getDocs(q);
 
-    const quizHistory: any[] = [];
-    snapshot.forEach((doc) => {
-      quizHistory.push(doc.data());
-    });
+      const quizHistory: any[] = [];
+      snapshot.forEach((doc) => {
+        quizHistory.push(doc.data());
+      });
 
-    console.log('Quiz history loaded from cloud successfully');
-    return quizHistory;
+      console.log('Quiz history loaded from cloud successfully (with ordering)');
+      return quizHistory;
+    } catch (queryError: any) {
+      // If orderBy fails (index missing or other issue), fallback to simple query
+      console.warn('OrderBy query failed, falling back to simple query:', queryError.code);
+      
+      const snapshot = await getDocs(quizHistoryRef);
+      const quizHistory: any[] = [];
+      snapshot.forEach((doc) => {
+        quizHistory.push(doc.data());
+      });
+
+      // Sort in memory if we have date field
+      quizHistory.sort((a, b) => {
+        if (a.date && b.date) {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
+        return 0;
+      });
+
+      console.log('Quiz history loaded from cloud successfully (fallback, sorted in memory)');
+      return quizHistory.slice(0, 50); // Limit to 50 like the query would
+    }
   } catch (error) {
     console.error('Error loading quiz history from cloud:', error);
-    throw error;
+    // Return empty array instead of throwing to prevent blocking the app
+    return [];
   }
 };
 
@@ -206,20 +248,23 @@ export const trackDailyUsage = async (
 
   try {
     const usageDoc = await getDoc(usageRef);
+    const batch = writeBatch(db);
 
     if (usageDoc.exists()) {
       const data = usageDoc.data();
-      await updateDoc(usageRef, {
+      batch.update(usageRef, {
         [type === 'question' ? 'questionsAnswered' : 'quizzesTaken']:
           (data[type === 'question' ? 'questionsAnswered' : 'quizzesTaken'] || 0) + 1,
       });
     } else {
-      await setDoc(usageRef, {
+      batch.set(usageRef, {
         date: today,
         questionsAnswered: type === 'question' ? 1 : 0,
         quizzesTaken: type === 'quiz' ? 1 : 0,
       });
     }
+    
+    await batch.commit();
   } catch (error) {
     console.error('Error tracking daily usage:', error);
   }

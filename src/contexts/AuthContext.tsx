@@ -10,7 +10,7 @@ import {
   signInWithPopup,
   updateProfile,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import { UserProfile, DEFAULT_USER_SETTINGS } from '../types/user';
 import {
@@ -72,10 +72,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         settings: DEFAULT_USER_SETTINGS,
       };
 
-      await setDoc(userRef, {
+      // Use batch instead of setDoc to avoid hanging
+      const batch = writeBatch(db);
+      batch.set(userRef, {
         ...newProfile,
         createdAt: new Date().toISOString(),
       });
+      await batch.commit();
 
       setUserProfile(newProfile);
     } else {
