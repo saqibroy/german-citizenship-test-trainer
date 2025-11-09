@@ -21,13 +21,15 @@ export const db = getFirestore(app);
 // Initialize Auth
 export const auth = getAuth(app);
 
-// Enable offline persistence for faster loads
+// Enable offline persistence for faster loads (but don't block if it fails)
 if (typeof window !== 'undefined') {
   enableIndexedDbPersistence(db).catch((err) => {
     if (err.code === 'failed-precondition') {
       console.warn('Firestore persistence failed: Multiple tabs open');
     } else if (err.code === 'unimplemented') {
       console.warn('Firestore persistence not available in this browser');
+    } else {
+      console.warn('Firestore persistence error:', err.code, err.message);
     }
   });
 }

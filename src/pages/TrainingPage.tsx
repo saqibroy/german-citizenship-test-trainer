@@ -361,8 +361,6 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
         total={trainingQuestions.length}
         correct={sessionStats.correct}
         incorrect={sessionStats.incorrect}
-        showTranslation={showTranslation}
-        onToggleTranslation={() => setShowTranslation(!showTranslation)}
         lang={lang}
       />
 
@@ -372,6 +370,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
           translation={lang === 'de' ? q.question_en : q.question_de}
           showTranslation={showTranslation}
           onWordClick={setSelectedVocab}
+          onToggleTranslation={() => setShowTranslation(!showTranslation)}
           lang={lang}
         />
 

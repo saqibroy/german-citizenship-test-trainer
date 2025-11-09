@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { 
-  BookOpen, BarChart3, Trophy, Target, Award, CheckCircle2
+  BookOpen, BarChart3, Trophy, Target, Award, CheckCircle2, Clock
 } from 'lucide-react';
 import { calculateSRSWeight } from '../srsAlgorithm';
 import { VocabPopup } from '../components.tsx';
@@ -25,6 +25,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
   const [hoveredOption, setHoveredOption] = useState<number | null>(null);
   const [resultSaved, setResultSaved] = useState(false);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [timeLeft, setTimeLeft] = useState<number>(3600); // 60 minutes in seconds
 
   // Create shuffled options with original indices - CALL HOOKS FIRST, BEFORE ANY RETURNS!
   const shuffledOptions = useMemo(() => {
@@ -66,6 +67,27 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     }
   }, [quizResults, resultSaved, saveQuizResult]);
 
+  // Timer countdown effect
+  useEffect(() => {
+    if (!started || currentIdx >= quizQuestions.length) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          // Auto-submit quiz when time runs out
+          if (currentIdx < quizQuestions.length) {
+            setCurrentIdx(quizQuestions.length); // Force show results
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [started, currentIdx, quizQuestions.length]);
+
   const startQuiz = (mode: 'untrained' | 'weak' | 'all' | 'strong' = 'all') => {
     let filtered = questions;
     
@@ -99,6 +121,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     setShowTranslation(false);
     setResultSaved(false);
     setQuestionStartTime(Date.now());
+    setTimeLeft(3600); // Reset to 60 minutes
   };
 
   // NOW it's safe to have conditional returns
@@ -357,10 +380,28 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
         total={quizQuestions.length}
         correct={sessionStats.correct}
         incorrect={sessionStats.incorrect}
-        showTranslation={showTranslation}
-        onToggleTranslation={() => setShowTranslation(!showTranslation)}
         lang={lang}
       />
+
+      {/* Timer Display */}
+      <div className="max-w-3xl mx-auto px-4 pt-2 pb-3">
+        <div className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl shadow-md ${
+          timeLeft > 1800 ? 'bg-green-100 text-green-700' :
+          timeLeft > 600 ? 'bg-yellow-100 text-yellow-700' :
+          timeLeft > 60 ? 'bg-orange-100 text-orange-700' :
+          'bg-red-100 text-red-700 animate-pulse'
+        }`}>
+          <Clock className={timeLeft <= 60 ? 'animate-pulse' : ''} size={20} />
+          <span className="font-mono font-bold text-lg">
+            {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+          </span>
+          {timeLeft <= 600 && (
+            <span className="text-sm ml-2">
+              {lang === 'de' ? 'Beeilen Sie sich!' : 'Hurry up!'}
+            </span>
+          )}
+        </div>
+      </div>
 
       <div className="max-w-3xl mx-auto px-4 py-4">
         <QuestionCard
@@ -368,6 +409,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
           translation={lang === 'de' ? q.question_en : q.question_de}
           showTranslation={showTranslation}
           onWordClick={setSelectedVocab}
+          onToggleTranslation={() => setShowTranslation(!showTranslation)}
           lang={lang}
         />
 

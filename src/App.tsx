@@ -31,6 +31,7 @@ const SignupPage = lazy(() => import('./pages/SignupPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const FAQPage = lazy(() => import('./pages/FAQPage'));
 const UpgradePage = lazy(() => import('./pages/UpgradePage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 
 // Loading component with skeleton based on current page
 function PageLoader({ page }: { page: string }) {
@@ -67,7 +68,7 @@ function AuthenticatedApp() {
         {(page === 'landing' || page === 'home') && (
           <LandingPage 
             lang="de" 
-            onGetStarted={() => setPage('login')} 
+            onGetStarted={() => setPage('signup')} 
           />
         )}
       </Suspense>
@@ -79,12 +80,25 @@ function AuthenticatedApp() {
 
 // Main app component (only rendered when authenticated)
 function MainApp({ currentUser, logout }: { currentUser: any; logout: () => Promise<void> }) {
+  const { syncDataToCloud } = useAuth();
   const [page, setPage] = useState('home');
   const [lang, setLang] = useState('de');
   const [vocabProgress, setVocabProgress] = useState<Record<string, VocabProgress>>({});
   const [favoriteVocab, setFavoriteVocab] = useState<string[]>([]);
   const [vocabMode, setVocabMode] = useState('learn'); // 'learn' or 'training'
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      // Sync data before logout
+      await syncDataToCloud();
+      await logout();
+      setShowLogoutConfirm(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   // Use custom hooks for cleaner state management
   const { progress, updateProgress: updateProgressHook, getProgress } = useProgress(QUESTIONS);
@@ -188,6 +202,42 @@ function MainApp({ currentUser, logout }: { currentUser: any; logout: () => Prom
   return (
     <ErrorBoundary>
       {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} lang={lang as 'de' | 'en'} />}
+      
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                <LogOut className="w-8 h-8 text-red-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {lang === 'de' ? 'Abmelden?' : 'Logout?'}
+              </h2>
+              <p className="text-gray-600">
+                {lang === 'de' 
+                  ? 'Deine Fortschritte werden automatisch gespeichert.' 
+                  : 'Your progress will be automatically saved.'}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+              >
+                {lang === 'de' ? 'Abbrechen' : 'Cancel'}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors"
+              >
+                {lang === 'de' ? 'Abmelden' : 'Logout'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-20 md:pb-6">
       <header className="bg-white shadow-md sticky top-0 z-50">
         <div className="flex items-center justify-between p-4">
@@ -200,11 +250,11 @@ function MainApp({ currentUser, logout }: { currentUser: any; logout: () => Prom
           <div className="flex items-center gap-2">
             {currentUser && (
               <button
-                onClick={() => logout()}
+                onClick={() => setShowLogoutConfirm(true)}
                 className="flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
                 title={lang === 'de' ? 'Abmelden' : 'Logout'}
               >
-                <User size={18} />
+                <User size={18} onClick={() => setPage('profile')} className="cursor-pointer" />
                 <LogOut size={16} className="hidden sm:inline" />
               </button>
             )}
@@ -230,7 +280,7 @@ function MainApp({ currentUser, logout }: { currentUser: any; logout: () => Prom
 
       <main className="pb-2">
         <Suspense fallback={<PageLoader page={page} />}>
-          {page === 'home' && <HomePage lang={lang} badges={badges} progress={progress} setPage={setPage} studyStreak={studyStreak} />}
+          {page === 'home' && <HomePage lang={lang} badges={badges} progress={progress} setPage={setPage} studyStreak={studyStreak} userName={currentUser?.displayName || ''} />}
           {page === 'training' && <TrainingPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
           {page === 'quiz' && <QuizPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} saveQuizResult={saveQuizResult} />}
           {page === 'cards' && <CardsPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
@@ -260,33 +310,31 @@ function MainApp({ currentUser, logout }: { currentUser: any; logout: () => Prom
           {page === 'stats' && <StatsPage lang={lang as 'de' | 'en'} progress={progress} questions={QUESTIONS} badges={badges} quizHistory={quizHistory} studyStreak={studyStreak} />}
           {page === 'faq' && <FAQPage lang={lang as 'de' | 'en'} />}
           {page === 'upgrade' && <UpgradePage onNavigate={setPage} />}
-          {page === 'settings' && <SettingsPage lang={lang as 'de' | 'en'} />}
+          {page === 'profile' && <ProfilePage lang={lang as 'de' | 'en'} onNavigate={setPage} userName={currentUser?.displayName || ''} userEmail={currentUser?.email || ''} />}
+          {page === 'settings' && <SettingsPage lang={lang as 'de' | 'en'} onNavigate={setPage} />}
         </Suspense>
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
-        <div className="grid grid-cols-4 gap-0">
+      {/* Modern Mobile Bottom Navigation - 5 items only */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50 safe-area-inset-bottom">
+        <div className="grid grid-cols-5 gap-0">
           {[
-            { id: 'home', icon: '🏠', label: lang === 'de' ? 'Start' : 'Home' },
+            { id: 'home', icon: '🏠', label: lang === 'de' ? 'Home' : 'Home' },
             { id: 'training', icon: '📚', label: lang === 'de' ? 'Üben' : 'Train' },
             { id: 'quiz', icon: '📝', label: lang === 'de' ? 'Quiz' : 'Quiz' },
-            { id: 'vocab', icon: '📖', label: lang === 'de' ? 'Wörter' : 'Vocab' },
-            { id: 'grammar', icon: '✍️', label: lang === 'de' ? 'Grammatik' : 'Grammar' },
             { id: 'stats', icon: '📊', label: lang === 'de' ? 'Stats' : 'Stats' },
-            { id: 'faq', icon: '❓', label: 'FAQ' },
             { id: 'settings', icon: '⚙️', label: lang === 'de' ? 'Mehr' : 'More' },
           ].map((item) => (
             <button
               key={item.id}
               onClick={() => setPage(item.id)}
-              className={`flex flex-col items-center justify-center py-2 h-16 transition-all active:scale-95 ${
+              className={`flex flex-col items-center justify-center py-3 transition-all active:scale-95 ${
                 page === item.id
                   ? 'text-indigo-600 bg-indigo-50'
                   : 'text-gray-500 active:bg-gray-100'
               }`}
             >
-              <span className="text-xl mb-0.5">{item.icon}</span>
+              <span className="text-2xl mb-1">{item.icon}</span>
               <span className="text-xs font-medium">{item.label}</span>
             </button>
           ))}

@@ -140,7 +140,7 @@ export function StatsPage({
             {/* Overall Progress Bar */}
             <div className="w-full max-w-md mx-auto bg-white bg-opacity-30 rounded-full h-3 mt-2">
               <div 
-                className="bg-white h-3 rounded-full transition-all duration-700 shadow-lg"
+                className="bg-gradient-to-r from-green-400 to-emerald-500 h-3 rounded-full transition-all duration-700 shadow-lg"
                 style={{ width: `${readiness.score}%` }}
               />
             </div>

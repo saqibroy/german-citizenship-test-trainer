@@ -1,12 +1,8 @@
-import { Eye, EyeOff } from 'lucide-react';
-
 interface ProgressHeaderProps {
   currentIndex: number;
   total: number;
   correct: number;
   incorrect: number;
-  showTranslation: boolean;
-  onToggleTranslation: () => void;
   lang: string;
 }
 
@@ -14,10 +10,7 @@ export function ProgressHeader({
   currentIndex,
   total,
   correct,
-  incorrect,
-  showTranslation,
-  onToggleTranslation,
-  lang
+  incorrect
 }: ProgressHeaderProps) {
   return (
     <>
@@ -42,17 +35,6 @@ export function ProgressHeader({
             </span>
           </div>
         </div>
-        <button 
-          onClick={onToggleTranslation}
-          className={`p-2 rounded-lg transition-all ${
-            showTranslation 
-              ? 'bg-purple-500 text-white' 
-              : 'bg-gray-100 text-gray-500'
-          }`}
-          title={lang === 'de' ? 'Übersetzung anzeigen' : 'Show translation'}
-        >
-          {showTranslation ? <EyeOff size={18} /> : <Eye size={18} />}
-        </button>
       </div>
     </>
   );

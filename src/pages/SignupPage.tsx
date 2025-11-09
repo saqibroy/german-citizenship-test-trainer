@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Mail, Lock, User, AlertCircle, Chrome } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, AlertCircle, Chrome, ArrowLeft } from 'lucide-react';
 
 interface SignupPageProps {
   onNavigate: (page: string) => void;
@@ -61,7 +61,16 @@ const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative">
+        {/* Back Button */}
+        <button
+          onClick={() => onNavigate('landing')}
+          className="absolute top-4 left-4 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Back to home"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
             <UserPlus className="w-8 h-8 text-blue-600" />

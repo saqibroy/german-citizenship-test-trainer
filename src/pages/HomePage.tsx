@@ -5,7 +5,7 @@ import { QUESTIONS } from '../data.js';
 import { daysSinceLastSeen } from '../srsAlgorithm';
 import type { HomePageProps } from '../types';
 
-export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomePageProps) {
+export function HomePage({ lang, badges, progress, setPage, studyStreak, userName }: HomePageProps) {
   const answered = Object.keys(progress).length;
   const totalQuestions = QUESTIONS.length;
   
@@ -18,18 +18,23 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
   // Simple progress calculation
   const progressPercentage = totalQuestions > 0 ? Math.round((answered / totalQuestions) * 100) : 0;
   const masteredCount = Object.values(progress).filter((p: any) => p.srsLevel === 'mastered').length;
+
+  // Get first name from displayName
+  const firstName = userName ? userName.split(' ')[0] : '';
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 space-y-4">
       {/* Welcome Message */}
       <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-3xl p-8 shadow-2xl">
         <h1 className="text-3xl font-bold mb-2">
-          {lang === 'de' ? '👋 Willkommen zurück!' : '👋 Welcome back!'}
+          {firstName 
+            ? (lang === 'de' ? `👋 Willkommen zurück, ${firstName}!` : `👋 Welcome back, ${firstName}!`)
+            : (lang === 'de' ? '👋 Willkommen zurück!' : '👋 Welcome back!')}
         </h1>
         <p className="text-lg opacity-90">
           {answered === 0 
             ? (lang === 'de' ? 'Beginne deine Reise zur deutschen Staatsbürgerschaft!' : 'Start your journey to German citizenship!')
-            : (lang === 'de' ? 'Weiter so! Du machst Fortschritte.' : 'Keep going! You\'re making progress.')}
+            : (lang === 'de' ? `Weiter so! Du hast ${answered} von ${totalQuestions} Fragen bearbeitet.` : `Keep going! You've answered ${answered} of ${totalQuestions} questions.`)}
         </p>
       </div>
 

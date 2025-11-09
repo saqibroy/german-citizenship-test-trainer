@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Calendar, Target, Download, Upload, Trash2, 
-  Save, Info, Bell
+  Save, Info, Bell, User, BookOpen, HelpCircle, MessageSquare, ChevronRight
 } from 'lucide-react';
 
 interface SettingsPageProps {
   lang: 'de' | 'en';
+  onNavigate?: (page: string) => void;
 }
 
 interface SettingsData {
@@ -14,7 +15,7 @@ interface SettingsData {
   notifications: boolean;
 }
 
-export function SettingsPage({ lang }: SettingsPageProps) {
+export function SettingsPage({ lang, onNavigate }: SettingsPageProps) {
   const [settings, setSettings] = useState<SettingsData>({
     examDate: '2025-12-02',
     dailyGoal: 20,
@@ -212,6 +213,58 @@ export function SettingsPage({ lang }: SettingsPageProps) {
             {lang === 'de' ? 'Personalisiere deine Lern-Erfahrung' : 'Personalize your learning experience'}
           </p>
         </div>
+
+        {/* Quick Navigation Links */}
+        {onNavigate && (
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <button
+              onClick={() => onNavigate('profile')}
+              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
+            >
+              <div className="flex items-center gap-3">
+                <User className="text-indigo-600" size={20} />
+                <span className="font-semibold text-gray-800">
+                  {lang === 'de' ? 'Profil bearbeiten' : 'Edit Profile'}
+                </span>
+              </div>
+              <ChevronRight className="text-gray-400" size={20} />
+            </button>
+            <button
+              onClick={() => onNavigate('vocab')}
+              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
+            >
+              <div className="flex items-center gap-3">
+                <BookOpen className="text-indigo-600" size={20} />
+                <span className="font-semibold text-gray-800">
+                  {lang === 'de' ? 'Vokabeln' : 'Vocabulary'}
+                </span>
+              </div>
+              <ChevronRight className="text-gray-400" size={20} />
+            </button>
+            <button
+              onClick={() => onNavigate('grammar')}
+              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
+            >
+              <div className="flex items-center gap-3">
+                <MessageSquare className="text-indigo-600" size={20} />
+                <span className="font-semibold text-gray-800">
+                  {lang === 'de' ? 'Grammatik' : 'Grammar'}
+                </span>
+              </div>
+              <ChevronRight className="text-gray-400" size={20} />
+            </button>
+            <button
+              onClick={() => onNavigate('faq')}
+              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <HelpCircle className="text-indigo-600" size={20} />
+                <span className="font-semibold text-gray-800">FAQ</span>
+              </div>
+              <ChevronRight className="text-gray-400" size={20} />
+            </button>
+          </div>
+        )}
 
         {/* Exam Date Setting */}
         <div className="bg-white rounded-2xl p-6 shadow-lg">

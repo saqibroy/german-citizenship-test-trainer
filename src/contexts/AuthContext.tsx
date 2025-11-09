@@ -33,7 +33,6 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   syncDataToCloud: () => Promise<void>;
-  loadDataFromCloud: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,18 +56,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Create user profile in Firestore
   const createUserProfile = async (user: User, displayName?: string): Promise<void> => {
-    const userRef = doc(db, 'users', user.uid);
-    const userDoc = await getDoc(userRef);
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
 
-    if (!userDoc.exists()) {
-      const newProfile: UserProfile = {
-        uid: user.uid,
-        email: user.email!,
-        displayName: displayName || user.displayName || '',
-        photoURL: user.photoURL,
-        subscription: 'free',
-        dailyGoal: 10,
-        createdAt: new Date(),
+      if (!userDoc.exists()) {
+        const newProfile: UserProfile = {
+          uid: user.uid,
+          email: user.email!,
+          displayName: displayName || user.displayName || '',
+          photoURL: user.photoURL,
+          subscription: 'free',
+          dailyGoal: 10,
+          createdAt: new Date(),
         settings: DEFAULT_USER_SETTINGS,
       };
 
@@ -85,6 +85,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         createdAt: new Date(data.createdAt),
         lastSyncedAt: data.lastSyncedAt ? new Date(data.lastSyncedAt) : undefined,
       } as UserProfile);
+    }
+    } catch (error: any) {
+      console.warn('Error creating user profile (continuing with fallback):', error.message);
+      // Set fallback profile so app continues to work
+      setUserProfile({
+        uid: user.uid,
+        email: user.email!,
+        displayName: displayName || user.displayName || '',
+        photoURL: user.photoURL,
+        subscription: 'free',
+        dailyGoal: 10,
+        createdAt: new Date(),
+        settings: DEFAULT_USER_SETTINGS,
+      });
     }
   };
 
@@ -183,50 +197,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         Object.assign(vocabProgress, JSON.parse(savedVocabProgress));
       }
 
-      // Sync to cloud
-      await Promise.all([
-        Object.keys(progress).length > 0 ? syncProgressToCloud(currentUser.uid, progress) : Promise.resolve(),
-        quizHistory.length > 0 ? syncQuizHistoryToCloud(currentUser.uid, quizHistory) : Promise.resolve(),
-        Object.keys(vocabProgress).length > 0 ? syncVocabProgressToCloud(currentUser.uid, vocabProgress) : Promise.resolve(),
+      // Sync to cloud (with individual error handling)
+      await Promise.allSettled([
+        Object.keys(progress).length > 0 ? syncProgressToCloud(currentUser.uid, progress).catch(e => console.warn('Progress sync failed:', e.message)) : Promise.resolve(),
+        quizHistory.length > 0 ? syncQuizHistoryToCloud(currentUser.uid, quizHistory).catch(e => console.warn('Quiz history sync failed:', e.message)) : Promise.resolve(),
+        Object.keys(vocabProgress).length > 0 ? syncVocabProgressToCloud(currentUser.uid, vocabProgress).catch(e => console.warn('Vocab progress sync failed:', e.message)) : Promise.resolve(),
       ]);
 
-      console.log('Data synced to cloud successfully');
-    } catch (error) {
-      console.error('Error syncing data to cloud:', error);
-    }
-  };
-
-  // Load data from Firestore
-  const loadDataFromCloud = async (): Promise<void> => {
-    if (!currentUser) return;
-
-    try {
-      // Load data from cloud
-      const [progress, quizHistory, vocabProgress] = await Promise.all([
-        loadProgressFromCloud(currentUser.uid),
-        loadQuizHistoryFromCloud(currentUser.uid),
-        loadVocabProgressFromCloud(currentUser.uid),
-      ]);
-
-      // Save to localStorage
-      Object.entries(progress).forEach(([qId, data]) => {
-        localStorage.setItem(`q_${qId}`, JSON.stringify(data));
-      });
-
-      if (quizHistory.length > 0) {
-        localStorage.setItem('quizHistory', JSON.stringify(quizHistory));
-      }
-
-      if (Object.keys(vocabProgress).length > 0) {
-        localStorage.setItem('vocabProgress', JSON.stringify(vocabProgress));
-      }
-
-      console.log('Data loaded from cloud successfully');
-      
-      // Reload the page to reflect the new data
-      window.location.reload();
-    } catch (error) {
-      console.error('Error loading data from cloud:', error);
+      console.log('Data sync completed (check console for any failures)');
+    } catch (error: any) {
+      console.warn('Error syncing data to cloud (continuing anyway):', error.message || error);
+      // Don't throw - we don't want sync failures to block the app
     }
   };
 
@@ -292,9 +273,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
         
         // Load user's data from cloud in background
-        loadDataFromCloud().catch((error) => {
-          console.error('Error loading data from cloud:', error);
-        });
+        // Use the user from the callback, not currentUser state
+        const loadData = async () => {
+          try {
+            // Load data from cloud
+            const [progress, quizHistory, vocabProgress] = await Promise.all([
+              loadProgressFromCloud(user.uid),
+              loadQuizHistoryFromCloud(user.uid),
+              loadVocabProgressFromCloud(user.uid),
+            ]);
+
+            // Save to localStorage
+            Object.entries(progress).forEach(([qId, data]) => {
+              localStorage.setItem(`q_${qId}`, JSON.stringify(data));
+            });
+
+            if (quizHistory.length > 0) {
+              localStorage.setItem('quizHistory', JSON.stringify(quizHistory));
+            }
+
+            if (Object.keys(vocabProgress).length > 0) {
+              localStorage.setItem('vocabProgress', JSON.stringify(vocabProgress));
+            }
+
+            console.log('Data loaded from cloud successfully');
+          } catch (error) {
+            console.error('Error loading data from cloud:', error);
+          }
+        };
+        
+        loadData();
       } else {
         setUserProfile(null);
       }
@@ -314,7 +322,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     updateUserProfile,
     syncDataToCloud,
-    loadDataFromCloud,
   };
 
   return (

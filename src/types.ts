@@ -83,6 +83,7 @@ export interface HomePageProps {
   progress: Record<number, QuestionProgress>;
   setPage: (page: string) => void;
   studyStreak: number;
+  userName?: string;
   quizHistory?: QuizResult[];
 }
 
