@@ -6,7 +6,7 @@ import { auth } from '../config/firebase';
  */
 
 const PROJECT_ID = 'german-citizenship-trainer';
-const DATABASE_ID = '(default)';
+const DATABASE_ID = '%28default%29'; // URL-encoded (default)
 
 /**
  * Get the Firestore REST API base URL
