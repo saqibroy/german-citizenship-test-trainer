@@ -6,14 +6,7 @@ import { auth } from '../config/firebase';
  */
 
 const PROJECT_ID = 'german-citizenship-trainer';
-const DATABASE_ID = '%28default%29'; // URL-encoded (default)
-
-/**
- * Get the Firestore REST API base URL
- */
-function getFirestoreBaseUrl(): string {
-  return `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents`;
-}
+const DATABASE_ID = '(default)';
 
 /**
  * Convert JavaScript object to Firestore field format
@@ -61,7 +54,7 @@ function convertToFirestoreFields(obj: any): any {
 }
 
 /**
- * Write a single document using REST API
+ * Write a single document using REST API with createDocument
  */
 export async function writeDocument(
   collection: string,
@@ -71,27 +64,44 @@ export async function writeDocument(
   const idToken = await auth.currentUser?.getIdToken();
   if (!idToken) throw new Error('Not authenticated');
 
-  const url = `${getFirestoreBaseUrl()}/${collection}/${documentId}`;
+  // Use createDocument with merge behavior
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents:commit`;
   
   const response = await fetch(url, {
-    method: 'PATCH',
+    method: 'POST',
     headers: {
       'Authorization': `Bearer ${idToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      fields: convertToFirestoreFields(data)
+      writes: [
+        {
+          update: {
+            name: `projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents/${collection}/${documentId}`,
+            fields: convertToFirestoreFields(data)
+          }
+        }
+      ]
     })
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Write failed (${response.status}): ${error}`);
+    const errorText = await response.text();
+    let errorJson;
+    try {
+      errorJson = JSON.parse(errorText);
+    } catch {
+      errorJson = { error: errorText };
+    }
+    console.error(`Failed to write ${collection}/${documentId}:`, errorJson);
+    console.error(`URL used: https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents:commit`);
+    console.error(`Document path: projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents/${collection}/${documentId}`);
+    throw new Error(`Write failed (${response.status}): ${JSON.stringify(errorJson)}`);
   }
 }
 
 /**
- * Batch write multiple documents using REST API
+ * Batch write multiple documents using REST API commit
  */
 export async function batchWriteDocuments(
   writes: Array<{ collection: string; documentId: string; data: any }>
@@ -99,7 +109,7 @@ export async function batchWriteDocuments(
   const idToken = await auth.currentUser?.getIdToken();
   if (!idToken) throw new Error('Not authenticated');
 
-  // Split into smaller batches (max 500 per batch)
+  // Split into smaller batches (max 500 per batch as per Firestore limits)
   const batchSize = 200;
   const batches = [];
   
@@ -114,29 +124,40 @@ export async function batchWriteDocuments(
     const batch = batches[batchIndex];
     console.log(`Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} docs)...`);
     
-    // Use parallel writes for speed (Promise.all)
-    await Promise.all(
-      batch.map(async ({ collection, documentId, data }) => {
-        const url = `${getFirestoreBaseUrl()}/${collection}/${documentId}`;
-        
-        const response = await fetch(url, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${idToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fields: convertToFirestoreFields(data)
-          })
-        });
+    // Use commit API for atomic batch writes
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents:commit`;
+    
+    const commitWrites = batch.map(({ collection, documentId, data }) => ({
+      update: {
+        name: `projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents/${collection}/${documentId}`,
+        fields: convertToFirestoreFields(data)
+      }
+    }));
 
-        if (!response.ok) {
-          const error = await response.text();
-          console.error(`Failed to write ${collection}/${documentId}:`, error);
-          // Don't throw - continue with other documents
-        }
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        writes: commitWrites
       })
-    );
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorJson;
+      try {
+        errorJson = JSON.parse(errorText);
+      } catch {
+        errorJson = { error: errorText };
+      }
+      console.error(`Batch ${batchIndex + 1} failed:`, errorJson);
+      console.error(`URL used: https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents:commit`);
+      console.error(`Batch size: ${batch.length} documents`);
+      throw new Error(`Batch write failed (${response.status}): ${JSON.stringify(errorJson)}`);
+    }
     
     console.log(`✓ Batch ${batchIndex + 1} completed`);
   }

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firestore Database Check</title>
+    <style>
+        body { font-family: monospace; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Firestore Database Configuration Check</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, getDocs, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkp8f4yMf5gCDR7AqH5hX_YkZjLxKVKUI",
+            authDomain: "german-citizenship-trainer.firebaseapp.com",
+            projectId: "german-citizenship-trainer",
+            storageBucket: "german-citizenship-trainer.firebasestorage.app",
+            messagingSenderId: "788924415217",
+            appId: "1:788924415217:web:e7e6a2f3c3a5b8e5d4c6e7"
+        };
+
+        const results = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+
+        async function checkDatabase() {
+            try {
+                log('🔧 Initializing Firebase...', 'info');
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                
+                log('✓ Firebase initialized', 'success');
+                log('Database path: ' + db._databaseId.database, 'info');
+                log('Project: ' + db._databaseId.projectId, 'info');
+                
+                // Try to read
+                log('\n📖 Testing READ operation...', 'info');
+                const testCol = collection(db, 'test');
+                const snapshot = await getDocs(testCol);
+                log(`✓ Read successful (${snapshot.size} docs)`, 'success');
+                
+                // Try to write
+                log('\n✍️  Testing WRITE operation...', 'info');
+                const testDoc = doc(db, 'test', 'diagnostic_' + Date.now());
+                
+                const writePromise = setDoc(testDoc, {
+                    timestamp: new Date(),
+                    test: true
+                });
+                
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Write timeout after 10s')), 10000)
+                );
+                
+                await Promise.race([writePromise, timeoutPromise]);
+                log('✓ Write successful', 'success');
+                
+            } catch (error) {
+                log('\n❌ Error: ' + error.message, 'error');
+                log('Stack: ' + error.stack, 'error');
+            }
+        }
+
+        checkDatabase();
+    </script>
+</body>
+</html>

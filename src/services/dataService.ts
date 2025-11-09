@@ -3,29 +3,43 @@ import {
   doc,
   getDoc,
   getDocs,
+  setDoc,
   query,
   orderBy,
   limit,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Progress } from '../types';
-import { syncProgressViaREST, batchWriteDocuments, writeDocument } from './firestoreREST';
+import { writeDocument } from './firestoreREST';
 
 /**
- * Sync user progress to Firestore using REST API
+ * Sync user progress to Firestore using simple batch writes (no merge)
  */
 export const syncProgressToCloud = async (
   userId: string,
   progress: Progress
 ): Promise<void> => {
-  console.log(`Syncing ${Object.keys(progress).length} progress items via REST API...`);
-  
   try {
-    await syncProgressViaREST(userId, progress);
-    console.log('✓ Progress synced successfully');
-  } catch (error: any) {
-    console.error('REST API sync error:', error.message);
-    // Don't throw - allow app to continue
+    console.log('Syncing progress to Firestore...');
+    const start = Date.now();
+    
+    // Use setDoc with individual calls in parallel (faster than batch)
+    const writes = Object.entries(progress).map(([questionId, data]) =>
+      setDoc(doc(db, `users/${userId}/progress/${questionId}`), data)
+    );
+
+    // Also update user profile
+    writes.push(
+      setDoc(doc(db, `users/${userId}`), { lastSyncedAt: new Date() }, { merge: true })
+    );
+
+    await Promise.all(writes);
+    
+    const duration = Date.now() - start;
+    console.log(`✓ Progress synced successfully in ${duration}ms`);
+  } catch (error) {
+    console.error('Error syncing progress:', error);
+    // Don't throw - allow app to continue with local data
   }
 };
 
@@ -54,23 +68,26 @@ export const loadProgressFromCloud = async (userId: string): Promise<Progress> =
 };
 
 /**
- * Sync quiz history to Firestore using REST API
+ * Sync quiz history to Firestore using parallel writes
  */
 export const syncQuizHistoryToCloud = async (
   userId: string,
   quizHistory: any[]
 ): Promise<void> => {
   try {
-    const writes = quizHistory.map((quiz, index) => ({
-      collection: `users/${userId}/quizHistory`,
-      documentId: quiz.date || index.toString(),
-      data: quiz
-    }));
+    console.log('Syncing quiz history to Firestore...');
+    const start = Date.now();
+    
+    const writes = quizHistory.map((result) =>
+      setDoc(doc(db, `users/${userId}/quizHistory/${result.id}`), result)
+    );
 
-    await batchWriteDocuments(writes);
-    console.log('Quiz history synced to cloud successfully');
+    await Promise.all(writes);
+    
+    const duration = Date.now() - start;
+    console.log(`✓ Quiz history synced successfully in ${duration}ms`);
   } catch (error) {
-    console.error('Error syncing quiz history to cloud:', error);
+    console.error('Error syncing quiz history:', error);
     // Don't throw - allow app to continue
   }
 };
@@ -123,24 +140,27 @@ export const loadQuizHistoryFromCloud = async (userId: string): Promise<any[]> =
 };
 
 /**
- * Sync vocabulary progress to Firestore via REST API
+ * Sync vocabulary progress to Firestore using parallel writes
  */
 export const syncVocabProgressToCloud = async (
   userId: string,
   vocabProgress: any
 ): Promise<void> => {
   try {
-    const writes = Object.entries(vocabProgress).map(([wordId, data]) => ({
-      collection: `users/${userId}/vocabProgress`,
-      documentId: wordId,
-      data: data as Record<string, any>,
-    }));
+    console.log('Syncing vocab progress to Firestore...');
+    const start = Date.now();
+    
+    const writes = Object.entries(vocabProgress).map(([wordId, data]) =>
+      setDoc(doc(db, `users/${userId}/vocabProgress/${wordId}`), data as any)
+    );
 
-    await batchWriteDocuments(writes);
-    console.log('Vocabulary progress synced to cloud via REST successfully');
+    await Promise.all(writes);
+    
+    const duration = Date.now() - start;
+    console.log(`✓ Vocab progress synced successfully in ${duration}ms`);
   } catch (error) {
-    console.error('Error syncing vocabulary progress to cloud:', error);
-    throw error;
+    console.error('Error syncing vocab progress:', error);
+    // Don't throw - allow app to continue
   }
 };
 
