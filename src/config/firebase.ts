@@ -15,11 +15,12 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with experimental long polling to fix connection issues
+// Initialize Firestore with explicit database name and settings
 export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true, // Force long polling instead of WebChannel
+  experimentalForceLongPolling: true,
   experimentalAutoDetectLongPolling: false,
-});
+  ignoreUndefinedProperties: true,
+}, '(default)'); // Explicitly specify the default database
 
 // Initialize Auth
 export const auth = getAuth(app);

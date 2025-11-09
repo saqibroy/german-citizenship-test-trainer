@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Progress } from '../types';
+import { syncProgressViaREST } from './firestoreREST';
 
 /**
  * Sync user progress to Firestore
@@ -19,48 +20,47 @@ export const syncProgressToCloud = async (
   progress: Progress
 ): Promise<void> => {
   try {
-    // Set a timeout for the batch operation
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Sync timeout after 10 seconds')), 10000);
-    });
-
-    const syncPromise = (async () => {
-      const batch = writeBatch(db);
-
-      // Add all progress documents to batch
-      Object.entries(progress).forEach(([questionId, data]) => {
-        const ref = doc(db, `users/${userId}/progress/${questionId}`);
-        batch.set(ref, data as any, { merge: true });
-      });
-
-      // Add lastSyncedAt update to the same batch (avoid separate setDoc call)
-      const userRef = doc(db, 'users', userId);
-      batch.set(userRef, {
-        lastSyncedAt: new Date().toISOString(),
-      }, { merge: true });
-
-      // Commit everything in one batch
-      await batch.commit();
-    })();
-
-    // Race between sync and timeout
-    await Promise.race([syncPromise, timeoutPromise]);
+    // Try REST API first (bypasses WebChannel 400 errors)
+    console.log('Attempting sync via REST API...');
+    await syncProgressViaREST(userId, progress);
+    console.log('✓ Progress synced via REST API successfully');
+    return;
+  } catch (restError: any) {
+    console.warn('REST API sync failed, falling back to SDK:', restError.message);
     
-    console.log('Progress synced to cloud successfully');
-  } catch (error: any) {
-    if (error.message === 'Sync timeout after 10 seconds') {
-      console.warn('⚠️ Sync is taking longer than expected - continuing in background');
-      // Don't throw - allow the app to continue
-      // The sync will eventually complete in the background
-    } else {
-      console.error('Error syncing progress to cloud:', error);
-      console.error('Error details:', {
-        code: error.code,
-        message: error.message,
-        userId,
-        progressCount: Object.keys(progress).length
+    // Fallback to SDK with timeout
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('SDK sync timeout after 10 seconds')), 10000);
       });
-      // Don't throw - allow logout/app to continue even if sync fails
+
+      const syncPromise = (async () => {
+        const batch = writeBatch(db);
+
+        // Add all progress documents to batch
+        Object.entries(progress).forEach(([questionId, data]) => {
+          const ref = doc(db, `users/${userId}/progress/${questionId}`);
+          batch.set(ref, data as any, { merge: true });
+        });
+
+        // Add lastSyncedAt update to the same batch
+        const userRef = doc(db, 'users', userId);
+        batch.set(userRef, {
+          lastSyncedAt: new Date().toISOString(),
+        }, { merge: true });
+
+        await batch.commit();
+      })();
+
+      await Promise.race([syncPromise, timeoutPromise]);
+      console.log('✓ Progress synced via SDK successfully');
+    } catch (sdkError: any) {
+      if (sdkError.message === 'SDK sync timeout after 10 seconds') {
+        console.warn('⚠️ SDK sync timeout - data may sync in background');
+      } else {
+        console.error('SDK sync error:', sdkError);
+      }
+      // Don't throw - allow app to continue
     }
   }
 };
