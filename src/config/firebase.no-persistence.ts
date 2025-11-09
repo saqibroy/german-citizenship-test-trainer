@@ -15,28 +15,21 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore
+// Initialize Firestore (without persistence - testing fix for 400 errors)
 export const db = getFirestore(app);
 
 // Initialize Auth
 export const auth = getAuth(app);
 
-// TEMPORARILY DISABLED: IndexedDB Persistence
-// This was causing 400 errors. Will re-enable after testing.
-// If you need offline support, uncomment the block below after fixing the 400 errors
+// NOTE: Persistence is disabled to fix 400 errors
+// If you need offline support, uncomment this after fixing the 400 errors:
 /*
 import { enableIndexedDbPersistence } from 'firebase/firestore';
 if (typeof window !== 'undefined') {
   enableIndexedDbPersistence(db, {
-    forceOwnership: false // Allow multiple tabs
+    forceOwnership: false
   }).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Firestore persistence failed: Multiple tabs open');
-    } else if (err.code === 'unimplemented') {
-      console.warn('Firestore persistence not available in this browser');
-    } else {
-      console.warn('Firestore persistence error:', err.code, err.message);
-    }
+    console.warn('Firestore persistence error:', err.code, err.message);
   });
 }
 */
