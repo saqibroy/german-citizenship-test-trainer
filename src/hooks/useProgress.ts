@@ -1,13 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { safeGetItem, safeSetItem, validateProgressData } from '../utils/storage';
 import type { QuestionProgress, Question } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import { syncProgressToCloud } from '../services/dataService';
+import { debounce } from 'lodash';
 
 /**
  * Custom hook to manage question progress
  * Handles loading, saving, and updating progress data
  */
 export function useProgress(questions: Question[]) {
+  const { currentUser } = useAuth();
   const [progress, setProgress] = useState<Record<number, QuestionProgress>>({});
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Debounced sync function
+  const debouncedSync = useCallback(
+    debounce((userId: string, newProgress: Record<number, QuestionProgress>) => {
+      if (Object.keys(newProgress).length > 0) {
+        syncProgressToCloud(userId, newProgress);
+      }
+    }, 3000),
+    []
+  );
 
   // Load progress on mount
   useEffect(() => {
@@ -19,7 +34,15 @@ export function useProgress(questions: Question[]) {
       }
     });
     setProgress(savedProgress);
+    setIsLoaded(true);
   }, [questions]);
+
+  // Sync progress to cloud when it changes
+  useEffect(() => {
+    if (currentUser && isLoaded && Object.keys(progress).length > 0) {
+      debouncedSync(currentUser.uid, progress);
+    }
+  }, [progress, currentUser, isLoaded, debouncedSync]);
 
   // Update progress for a single question
   const updateProgress = (questionId: number, newProgress: QuestionProgress) => {
