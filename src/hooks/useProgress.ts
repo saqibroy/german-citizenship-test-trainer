@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { safeGetItem, safeSetItem, validateProgressData } from '../utils/storage';
 import type { QuestionProgress, Question } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { syncProgressToCloud } from '../services/dataService';
+import { syncProgressViaREST } from '../services/firestoreREST'; // Use REST API
 import { debounce } from 'lodash';
 
 /**
@@ -14,11 +14,16 @@ export function useProgress(questions: Question[]) {
   const [progress, setProgress] = useState<Record<number, QuestionProgress>>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Debounced sync function
+  // Debounced sync function using the REST API
   const debouncedSync = useCallback(
     debounce((userId: string, newProgress: Record<number, QuestionProgress>) => {
       if (Object.keys(newProgress).length > 0) {
-        syncProgressToCloud(userId, newProgress);
+        console.log('Syncing progress via REST...');
+        // Create a clean copy of the progress data to avoid sending undefined values
+        const cleanProgress = JSON.parse(JSON.stringify(newProgress));
+        syncProgressViaREST(userId, cleanProgress).catch(err => {
+          console.error("REST sync failed:", err);
+        });
       }
     }, 3000),
     []
