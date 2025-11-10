@@ -1,4 +1,4 @@
-import { auth, app } from '../config/firebase';
+import app, { auth } from '../config/firebase';
 
 /**
  * Pure REST API implementation for Firestore writes
