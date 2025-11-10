@@ -1,11 +1,18 @@
-import { auth } from '../config/firebase';
+import { auth, app } from '../config/firebase';
 
 /**
  * Pure REST API implementation for Firestore writes
  * Bypasses the broken SDK WebChannel completely
  */
 
-const PROJECT_ID = 'german-citizenship-trainer';
+const getProjectId = () => {
+  const projectId = app.options.projectId;
+  if (!projectId) {
+    throw new Error('Firebase project ID is not defined in the config.');
+  }
+  return projectId;
+};
+
 const DATABASE_ID = '(default)';
 
 /**
@@ -64,8 +71,9 @@ export async function writeDocument(
   const idToken = await auth.currentUser?.getIdToken();
   if (!idToken) throw new Error('Not authenticated');
 
+  const projectId = getProjectId();
   // Use createDocument with merge behavior
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents:commit`;
+  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${DATABASE_ID}/documents:commit`;
   
   const response = await fetch(url, {
     method: 'POST',
@@ -77,7 +85,7 @@ export async function writeDocument(
       writes: [
         {
           update: {
-            name: `projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents/${collection}/${documentId}`,
+            name: `projects/${projectId}/databases/${DATABASE_ID}/documents/${collection}/${documentId}`,
             fields: convertToFirestoreFields(data)
           }
         }
@@ -94,8 +102,8 @@ export async function writeDocument(
       errorJson = { error: errorText };
     }
     console.error(`Failed to write ${collection}/${documentId}:`, errorJson);
-    console.error(`URL used: https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents:commit`);
-    console.error(`Document path: projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents/${collection}/${documentId}`);
+    console.error(`URL used: https://firestore.googleapis.com/v1/projects/${projectId}/databases/${DATABASE_ID}/documents:commit`);
+    console.error(`Document path: projects/${projectId}/databases/${DATABASE_ID}/documents/${collection}/${documentId}`);
     throw new Error(`Write failed (${response.status}): ${JSON.stringify(errorJson)}`);
   }
 }
@@ -109,6 +117,7 @@ export async function batchWriteDocuments(
   const idToken = await auth.currentUser?.getIdToken();
   if (!idToken) throw new Error('Not authenticated');
 
+  const projectId = getProjectId();
   // Split into smaller batches (max 500 per batch as per Firestore limits)
   const batchSize = 200;
   const batches = [];
@@ -125,11 +134,11 @@ export async function batchWriteDocuments(
     console.log(`Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} docs)...`);
     
     // Use commit API for atomic batch writes
-    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents:commit`;
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${DATABASE_ID}/documents:commit`;
     
     const commitWrites = batch.map(({ collection, documentId, data }) => ({
       update: {
-        name: `projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents/${collection}/${documentId}`,
+        name: `projects/${projectId}/databases/${DATABASE_ID}/documents/${collection}/${documentId}`,
         fields: convertToFirestoreFields(data)
       }
     }));
@@ -154,7 +163,7 @@ export async function batchWriteDocuments(
         errorJson = { error: errorText };
       }
       console.error(`Batch ${batchIndex + 1} failed:`, errorJson);
-      console.error(`URL used: https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents:commit`);
+      console.error(`URL used: https://firestore.googleapis.com/v1/projects/${projectId}/databases/${DATABASE_ID}/documents:commit`);
       console.error(`Batch size: ${batch.length} documents`);
       throw new Error(`Batch write failed (${response.status}): ${JSON.stringify(errorJson)}`);
     }
