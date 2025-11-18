@@ -148,6 +148,22 @@ export function CardsPage({ lang, questions, updateProgress, progress }: CardsPa
             <div className="text-xl font-bold leading-relaxed">
               {flipped ? (lang === 'de' ? q.options_de[q.correct_index] : q.options_en[q.correct_index]) : (lang === 'de' ? q.question_de : q.question_en)}
             </div>
+            
+            {/* Show image on question side if available */}
+            {!flipped && q.img?.url && (
+              <div className="mt-6 max-w-md mx-auto">
+                <img 
+                  src={`/images/question-${q.id}.png`}
+                  alt={lang === 'de' ? q.question_de : q.question_en}
+                  className="w-full h-auto rounded-lg shadow-lg max-h-64 object-contain bg-white/10 backdrop-blur-sm p-2"
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+            
             <div className="mt-6 text-sm opacity-75">
               {flipped ? '✓' : (lang === 'de' ? '👆 Tippen zum Umdrehen' : '👆 Tap to flip')}
             </div>

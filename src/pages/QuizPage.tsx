@@ -369,6 +369,8 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
           showTranslation={showTranslation}
           onWordClick={setSelectedVocab}
           lang={lang}
+          imageUrl={q.img?.url}
+          questionId={q.id}
         />
 
         {selectedVocab && (

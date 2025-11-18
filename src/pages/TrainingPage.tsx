@@ -373,6 +373,8 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
           showTranslation={showTranslation}
           onWordClick={setSelectedVocab}
           lang={lang}
+          imageUrl={q.img?.url}
+          questionId={q.id}
         />
 
         {selectedVocab && (

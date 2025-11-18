@@ -7,6 +7,9 @@ export interface Question {
   options_en: string[];
   correct_index: number;
   category: string;
+  img?: {
+    url: string;
+  };
 }
 
 // Progress Types

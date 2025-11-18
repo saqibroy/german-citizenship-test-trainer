@@ -398,6 +398,9 @@ export const QUESTIONS = [
       "Image 3",
       "Image 4"
     ],
+    "img": {
+      "url": "aufgabe_21"
+    },
     "correct_index": 0,
     "category": "Grundgesetz"
   },
@@ -1044,6 +1047,9 @@ export const QUESTIONS = [
       "the Bundesrat building in Berlin",
       "the Federal Chancellery in Berlin"
     ],
+    "img": {
+      "url": "aufgabe_55"
+    },
     "correct_index": 0,
     "category": "Grundgesetz"
   },
@@ -2469,6 +2475,10 @@ export const QUESTIONS = [
       "3",
       "4"
     ],
+    "img": {
+      "url": "aufgabe_130",
+      "text": "In Anlehnung an Bundeswahlordnung (BWO), Anlage 26"
+    },
     "correct_index": 0,
     "category": "Wahlen"
   },
@@ -3343,6 +3353,9 @@ export const QUESTIONS = [
       "1=Great Britain, 2=Soviet Union, 3=USA, 4=France",
       "1=Great Britain, 2=USA, 3=Soviet Union, 4=France"
     ],
+    "img": {
+      "url": "aufgabe_176"
+    },
     "correct_index": 2,
     "category": "Geschichte"
   },
@@ -3552,6 +3565,9 @@ export const QUESTIONS = [
       "\"Third Reich\"",
       "GDR"
     ],
+    "img": {
+      "url": "aufgabe_187"
+    },
     "correct_index": 3,
     "category": "Geschichte"
   },
@@ -3970,6 +3986,9 @@ export const QUESTIONS = [
       "Image 3",
       "Image 4"
     ],
+    "img": {
+      "url": "aufgabe_21"
+    },
     "correct_index": 3,
     "category": "Geschichte"
   },
@@ -4293,6 +4312,9 @@ export const QUESTIONS = [
       "Image 3",
       "Image 4"
     ],
+    "img": {
+      "url": "aufgabe_226"
+    },
     "correct_index": 1,
     "category": "Geografie"
   },
@@ -5712,6 +5734,9 @@ export const QUESTIONS = [
       "Bild 3",
       "Bild 4"
     ],
+    "img": {
+      "url": "berlin_1"
+    },
     "options_en": [
       "Image 1",
       "Image 2",
@@ -5851,6 +5876,9 @@ export const QUESTIONS = [
       "3",
       "4"
     ],
+    "img": {
+      "url": "berlin_8"
+    },
     "correct_index": 3,
     "category": "Berlin"
   },
