@@ -352,6 +352,16 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
       incorrect: prev.incorrect + (isCorrect ? 0 : 1),
       total: prev.total + 1
     }));
+
+    // Auto-advance to next question if answer is correct
+    if (isCorrect) {
+      setTimeout(() => {
+        if (currentIdx < trainingQuestions.length - 1) {
+          setCurrentIdx(currentIdx + 1);
+          setQuestionStartTime(Date.now());
+        }
+      }, 1500); // Wait 1.5s to show feedback before advancing
+    }
   };
 
   return (

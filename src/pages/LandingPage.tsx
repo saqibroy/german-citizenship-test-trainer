@@ -3,6 +3,7 @@ import {
   Lock, Zap, TrendingUp, Award, Check, 
   ArrowRight, Star, Users, Heart
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function LandingPage({ lang, onGetStarted }: { lang: 'de' | 'en', onGetStarted: () => void }) {
   const content = lang === 'de' ? {
@@ -453,7 +454,7 @@ export default function LandingPage({ lang, onGetStarted }: { lang: 'de' | 'en',
               </button>
               <button
                 onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-                className="px-8 py-4 bg-white bg-opacity-20 backdrop-blur-sm text-white rounded-lg text-lg font-semibold hover:bg-opacity-30 transition-all"
+                className="px-8 py-4 bg-white text-indigo-600 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all shadow-lg border-2 border-white hover:scale-105"
               >
                 {content.hero.cta2}
               </button>

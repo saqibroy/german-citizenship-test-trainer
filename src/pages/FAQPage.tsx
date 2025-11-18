@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronUp, HelpCircle, Book, Trophy, Clock, Smartphone, Lock, Globe } from 'lucide-react';
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface FAQItem {
   id: string;
@@ -418,14 +419,14 @@ export default function FAQPage({ lang }: { lang: 'de' | 'en' }) {
         </div>
 
         {/* FAQ Items by Category */}
-        {categories.map((category) => (
-          <div key={category} id={category.toLowerCase().replace(/\s+/g, '-')} className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              {faqs.find(f => f.category === category)?.icon && (
-                <span>{faqs.find(f => f.category === category)?.icon({ size: 28, className: 'text-indigo-600' })}</span>
-              )}
-              {category}
-            </h2>
+        {categories.map((category) => {
+          const Icon = faqs.find(f => f.category === category)?.icon;
+          return (
+            <div key={category} id={category.toLowerCase().replace(/\s+/g, '-')} className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                {Icon && <Icon size={28} className="text-indigo-600" />}
+                {category}
+              </h2>
             
             <div className="space-y-3">
               {faqs
@@ -449,18 +450,29 @@ export default function FAQPage({ lang }: { lang: 'de' | 'en' }) {
                       )}
                     </button>
                     
-                    {openItems.has(faq.id) && (
-                      <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-                        <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                          {faq.answer}
-                        </p>
-                      </div>
-                    )}
+                    <AnimatePresence>
+                      {openItems.has(faq.id) && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                            <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                              {faq.answer}
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 ))}
             </div>
-          </div>
-        ))}
+            </div>
+          );
+        })}
 
         {/* Still Need Help Section */}
         <div className="bg-gradient-to-r from-green-500 to-teal-500 rounded-2xl p-8 text-white shadow-xl mt-12">

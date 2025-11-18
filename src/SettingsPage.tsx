@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Calendar, Target, Download, Upload, Trash2, 
-  Save, Info, Bell
+  Save, Info, Bell, User, Cloud, CloudOff
 } from 'lucide-react';
+import { useAuth } from './contexts/AuthContext';
+import { UserProfile } from './components/UserProfile';
 
 interface SettingsPageProps {
   lang: 'de' | 'en';
+  setPage?: (page: string) => void;
 }
 
 interface SettingsData {
@@ -14,13 +17,15 @@ interface SettingsData {
   notifications: boolean;
 }
 
-export function SettingsPage({ lang }: SettingsPageProps) {
+export function SettingsPage({ lang, setPage }: SettingsPageProps) {
+  const { user } = useAuth();
   const [settings, setSettings] = useState<SettingsData>({
     examDate: '2025-12-02',
     dailyGoal: 20,
     notifications: false
   });
   const [saved, setSaved] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -213,6 +218,65 @@ export function SettingsPage({ lang }: SettingsPageProps) {
           </p>
         </div>
 
+        {/* Account Management Section */}
+        {user && (
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <User className="text-indigo-600" size={24} />
+              <h3 className="text-lg font-bold text-gray-800">
+                {lang === 'de' ? 'Konto' : 'Account'}
+              </h3>
+            </div>
+            <button
+              onClick={() => setShowProfile(true)}
+              className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-md transition-all min-h-[44px]"
+            >
+              {lang === 'de' ? 'Konto verwalten' : 'Manage Account'}
+            </button>
+            
+            {/* Sync Status */}
+            <div className="mt-4 bg-green-50 border-2 border-green-200 rounded-xl p-4">
+              <div className="flex items-center gap-2">
+                <Cloud className="text-green-600" size={20} />
+                <p className="text-sm text-green-800 font-semibold">
+                  {lang === 'de' 
+                    ? '🟢 Daten werden automatisch synchronisiert' 
+                    : '🟢 Data automatically synced'}
+                </p>
+              </div>
+              <p className="text-xs text-green-700 mt-2">
+                {lang === 'de' 
+                  ? 'Dein Fortschritt wird automatisch in der Cloud gespeichert. Du kannst von jedem Gerät darauf zugreifen.' 
+                  : 'Your progress is automatically saved to the cloud. You can access it from any device.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Offline Mode Info */}
+        {!user && (
+          <div className="bg-gray-50 rounded-2xl p-6 shadow-lg border-2 border-gray-300">
+            <div className="flex items-center gap-3 mb-4">
+              <CloudOff className="text-gray-500" size={24} />
+              <h3 className="text-lg font-bold text-gray-700">
+                {lang === 'de' ? 'Offline-Modus' : 'Offline Mode'}
+              </h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              {lang === 'de' 
+                ? 'Du verwendest die App derzeit ohne Konto. Deine Daten werden nur lokal auf diesem Gerät gespeichert.' 
+                : 'You are currently using the app without an account. Your data is only stored locally on this device.'}
+            </p>
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+              <p className="text-sm text-blue-800">
+                <strong>💡 {lang === 'de' ? 'Tipp:' : 'Tip:'}</strong> {lang === 'de' 
+                  ? 'Erstelle ein Konto auf der Startseite, um deine Daten geräteübergreifend zu synchronisieren.' 
+                  : 'Create an account on the home page to sync your data across devices.'}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Exam Date Setting */}
         <div className="bg-white rounded-2xl p-6 shadow-lg">
           <div className="flex items-center gap-3 mb-4">
@@ -388,6 +452,31 @@ export function SettingsPage({ lang }: SettingsPageProps) {
           </div>
         </div>
 
+        {/* Help & Resources */}
+        {setPage && (
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">
+              {lang === 'de' ? '❓ Hilfe & Ressourcen' : '❓ Help & Resources'}
+            </h3>
+            <div className="space-y-3">
+              <button
+                onClick={() => setPage('faq')}
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-xl font-bold shadow-md transition-all min-h-[44px] flex items-center justify-center gap-2"
+              >
+                <span className="text-xl">💬</span>
+                {lang === 'de' ? 'Häufig gestellte Fragen (FAQ)' : 'Frequently Asked Questions (FAQ)'}
+              </button>
+              <button
+                onClick={() => setPage('landing')}
+                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-xl font-bold shadow-md transition-all min-h-[44px] flex items-center justify-center gap-2"
+              >
+                <span className="text-xl">🚀</span>
+                {lang === 'de' ? 'Über diese App' : 'About This App'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* App Info */}
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 shadow-lg border-2 border-gray-200">
           <h3 className="text-lg font-bold text-gray-800 mb-3">
@@ -395,8 +484,9 @@ export function SettingsPage({ lang }: SettingsPageProps) {
           </h3>
           <div className="space-y-2 text-sm text-gray-700">
             <p><strong>{lang === 'de' ? 'Version:' : 'Version:'}</strong> 1.0.0</p>
-            <p><strong>{lang === 'de' ? 'Fragen:' : 'Questions:'}</strong> 300+</p>
-            <p><strong>{lang === 'de' ? 'Vokabeln:' : 'Vocabulary:'}</strong> 1000+</p>
+            <p><strong>{lang === 'de' ? 'Fragen:' : 'Questions:'}</strong> 310</p>
+            <p><strong>{lang === 'de' ? 'Vokabeln:' : 'Vocabulary:'}</strong> 150+</p>
+            <p><strong>{lang === 'de' ? 'Grammatiklektionen:' : 'Grammar Lessons:'}</strong> 12</p>
             <p className="pt-2 border-t border-gray-300">
               {lang === 'de' 
                 ? '🇩🇪 Deutsche Einbürgerungstest Trainer' 
@@ -410,6 +500,13 @@ export function SettingsPage({ lang }: SettingsPageProps) {
           </div>
         </div>
       </div>
+
+      {/* User Profile Modal */}
+      {showProfile && (
+        <UserProfile 
+          onClose={() => setShowProfile(false)}
+        />
+      )}
     </div>
   );
 }

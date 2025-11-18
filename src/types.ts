@@ -77,6 +77,26 @@ export interface VocabularyItem {
 // Badge Types
 export type BadgeName = string;
 
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  unlockedAt?: string;
+  progress?: number;
+  requirement?: number;
+}
+
+// Quiz History Type (for Firestore)
+export interface Quiz {
+  id?: string;
+  score: number;
+  total: number;
+  date: Date | any;
+  categoryBreakdown: CategoryBreakdown;
+}
+
 // Component Props Types
 export interface HomePageProps {
   lang: string;
