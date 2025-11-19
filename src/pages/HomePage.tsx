@@ -1,11 +1,19 @@
+import { useState } from 'react';
 import { 
-  Award, ChevronRight, AlertCircle, Brain, Target, BookMarked, BookOpen, Flame
+  Award, ChevronRight, AlertCircle, Brain, Target, BookMarked, BookOpen, Flame, LogIn, User
 } from 'lucide-react';
 import { QUESTIONS } from '../data.js';
 import { daysSinceLastSeen } from '../srsAlgorithm';
 import type { HomePageProps } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import { AuthModal } from '../components/AuthModal';
+import { UserProfile } from '../components/UserProfile';
 
 export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomePageProps) {
+  const { user } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  
   const answered = Object.keys(progress).length;
   const totalQuestions = QUESTIONS.length;
   
@@ -21,16 +29,54 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 space-y-4">
+      {/* Auth & Profile Modals */}
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      {showProfile && <UserProfile onClose={() => setShowProfile(false)} />}
+      
       {/* Welcome Message */}
-      <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-3xl p-8 shadow-2xl">
-        <h1 className="text-3xl font-bold mb-2">
-          {lang === 'de' ? '👋 Willkommen zurück!' : '👋 Welcome back!'}
-        </h1>
-        <p className="text-lg opacity-90">
-          {answered === 0 
-            ? (lang === 'de' ? 'Beginne deine Reise zur deutschen Staatsbürgerschaft!' : 'Start your journey to German citizenship!')
-            : (lang === 'de' ? 'Weiter so! Du machst Fortschritte.' : 'Keep going! You\'re making progress.')}
-        </p>
+      <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">
+              {user 
+                ? `👋 ${lang === 'de' ? 'Hallo' : 'Hello'}, ${user.displayName || user.email?.split('@')[0] || 'User'}!`
+                : (lang === 'de' ? '👋 Willkommen zurück!' : '👋 Welcome back!')
+              }
+            </h1>
+            <p className="text-lg opacity-90">
+              {answered === 0 
+                ? (lang === 'de' ? 'Beginne deine Reise zur deutschen Staatsbürgerschaft!' : 'Start your journey to German citizenship!')
+                : (lang === 'de' ? 'Weiter so! Du machst Fortschritte.' : 'Keep going! You\'re making progress.')}
+            </p>
+          </div>
+          
+          {/* Auth Button */}
+          {user ? (
+            <button 
+              onClick={() => setShowProfile(true)}
+              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-full transition-all active:scale-95"
+            >
+              <User size={20} />
+              <span className="hidden sm:inline font-semibold">{lang === 'de' ? 'Profil' : 'Profile'}</span>
+            </button>
+          ) : (
+            <button 
+              onClick={() => setShowAuthModal(true)}
+              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-full transition-all active:scale-95"
+            >
+              <LogIn size={20} />
+              <span className="hidden sm:inline font-semibold">{lang === 'de' ? 'Anmelden' : 'Login'}</span>
+            </button>
+          )}
+        </div>
+        
+        {/* Sync Status for logged in users */}
+        {user && (
+          <div className="mt-4 flex items-center gap-2 text-sm opacity-80">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span>{lang === 'de' ? 'Daten werden synchronisiert' : 'Data syncing across devices'}</span>
+          </div>
+        )}
       </div>
 
       {/* Study Streak Card */}

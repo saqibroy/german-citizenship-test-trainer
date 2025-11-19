@@ -343,6 +343,16 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     newAnswers[currentIdx] = { selectedIndex: originalIndex, isCorrect };
     setAnswers(newAnswers);
     updateProgress(q.id, isCorrect, answerTime);
+
+    // Auto-advance to next question if answer is correct
+    if (isCorrect) {
+      setTimeout(() => {
+        if (currentIdx < quizQuestions.length - 1) {
+          setCurrentIdx(currentIdx + 1);
+          setQuestionStartTime(Date.now());
+        }
+      }, 1500); // Wait 1.5s to show feedback before advancing
+    }
   };
 
   const sessionStats = {
