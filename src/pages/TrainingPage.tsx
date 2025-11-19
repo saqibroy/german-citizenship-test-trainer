@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { calculateSRSWeight } from '../srsAlgorithm';
 import { VocabPopup } from '../components.tsx';
+import { VocabHighlight } from '../components/VocabHighlight';
 import { TrainingCompletion } from '../components/TrainingCompletion';
 import { shuffleArray } from '../utils/shuffleArray';
 import type { Question, TrainingPageProps } from '../types';
@@ -52,25 +53,44 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
     return Math.min(baseSize, Math.max(10, remaining));
   };
 
-  const selectTrainingQuestions = (count: number) => {
-    const categories = [...new Set(questions.map((q: any) => q.category))];
+  const selectTrainingQuestions = (count: number, mode: 'smart' | 'weak' | 'learning' | 'new' | 'bekannt' = 'smart') => {
+    let filtered = questions;
+
+    // Filter based on mode
+    if (mode === 'weak') {
+      filtered = questions.filter((q: any) => progress[q.id]?.strength === 'weak' || !progress[q.id]);
+    } else if (mode === 'learning') {
+      filtered = questions.filter((q: any) => progress[q.id]?.srsLevel === 'learning');
+    } else if (mode === 'new') {
+      filtered = questions.filter((q: any) => !progress[q.id]);
+    } else if (mode === 'bekannt') {
+      filtered = questions.filter((q: any) => 
+        progress[q.id]?.srsLevel === 'young' || progress[q.id]?.srsLevel === 'mature'
+      );
+    }
+
+    if (filtered.length === 0) {
+      filtered = questions; // Fallback to all questions
+    }
+
+    const categories = [...new Set(filtered.map((q: any) => q.category))];
     const questionsPerCategory = Math.floor(count / categories.length);
     const selectedQuestions: any[] = [];
     
     categories.forEach(cat => {
-      const catQuestions = questions
+      const catQuestions = filtered
         .filter((q: any) => q.category === cat)
         .map((q: any) => ({ ...q, srsWeight: calculateSRSWeight(progress[q.id]) }))
         .sort((a: any, b: any) => b.srsWeight - a.srsWeight);
       selectedQuestions.push(...catQuestions.slice(0, questionsPerCategory));
     });
 
-    return shuffleArray(selectedQuestions).slice(0, count);
+    return shuffleArray(selectedQuestions).slice(0, Math.min(count, filtered.length));
   };
 
-  const startTraining = () => {
+  const startTraining = (mode: 'smart' | 'weak' | 'learning' | 'new' | 'bekannt' = 'smart') => {
     const sessionSize = calculateSessionSize();
-    const selected = selectTrainingQuestions(sessionSize);
+    const selected = selectTrainingQuestions(sessionSize, mode);
     setTrainingQuestions(selected);
     setStarted(true);
     setCurrentIdx(0);
@@ -98,13 +118,18 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
   };
 
   if (!started) {
+    const weakCount = questions.filter((q: any) => progress[q.id]?.strength === 'weak' || !progress[q.id]).length;
+    const masteredCount = Object.values(progress).filter((p: any) => p.srsLevel === 'mastered').length;
+    const bekanntCount = Object.values(progress).filter((p: any) => 
+      p.srsLevel === 'young' || p.srsLevel === 'mature'
+    ).length;
+    const learningCount = Object.values(progress).filter((p: any) => p.srsLevel === 'learning').length;
     const newCount = questions.filter((q: any) => !progress[q.id]).length;
-    const weakCount = questions.filter((q: any) => progress[q.id]?.strength === 'weak').length;
     const sessionSize = calculateSessionSize();
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex flex-col main-content">
-        <div className="flex-1 flex flex-col mobile-container py-4 max-w-2xl mx-auto w-full">
+        <div className="flex-1 flex flex-col mobile-container py-4 max-w-2xl mx-auto w-full overflow-y-auto">
           {/* Header - Compact */}
           <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-4 text-white shadow-xl mb-4 shrink-0">
             <div className="flex items-center justify-between">
@@ -124,33 +149,144 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
             </div>
           </div>
 
-          {/* Stats - Compact Grid */}
+          {/* Detailed Stats Grid */}
           <div className="grid grid-cols-2 gap-3 mb-4 shrink-0">
             <div className="bg-white rounded-xl p-3 shadow-md">
               <div className="flex items-center gap-2 mb-1">
-                <div className="bg-blue-500 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold">
-                  {newCount}
+                <div className="bg-green-500 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm">
+                  {masteredCount}
                 </div>
-                <Zap className="text-blue-500" size={20} />
+                <CheckCircle2 className="text-green-500" size={18} />
               </div>
-              <p className="font-semibold text-gray-900 text-sm">{lang === 'de' ? 'Neue' : 'New'}</p>
+              <p className="font-semibold text-gray-900 text-xs">{lang === 'de' ? 'Gemeistert' : 'Mastered'}</p>
             </div>
 
             <div className="bg-white rounded-xl p-3 shadow-md">
               <div className="flex items-center gap-2 mb-1">
-                <div className="bg-red-500 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold">
+                <div className="bg-blue-500 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm">
+                  {bekanntCount}
+                </div>
+                <Brain className="text-blue-500" size={18} />
+              </div>
+              <p className="font-semibold text-gray-900 text-xs">{lang === 'de' ? 'Bekannt' : 'Familiar'}</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-3 shadow-md">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="bg-yellow-500 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm">
+                  {learningCount}
+                </div>
+                <Zap className="text-yellow-500" size={18} />
+              </div>
+              <p className="font-semibold text-gray-900 text-xs">{lang === 'de' ? 'Lerne' : 'Learning'}</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-3 shadow-md">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="bg-red-500 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm">
                   {weakCount}
                 </div>
-                <AlertCircle className="text-red-500" size={20} />
+                <AlertCircle className="text-red-500" size={18} />
               </div>
-              <p className="font-semibold text-gray-900 text-sm">{lang === 'de' ? 'Schwach' : 'Weak'}</p>
+              <p className="font-semibold text-gray-900 text-xs">{lang === 'de' ? 'Schwach' : 'Weak'}</p>
             </div>
           </div>
 
-          {/* Start Button - Sticky at bottom */}
-          <div className="mt-auto">
+          {/* Practice Mode Selection */}
+          <div className="space-y-2 mb-4 shrink-0">
+            <h3 className="font-bold text-gray-900 text-sm mb-2">
+              {lang === 'de' ? 'Übungsmodus wählen:' : 'Choose Practice Mode:'}
+            </h3>
+            
+            {/* Weak Questions */}
+            {weakCount > 0 && (
+              <button
+                onClick={() => startTraining('weak')}
+                className="w-full bg-white border-2 border-red-200 hover:border-red-400 rounded-xl p-3 shadow-md active:scale-98 transition-all text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-red-500 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold">
+                      {weakCount}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">{lang === 'de' ? 'Schwache Fragen' : 'Weak Questions'}</p>
+                      <p className="text-xs text-gray-600">{lang === 'de' ? 'Fokus auf Verbesserung' : 'Focus on improvement'}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="text-gray-400" size={20} />
+                </div>
+              </button>
+            )}
+
+            {/* Learning Questions */}
+            {learningCount > 0 && (
+              <button
+                onClick={() => startTraining('learning')}
+                className="w-full bg-white border-2 border-yellow-200 hover:border-yellow-400 rounded-xl p-3 shadow-md active:scale-98 transition-all text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-yellow-500 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold">
+                      {learningCount}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">{lang === 'de' ? 'Lernende Fragen' : 'Learning Questions'}</p>
+                      <p className="text-xs text-gray-600">{lang === 'de' ? 'In Bearbeitung' : 'In progress'}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="text-gray-400" size={20} />
+                </div>
+              </button>
+            )}
+
+            {/* New Questions */}
+            {newCount > 0 && (
+              <button
+                onClick={() => startTraining('new')}
+                className="w-full bg-white border-2 border-gray-200 hover:border-gray-400 rounded-xl p-3 shadow-md active:scale-98 transition-all text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-gray-600 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold">
+                      {newCount}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">{lang === 'de' ? 'Neue Fragen' : 'New Questions'}</p>
+                      <p className="text-xs text-gray-600">{lang === 'de' ? 'Noch nicht gesehen' : 'Not seen yet'}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="text-gray-400" size={20} />
+                </div>
+              </button>
+            )}
+
+            {/* Bekannt Questions */}
+            {bekanntCount > 0 && (
+              <button
+                onClick={() => startTraining('bekannt')}
+                className="w-full bg-white border-2 border-blue-200 hover:border-blue-400 rounded-xl p-3 shadow-md active:scale-98 transition-all text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-500 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold">
+                      {bekanntCount}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">{lang === 'de' ? 'Bekannte Fragen' : 'Familiar Questions'}</p>
+                      <p className="text-xs text-gray-600">{lang === 'de' ? 'Auffrischen' : 'Refresh memory'}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="text-gray-400" size={20} />
+                </div>
+              </button>
+            )}
+          </div>
+
+          {/* Smart Training Button - Sticky at bottom */}
+          <div className="mt-auto shrink-0">
             <button 
-              onClick={startTraining}
+              onClick={() => startTraining('smart')}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-2xl py-4 font-bold text-lg shadow-xl active:scale-98 transition-transform flex items-center justify-center gap-2 touch-target-lg"
             >
               <Brain size={24} />
@@ -220,6 +356,16 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
       incorrect: prev.incorrect + (isCorrect ? 0 : 1),
       total: prev.total + 1
     }));
+    
+    // Auto-advance on correct answer after 1 second (except last question)
+    if (isCorrect && currentIdx < trainingQuestions.length - 1) {
+      setTimeout(() => {
+        setCurrentIdx(currentIdx + 1);
+        setShowTranslation(false);
+        setSelectedVocab(null);
+        setQuestionStartTime(Date.now());
+      }, 1000);
+    }
   };
 
   return (
@@ -230,13 +376,15 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
           <span className="text-sm font-semibold text-gray-700">
             {currentIdx + 1} / {trainingQuestions.length}
           </span>
-          <button
-            onClick={() => setShowTranslation(!showTranslation)}
-            className="flex items-center gap-1 text-sm font-medium text-purple-600 touch-target"
-          >
-            <Languages size={18} />
-            <span className="hidden sm:inline">{showTranslation ? (lang === 'de' ? 'DE' : 'EN') : (lang === 'de' ? 'EN' : 'DE')}</span>
-          </button>
+          {/* Session stats moved here */}
+          <div className="flex items-center gap-3 text-xs">
+            <span className="flex items-center gap-1 text-green-600 font-medium">
+              <CheckCircle2 size={14} /> {sessionStats.correct}
+            </span>
+            <span className="flex items-center gap-1 text-red-600 font-medium">
+              <AlertCircle size={14} /> {sessionStats.incorrect}
+            </span>
+          </div>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden max-w-2xl mx-auto">
           <motion.div 
@@ -245,15 +393,6 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
             animate={{ width: `${((currentIdx) / trainingQuestions.length) * 100}%` }}
             transition={{ duration: 0.3 }}
           />
-        </div>
-        {/* Session stats */}
-        <div className="flex items-center justify-center gap-4 mt-2 text-xs max-w-2xl mx-auto">
-          <span className="flex items-center gap-1 text-green-600 font-medium">
-            <CheckCircle2 size={14} /> {sessionStats.correct}
-          </span>
-          <span className="flex items-center gap-1 text-red-600 font-medium">
-            <AlertCircle size={14} /> {sessionStats.incorrect}
-          </span>
         </div>
       </div>
 
@@ -285,11 +424,29 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
                   />
                 </div>
               )}
+              
+              {/* Translate button moved here */}
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">
+                  {lang === 'de' ? 'Frage' : 'Question'} {currentIdx + 1}
+                </span>
+                <button
+                  onClick={() => setShowTranslation(!showTranslation)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-purple-600 hover:text-purple-700 active:scale-95 transition-all touch-target bg-purple-50 px-3 py-1.5 rounded-lg"
+                >
+                  <Languages size={16} />
+                  <span>{showTranslation ? (lang === 'de' ? 'DE' : 'EN') : (lang === 'de' ? 'EN' : 'DE')}</span>
+                </button>
+              </div>
+              
               <p className="text-lg font-semibold text-gray-900 leading-relaxed">
-                {lang === 'de' ? q.question_de : q.question_en}
+                <VocabHighlight 
+                  text={lang === 'de' ? q.question_de : q.question_en}
+                  onVocabClick={(vocabEntry) => setSelectedVocab(vocabEntry.de)}
+                />
               </p>
               {showTranslation && (
-                <p className="text-sm text-gray-600 mt-2 italic">
+                <p className="text-sm text-gray-600 mt-3 pt-3 border-t border-gray-100 italic">
                   {lang === 'de' ? q.question_en : q.question_de}
                 </p>
               )}
@@ -329,7 +486,18 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="flex-1">{opt.text}</span>
+                      <span className="flex-1">
+                        {(showAsCorrect || showAsWrong) ? (
+                          // Don't highlight vocabulary in colored answers (harder to see)
+                          opt.text
+                        ) : (
+                          // Highlight vocabulary in unselected answers
+                          <VocabHighlight 
+                            text={opt.text}
+                            onVocabClick={(vocabEntry) => setSelectedVocab(vocabEntry.de)}
+                          />
+                        )}
+                      </span>
                       {showAsCorrect && <CheckCircle2 size={20} />}
                       {showAsWrong && <AlertCircle size={20} />}
                     </div>
@@ -342,7 +510,8 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
       </motion.div>
 
       {/* Continue Button - Fixed at bottom */}
-      {answered && (
+      {/* Show if: answered incorrectly OR last question answered correctly */}
+      {answered && (!userAnswer?.isCorrect || currentIdx === trainingQuestions.length - 1) && (
         <div className="bg-white border-t border-gray-200 px-4 py-3 shrink-0">
           <motion.button
             initial={{ y: 100 }}
