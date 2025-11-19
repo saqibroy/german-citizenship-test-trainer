@@ -3,7 +3,6 @@ import {
   Lock, Zap, TrendingUp, Award, Check, 
   ArrowRight, Star, Users, Heart
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 export default function LandingPage({ lang, onGetStarted }: { lang: 'de' | 'en', onGetStarted: () => void }) {
   const content = lang === 'de' ? {
