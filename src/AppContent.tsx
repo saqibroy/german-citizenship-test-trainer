@@ -6,6 +6,7 @@ import { VocabPage, VocabTrainingPage } from './components.tsx';
 import { updateProgress as updateSRSProgress } from './srsAlgorithm';
 import { OnboardingModal } from './components/OnboardingModal.tsx';
 import { SkeletonLoader } from './components/SkeletonLoader.tsx';
+import { BottomNav } from './components/BottomNav';
 import { safeGetItem, safeSetItem, validateVocabProgress } from './utils/storage';
 import type { QuestionProgress, CategoryBreakdown, VocabProgress } from './types';
 
@@ -209,35 +210,38 @@ export default function AppContent() {
         </div>
       )}
       
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-20 md:pb-6">
-        <header className="bg-white shadow-md sticky top-0 z-50">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-2">
-              <BookOpen className="text-indigo-600" size={24} />
-              <h1 className="text-base md:text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                {lang === 'de' ? 'Einbürgerungstest' : 'Citizenship Test'}
-              </h1>
-            </div>
-            <button 
-              onClick={() => setLang(lang === 'de' ? 'en' : 'de')} 
-              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full font-semibold text-sm shadow-lg hover:shadow-xl transition-shadow active:scale-95"
-            >
-              <Globe size={16} />
-              <span className="hidden sm:inline">{lang === 'de' ? 'EN' : 'DE'}</span>
-            </button>
-          </div>
-          
-          {/* Desktop Navigation - Hidden on mobile */}
-          <nav className="hidden md:flex border-t overflow-x-auto">
-            {['home', 'training', 'quiz', 'vocab', 'grammar', 'stats', 'settings'].map(p => (
-              <button key={p} onClick={() => setPage(p)} className={`flex-1 py-3 text-sm font-semibold whitespace-nowrap px-2 transition-colors ${page === p ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
-                {t[p as keyof typeof t][lang as 'de' | 'en']}
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+        {/* Header - Only show on non-landing/FAQ pages */}
+        {!['landing', 'faq'].includes(page) && (
+          <header className="bg-white shadow-md sticky top-0 z-50">
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-2">
+                <BookOpen className="text-indigo-600" size={24} />
+                <h1 className="text-base md:text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  {lang === 'de' ? 'Einbürgerungstest' : 'Citizenship Test'}
+                </h1>
+              </div>
+              <button 
+                onClick={() => setLang(lang === 'de' ? 'en' : 'de')} 
+                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full font-semibold text-sm shadow-lg hover:shadow-xl transition-shadow active:scale-95 touch-target"
+              >
+                <Globe size={16} />
+                <span className="hidden sm:inline">{lang === 'de' ? 'EN' : 'DE'}</span>
               </button>
-            ))}
-          </nav>
-        </header>
+            </div>
+            
+            {/* Desktop Navigation - Hidden on mobile */}
+            <nav className="hidden md:flex border-t overflow-x-auto">
+              {['home', 'training', 'quiz', 'vocab', 'grammar', 'stats', 'settings'].map(p => (
+                <button key={p} onClick={() => setPage(p)} className={`flex-1 py-3 text-sm font-semibold whitespace-nowrap px-2 transition-colors ${page === p ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
+                  {t[p as keyof typeof t][lang as 'de' | 'en']}
+                </button>
+              ))}
+            </nav>
+          </header>
+        )}
 
-        <main className="pb-2">
+        <main className={!['landing', 'faq'].includes(page) ? 'main-content' : ''}>
           <Suspense fallback={<PageLoader page={page} />}>
             {page === 'landing' && <LandingPage lang={lang as 'de' | 'en'} onGetStarted={() => setPage('home')} />}
             {page === 'faq' && <FAQPage lang={lang as 'de' | 'en'} />}
@@ -273,40 +277,14 @@ export default function AppContent() {
           </Suspense>
         </main>
 
-        {/* Mobile Bottom Navigation */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
-          <div className="grid grid-cols-5 h-16">
-            {[
-              { id: 'home', icon: '🏠', label: lang === 'de' ? 'Start' : 'Home' },
-              { id: 'training', icon: '📚', label: lang === 'de' ? 'Üben' : 'Train' },
-              { id: 'quiz', icon: '📝', label: lang === 'de' ? 'Quiz' : 'Quiz' },
-              { id: 'vocab', icon: '📖', label: lang === 'de' ? 'Wörter' : 'Vocab' },
-              { id: 'grammar', icon: '✏️', label: lang === 'de' ? 'Gram.' : 'Gram.' },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setPage(item.id)}
-                className={`flex flex-col items-center justify-center h-full transition-all active:scale-95 ${
-                  page === item.id
-                    ? 'text-indigo-600 bg-indigo-50'
-                    : 'text-gray-500 active:bg-gray-100'
-                }`}
-              >
-                <span className="text-xl mb-0.5">{item.icon}</span>
-                <span className="text-xs font-medium">{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
-
-        {/* Quick Access Floating Button for Stats & Settings on Mobile */}
-        <button
-          onClick={() => setPage(page === 'stats' ? 'settings' : 'stats')}
-          className="md:hidden fixed bottom-20 right-4 z-40 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all active:scale-95"
-          title={lang === 'de' ? 'Stats / Einstellungen' : 'Stats / Settings'}
-        >
-          <span className="text-2xl">{page === 'stats' || page === 'settings' ? '⚙️' : '📊'}</span>
-        </button>
+        {/* New Bottom Navigation - Only show on main pages */}
+        {!['landing', 'faq'].includes(page) && (
+          <BottomNav 
+            currentPage={page}
+            onNavigate={setPage}
+            lang={lang}
+          />
+        )}
       </div>
     </>
   );
