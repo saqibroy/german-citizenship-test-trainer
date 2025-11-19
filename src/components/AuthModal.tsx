@@ -64,19 +64,24 @@ export function AuthModal({ onClose, initialMode = 'login' }: AuthModalProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end md:items-center md:justify-center p-0 md:p-4"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
+        initial={{ y: '100%', opacity: 1 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: '100%', opacity: 0 }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden"
+        className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl max-w-md w-full overflow-hidden max-h-[90vh] md:max-h-[85vh] overflow-y-auto"
       >
+        {/* Mobile handle bar */}
+        <div className="sticky top-0 bg-white pt-2 pb-1 flex justify-center md:hidden">
+          <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+        </div>
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-6 text-white">
-          <h2 className="text-2xl font-bold mb-2">
+        <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-4 md:p-6 text-white">
+          <h2 className="text-xl md:text-2xl font-bold mb-2">
             {mode === 'login' && 'Willkommen zurück!'}
             {mode === 'signup' && 'Konto erstellen'}
             {mode === 'forgot' && 'Passwort zurücksetzen'}
@@ -89,7 +94,7 @@ export function AuthModal({ onClose, initialMode = 'login' }: AuthModalProps) {
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           <AnimatePresence mode="wait">
             {error && (
               <motion.div
@@ -203,7 +208,7 @@ export function AuthModal({ onClose, initialMode = 'login' }: AuthModalProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white py-3 md:py-3 rounded-xl font-bold text-base md:text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-target-lg"
             >
               {loading ? (
                 <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
@@ -233,7 +238,7 @@ export function AuthModal({ onClose, initialMode = 'login' }: AuthModalProps) {
               <button
                 onClick={handleGoogleSignIn}
                 disabled={loading}
-                className="w-full bg-white border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-semibold flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="w-full bg-white border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-semibold flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors disabled:opacity-50 touch-target-lg"
               >
                 <Chrome size={20} className="text-blue-500" />
                 Mit Google fortfahren

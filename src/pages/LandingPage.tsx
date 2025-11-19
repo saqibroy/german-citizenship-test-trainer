@@ -429,10 +429,10 @@ export default function LandingPage({ lang, onGetStarted }: { lang: 'de' | 'en',
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Hero Section */}
       <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="max-w-7xl mx-auto mobile-container px-4 sm:px-6 lg:px-8 py-12 md:py-24">
           <div className="text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fadeIn">
               {content.hero.title}
