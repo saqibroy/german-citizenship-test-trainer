@@ -106,93 +106,136 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
         </p>
       </div>
 
-      {/* Simple Progress Bar */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-bold text-gray-800">{lang === 'de' ? 'Gesamtfortschritt' : 'Overall Progress'}</h3>
-          <span className="text-2xl font-bold text-indigo-600">{progressPercentage}%</span>
+      {/* Progress Overview - MODERNIZED */}
+      <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-indigo-100">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-xl font-black text-gray-900">{lang === 'de' ? 'Dein Fortschritt' : 'Your Progress'}</h3>
+            <p className="text-sm text-gray-600 mt-0.5">{lang === 'de' ? 'Bis zur Prüfung' : 'Until exam ready'}</p>
+          </div>
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-3 rounded-xl shadow-lg">
+            <div className="text-3xl font-black">{progressPercentage}%</div>
+          </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden mb-3">
+        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden mb-5 shadow-inner">
           <div 
-            className="bg-gradient-to-r from-indigo-500 to-purple-500 h-4 rounded-full transition-all duration-500"
+            className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500 shadow-lg"
             style={{ width: `${progressPercentage}%` }}
           ></div>
         </div>
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div>
-            <div className="text-2xl font-bold text-indigo-600">{answered}</div>
-            <div className="text-xs text-gray-600">{lang === 'de' ? 'Beantwortet' : 'Answered'}</div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center bg-indigo-50 rounded-xl p-3">
+            <div className="text-2xl font-black text-indigo-600 mb-1">{answered}</div>
+            <div className="text-xs text-gray-700 font-semibold">{lang === 'de' ? 'Beantwortet' : 'Answered'}</div>
           </div>
-          <div>
-            <div className="text-2xl font-bold text-green-600">{masteredCount}</div>
-            <div className="text-xs text-gray-600">{lang === 'de' ? 'Gemeistert' : 'Mastered'}</div>
+          <div className="text-center bg-green-50 rounded-xl p-3">
+            <div className="text-2xl font-black text-green-600 mb-1">{masteredCount}</div>
+            <div className="text-xs text-gray-700 font-semibold">{lang === 'de' ? 'Gemeistert' : 'Mastered'}</div>
           </div>
-          <div>
-            <div className="text-2xl font-bold text-red-600">{dueCount}</div>
-            <div className="text-xs text-gray-600">{lang === 'de' ? 'Fällig' : 'Due'}</div>
+          <div className="text-center bg-red-50 rounded-xl p-3">
+            <div className="text-2xl font-black text-red-600 mb-1">{dueCount}</div>
+            <div className="text-xs text-gray-700 font-semibold">{lang === 'de' ? 'Fällig' : 'Due'}</div>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - MODERN MOBILE-FIRST DESIGN */}
       <div className="space-y-3">
         {dueCount > 0 && (
-          <button onClick={() => setPage('training')} className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-            <div className="flex items-center gap-3">
-              <AlertCircle size={24} />
-              <div className="text-left">
-                <div className="font-black">{lang === 'de' ? '🔄 Fällige Fragen' : '🔄 Review Due'}</div>
-                <div className="text-xs opacity-90">{dueCount} {lang === 'de' ? 'warten' : 'waiting'}</div>
+          <button 
+            onClick={() => setPage('training')} 
+            className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-2xl p-5 font-bold shadow-xl hover:shadow-2xl transition-all active:scale-98 touch-target"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
+                  <AlertCircle size={28} />
+                </div>
+                <div className="text-left">
+                  <div className="text-lg font-black">{lang === 'de' ? 'Fällige Fragen' : 'Review Due'}</div>
+                  <div className="text-sm opacity-90 font-medium">{dueCount} {lang === 'de' ? 'warten auf dich' : 'waiting for you'}</div>
+                </div>
               </div>
+              <ChevronRight size={24} className="flex-shrink-0" />
             </div>
-            <ChevronRight />
           </button>
         )}
         
-        <button onClick={() => setPage('training')} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-          <div className="flex items-center gap-3">
-            <Brain size={24} />
-            <div className="text-left">
-              <div className="font-black">{lang === 'de' ? '🧠 Training' : '🧠 Training'}</div>
-              <div className="text-xs opacity-90">{lang === 'de' ? 'SRS Lernen' : 'SRS Learning'}</div>
+        <button 
+          onClick={() => setPage('training')} 
+          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl p-5 font-bold shadow-xl hover:shadow-2xl transition-all active:scale-98 touch-target"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
+                <Brain size={28} />
+              </div>
+              <div className="text-left">
+                <div className="text-lg font-black">{lang === 'de' ? 'Training' : 'Training'}</div>
+                <div className="text-sm opacity-90 font-medium">{lang === 'de' ? 'Intelligentes Lernen' : 'Smart Learning'}</div>
+              </div>
             </div>
+            <ChevronRight size={24} className="flex-shrink-0" />
           </div>
-          <ChevronRight />
         </button>
 
-        <button onClick={() => setPage('quiz')} className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl p-4 font-bold shadow-lg flex items-center justify-between hover:shadow-xl transition-all">
-          <div className="flex items-center gap-3">
-            <Target size={24} />
-            <div className="text-left">
-              <div className="font-black">{lang === 'de' ? '🎯 Quiz' : '🎯 Quiz'}</div>
-              <div className="text-xs opacity-90">33 {lang === 'de' ? 'Fragen' : 'questions'}</div>
+        <button 
+          onClick={() => setPage('quiz')} 
+          className="w-full bg-gradient-to-r from-amber-500 to-red-500 text-white rounded-2xl p-5 font-bold shadow-xl hover:shadow-2xl transition-all active:scale-98 touch-target"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
+                <Target size={28} />
+              </div>
+              <div className="text-left">
+                <div className="text-lg font-black">{lang === 'de' ? 'Prüfungs-Quiz' : 'Exam Quiz'}</div>
+                <div className="text-sm opacity-90 font-medium">33 {lang === 'de' ? 'echte Fragen' : 'real questions'}</div>
+              </div>
             </div>
+            <ChevronRight size={24} className="flex-shrink-0" />
           </div>
-          <ChevronRight />
         </button>
 
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => setPage('vocab')} className="bg-white text-gray-800 rounded-xl p-4 font-bold shadow-md border-2 border-blue-200 hover:border-blue-400 transition-all">
-            <BookMarked className="mx-auto mb-2 text-blue-600" size={28} />
-            <div className="text-sm">{lang === 'de' ? 'Vokabeln' : 'Vocabulary'}</div>
+          <button 
+            onClick={() => setPage('vocab')} 
+            className="bg-white text-gray-800 rounded-2xl p-5 font-bold shadow-lg hover:shadow-xl border-2 border-purple-200 hover:border-purple-400 transition-all active:scale-98 touch-target"
+          >
+            <div className="bg-purple-50 w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <BookMarked className="text-purple-600" size={32} />
+            </div>
+            <div className="text-base font-bold">{lang === 'de' ? 'Vokabeln' : 'Vocabulary'}</div>
+            <div className="text-xs text-gray-600 mt-1 font-medium">{lang === 'de' ? 'Wortschatz' : 'Learn words'}</div>
           </button>
-          <button onClick={() => setPage('cards')} className="bg-white text-gray-800 rounded-xl p-4 font-bold shadow-md border-2 border-green-200 hover:border-green-400 transition-all">
-            <BookOpen className="mx-auto mb-2 text-green-600" size={28} />
-            <div className="text-sm">{lang === 'de' ? 'Karten' : 'Cards'}</div>
+          <button 
+            onClick={() => setPage('cards')} 
+            className="bg-white text-gray-800 rounded-2xl p-5 font-bold shadow-lg hover:shadow-xl border-2 border-green-200 hover:border-green-400 transition-all active:scale-98 touch-target"
+          >
+            <div className="bg-green-50 w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <BookOpen className="text-green-600" size={32} />
+            </div>
+            <div className="text-base font-bold">{lang === 'de' ? 'Karten' : 'Cards'}</div>
+            <div className="text-xs text-gray-600 mt-1 font-medium">{lang === 'de' ? 'Karteikarten' : 'Flashcards'}</div>
           </button>
         </div>
       </div>
 
-      {/* Badges */}
+      {/* Badges - MODERNIZED */}
       {badges.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-md border-2 border-yellow-200">
-          <div className="flex items-center gap-2 mb-3">
-            <Award className="text-yellow-500" size={22} />
-            <h3 className="font-bold text-gray-800">{lang === 'de' ? '🏆 Abzeichen' : '🏆 Badges'}</h3>
+        <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl p-5 shadow-xl border-2 border-amber-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 p-2.5 rounded-xl shadow-lg">
+              <Award className="text-white" size={24} />
+            </div>
+            <div>
+              <h3 className="font-black text-gray-900 text-lg">{lang === 'de' ? 'Erfolge' : 'Achievements'}</h3>
+              <p className="text-xs text-gray-600">{badges.length} {lang === 'de' ? 'freigeschaltet' : 'unlocked'}</p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {badges.map((b: any, i: any) => (
-              <span key={i} className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md">
+              <span key={i} className="bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg border-2 border-yellow-300">
                 {b}
               </span>
             ))}

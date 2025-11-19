@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Home, Brain, Trophy, BarChart3, Settings, BookOpen } from 'lucide-react';
+import { Home, Brain, Trophy, Settings, BookOpen } from 'lucide-react';
 
 interface BottomNavProps {
   currentPage: string;
@@ -25,9 +25,9 @@ export function BottomNav({ currentPage, onNavigate, lang }: BottomNavProps) {
       label: lang === 'de' ? 'Quiz' : 'Quiz',
     },
     {
-      id: 'stats',
-      icon: BarChart3,
-      label: lang === 'de' ? 'Stats' : 'Stats',
+      id: 'grammar',
+      icon: BookOpen,
+      label: lang === 'de' ? 'Grammatik' : 'Grammar',
     },
     {
       id: 'more',
@@ -44,7 +44,7 @@ export function BottomNav({ currentPage, onNavigate, lang }: BottomNavProps) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id || 
-                            (item.id === 'more' && ['settings', 'cards', 'vocab', 'vocab-training', 'grammar', 'faq', 'landing'].includes(currentPage));
+                            (item.id === 'more' && ['settings', 'cards', 'vocab', 'vocab-training', 'stats', 'faq', 'landing'].includes(currentPage));
             
             return (
               <button

@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
-import { Globe, BookOpen } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { QUESTIONS } from './data.js';
 import { CITIZENSHIP_VOCABULARY } from './vacabulary.js';
 import { VocabPage, VocabTrainingPage } from './components.tsx';
@@ -221,13 +221,29 @@ export default function AppContent() {
                   {lang === 'de' ? 'Einbürgerungstest' : 'Citizenship Test'}
                 </h1>
               </div>
-              <button 
-                onClick={() => setLang(lang === 'de' ? 'en' : 'de')} 
-                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full font-semibold text-sm shadow-lg hover:shadow-xl transition-shadow active:scale-95 touch-target"
-              >
-                <Globe size={16} />
-                <span className="hidden sm:inline">{lang === 'de' ? 'EN' : 'DE'}</span>
-              </button>
+              {/* Modern Language Selector */}
+              <div className="flex gap-1 bg-gray-100 rounded-full p-1">
+                <button
+                  onClick={() => setLang('de')}
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all touch-target ${
+                    lang === 'de'
+                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  DE
+                </button>
+                <button
+                  onClick={() => setLang('en')}
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all touch-target ${
+                    lang === 'en'
+                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  EN
+                </button>
+              </div>
             </div>
             
             {/* Desktop Navigation - Hidden on mobile */}

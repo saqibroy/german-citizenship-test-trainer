@@ -192,82 +192,100 @@ export function StatsPage({
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Stats Grid - MODERNIZED MOBILE-FIRST */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {/* Streak */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-orange-200">
-            <div className="flex items-center justify-between mb-4">
-              <Flame className="text-orange-500" size={32} />
-              <span className="text-4xl font-bold text-orange-600">{studyStreak}</span>
+          <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl p-4 md:p-6 shadow-xl border-2 border-orange-200 active:scale-98 transition-transform">
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+              <Flame className="text-white" size={28} />
             </div>
-            <h3 className="font-bold text-gray-800">
-              {lang === 'de' ? 'Tage Streak' : 'Day Streak'}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {lang === 'de' ? 'Bleib dran!' : 'Keep it up!'}
-            </p>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-orange-600 mb-1">{studyStreak}</div>
+              <h3 className="font-bold text-gray-900 text-sm md:text-base">
+                {lang === 'de' ? 'Tage Streak' : 'Day Streak'}
+              </h3>
+              <p className="text-xs text-gray-600 mt-1">
+                {lang === 'de' ? 'Bleib dran!' : 'Keep it up!'}
+              </p>
+            </div>
           </div>
 
           {/* Study Time */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-blue-200">
-            <div className="flex items-center justify-between mb-4">
-              <Clock className="text-blue-500" size={32} />
-              <span className="text-4xl font-bold text-blue-600">{estimatedMinutes}</span>
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 md:p-6 shadow-xl border-2 border-blue-200 active:scale-98 transition-transform">
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-500 w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+              <Clock className="text-white" size={28} />
             </div>
-            <h3 className="font-bold text-gray-800">
-              {lang === 'de' ? 'Minuten' : 'Minutes'}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {lang === 'de' ? 'Lernzeit' : 'Study time'}
-            </p>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-blue-600 mb-1">{estimatedMinutes}</div>
+              <h3 className="font-bold text-gray-900 text-sm md:text-base">
+                {lang === 'de' ? 'Minuten' : 'Minutes'}
+              </h3>
+              <p className="text-xs text-gray-600 mt-1">
+                {lang === 'de' ? 'Lernzeit' : 'Study time'}
+              </p>
+            </div>
           </div>
 
           {/* Due Reviews */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-red-200">
-            <div className="flex items-center justify-between mb-4">
-              <AlertCircle className="text-red-500" size={32} />
-              <span className="text-4xl font-bold text-red-600">{dueCount}</span>
+          <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-2xl p-4 md:p-6 shadow-xl border-2 border-red-200 active:scale-98 transition-transform">
+            <div className="bg-gradient-to-r from-red-500 to-rose-500 w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+              <AlertCircle className="text-white" size={28} />
             </div>
-            <h3 className="font-bold text-gray-800">
-              {lang === 'de' ? 'Fällig' : 'Due'}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {lang === 'de' ? 'Wiederholung' : 'For review'}
-            </p>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-red-600 mb-1">{dueCount}</div>
+              <h3 className="font-bold text-gray-900 text-sm md:text-base">
+                {lang === 'de' ? 'Fällig' : 'Due'}
+              </h3>
+              <p className="text-xs text-gray-600 mt-1">
+                {lang === 'de' ? 'Wiederholung' : 'For review'}
+              </p>
+            </div>
           </div>
 
           {/* Average Speed */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-green-200">
-            <div className="flex items-center justify-between mb-4">
-              <Zap className="text-green-500" size={32} />
-              <span className="text-4xl font-bold text-green-600">{Math.round(avgAnswerTime)}s</span>
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 md:p-6 shadow-xl border-2 border-green-200 active:scale-98 transition-transform">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-500 w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+              <Zap className="text-white" size={28} />
             </div>
-            <h3 className="font-bold text-gray-800">
-              {lang === 'de' ? 'Ø Zeit' : 'Avg Time'}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {lang === 'de' ? 'Pro Frage' : 'Per question'}
-            </p>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-green-600 mb-1">{Math.round(avgAnswerTime)}s</div>
+              <h3 className="font-bold text-gray-900 text-sm md:text-base">
+                {lang === 'de' ? 'Ø Zeit' : 'Avg Time'}
+              </h3>
+              <p className="text-xs text-gray-600 mt-1">
+                {lang === 'de' ? 'Pro Frage' : 'Per question'}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Strength Distribution */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-green-500">
-            <div className="text-3xl font-bold text-green-600">{strengthGroups.strong.length}</div>
-            <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '💪 Stark' : '💪 Strong'}</div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-yellow-500">
-            <div className="text-3xl font-bold text-yellow-600">{strengthGroups.medium.length}</div>
-            <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '📚 Mittel' : '📚 Medium'}</div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-red-500">
-            <div className="text-3xl font-bold text-red-600">{strengthGroups.weak.length}</div>
-            <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '🔄 Schwach' : '🔄 Weak'}</div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-gray-400">
-            <div className="text-3xl font-bold text-gray-600">{strengthGroups.unanswered.length}</div>
-            <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? '❓ Neu' : '❓ New'}</div>
+        {/* Strength Distribution - MODERNIZED */}
+        <div className="bg-white rounded-2xl p-5 shadow-xl">
+          <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
+            <Brain size={22} className="text-purple-600" />
+            {lang === 'de' ? 'Fragenstärke' : 'Question Strength'}
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 shadow-md border-2 border-green-200 active:scale-95 transition-transform touch-target">
+              <div className="text-3xl md:text-4xl font-black text-green-600 mb-2">{strengthGroups.strong.length}</div>
+              <div className="text-xs md:text-sm text-gray-800 font-bold">{lang === 'de' ? '💪 Stark' : '💪 Strong'}</div>
+              <div className="text-[10px] text-gray-600 mt-1">{lang === 'de' ? 'Sehr gut' : 'Very good'}</div>
+            </div>
+            <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-4 shadow-md border-2 border-yellow-200 active:scale-95 transition-transform touch-target">
+              <div className="text-3xl md:text-4xl font-black text-yellow-600 mb-2">{strengthGroups.medium.length}</div>
+              <div className="text-xs md:text-sm text-gray-800 font-bold">{lang === 'de' ? '📚 Mittel' : '📚 Medium'}</div>
+              <div className="text-[10px] text-gray-600 mt-1">{lang === 'de' ? 'Üben' : 'Practice'}</div>
+            </div>
+            <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-4 shadow-md border-2 border-red-200 active:scale-95 transition-transform touch-target">
+              <div className="text-3xl md:text-4xl font-black text-red-600 mb-2">{strengthGroups.weak.length}</div>
+              <div className="text-xs md:text-sm text-gray-800 font-bold">{lang === 'de' ? '🔄 Schwach' : '🔄 Weak'}</div>
+              <div className="text-[10px] text-gray-600 mt-1">{lang === 'de' ? 'Fokus' : 'Focus'}</div>
+            </div>
+            <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-4 shadow-md border-2 border-gray-200 active:scale-95 transition-transform touch-target">
+              <div className="text-3xl md:text-4xl font-black text-gray-600 mb-2">{strengthGroups.unanswered.length}</div>
+              <div className="text-xs md:text-sm text-gray-800 font-bold">{lang === 'de' ? '❓ Neu' : '❓ New'}</div>
+              <div className="text-[10px] text-gray-600 mt-1">{lang === 'de' ? 'Nicht beantwortet' : 'Not answered'}</div>
+            </div>
           </div>
         </div>
 

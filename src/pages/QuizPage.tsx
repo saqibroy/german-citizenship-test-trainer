@@ -1,13 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence, PanInfo } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Trophy, Target, Award, CheckCircle2, AlertCircle, ChevronRight, Languages
+  BookOpen, BarChart3, Trophy, Target, Award, CheckCircle2, Languages, AlertCircle
 } from 'lucide-react';
 import { calculateSRSWeight } from '../srsAlgorithm';
 import { VocabPopup } from '../components.tsx';
 import { shuffleArray } from '../utils/shuffleArray';
 import type { Question, QuizPageProps, CategoryBreakdown } from '../types';
-import ConfettiExplosion from 'react-confetti-explosion';
 
 interface Answer {
   selectedIndex: number;
@@ -23,8 +22,8 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
   const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
   const [resultSaved, setResultSaved] = useState(false);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
-  const [showConfetti, setShowConfetti] = useState(false);
 
+  // Create shuffled options with original indices - CALL HOOKS FIRST, BEFORE ANY RETURNS!
   const shuffledOptions = useMemo(() => {
     if (!quizQuestions[currentIdx]) return [];
     const q = quizQuestions[currentIdx];
@@ -35,6 +34,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     return shuffleArray(opts);
   }, [quizQuestions, currentIdx, lang]);
 
+  // Calculate quiz results (score and category breakdown) - only when quiz is complete
   const quizResults = useMemo(() => {
     if (currentIdx < quizQuestions.length) return null;
     
@@ -55,13 +55,11 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     return { score, categoryBreakdown };
   }, [currentIdx, quizQuestions, answers]);
 
+  // Save quiz result when completed (runs only once)
   useEffect(() => {
     if (quizResults && !resultSaved) {
       saveQuizResult(quizResults.score, 33, quizResults.categoryBreakdown);
       setResultSaved(true);
-      if (quizResults.score >= 28) { // 85% pass rate
-        setShowConfetti(true);
-      }
     }
   }, [quizResults, resultSaved, saveQuizResult]);
 
@@ -79,6 +77,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
         progress[q.id]?.strength === 'strong' || progress[q.id]?.strength === 'medium'
       );
     } else {
+      // 'all' mode - use smart selection
       const weightedQuestions = questions.map((q: Question) => ({
         ...q,
         weight: calculateSRSWeight(progress[q.id])
@@ -88,6 +87,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
       filtered = shuffleArray(topWeighted);
     }
     
+    // Take up to 33 questions
     const selected = shuffleArray([...filtered]).slice(0, 33);
     setQuizQuestions(selected);
     setStarted(true);
@@ -98,19 +98,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     setQuestionStartTime(Date.now());
   };
 
-  // Swipe gesture
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    const answered = answers[currentIdx] !== undefined;
-    if (!answered) return;
-    
-    const swipeThreshold = 100;
-    if (info.offset.x < -swipeThreshold && currentIdx < quizQuestions.length - 1) {
-      setCurrentIdx(currentIdx + 1);
-      setShowTranslation(false);
-      setQuestionStartTime(Date.now());
-    }
-  };
-
+  // NOW it's safe to have conditional returns
   if (!started) {
     const untrainedCount = questions.filter((q: Question) => !progress[q.id]).length;
     const weakCount = questions.filter((q: Question) => 
@@ -121,37 +109,37 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     ).length;
     
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex flex-col main-content">
-        <div className="flex-1 flex flex-col mobile-container py-4 max-w-2xl mx-auto w-full">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-20 md:pb-6">
+        <div className="max-w-2xl mx-auto px-4 py-6">
           {/* Header */}
-          <div className="bg-gradient-to-r from-amber-500 to-red-500 rounded-2xl p-4 text-white shadow-xl mb-4 shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl">
-                  <Trophy size={24} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold">{lang === 'de' ? 'Quiz' : 'Quiz'}</h2>
-                  <p className="text-orange-100 text-xs">{lang === 'de' ? 'Teste dein Wissen' : 'Test Your Knowledge'}</p>
-                </div>
+          <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 rounded-2xl p-6 text-white shadow-xl mb-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
+                <Trophy size={28} />
               </div>
-              <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2">
-                <Target size={16} />
-                <span className="text-xl font-bold">33</span>
+              <div>
+                <h2 className="text-2xl font-bold">{lang === 'de' ? 'Quiz' : 'Quiz'}</h2>
+                <p className="text-orange-100 text-xs">{lang === 'de' ? 'Teste dein Wissen' : 'Test Your Knowledge'}</p>
               </div>
+            </div>
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-5 py-2.5 border border-white/30">
+              <Target size={18} />
+              <span className="text-2xl font-bold">33</span>
+              <span className="text-xs opacity-90">{lang === 'de' ? 'Fragen' : 'questions'}</span>
             </div>
           </div>
 
           {/* Quiz Mode Selection */}
-          <div className="space-y-3 flex-1 overflow-y-auto">
-            <h3 className="font-bold text-gray-900 mb-3">
+          <div className="space-y-3">
+            <h3 className="font-bold text-gray-900 mb-3 text-sm">
               {lang === 'de' ? 'Wähle einen Modus:' : 'Choose a Mode:'}
             </h3>
 
+            {/* Untrained Questions */}
             <button
               onClick={() => startQuiz('untrained')}
               disabled={untrainedCount === 0}
-              className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-lg active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed touch-target-lg"
+              className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -163,14 +151,15 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
                     <p className="text-xs text-gray-500">{lang === 'de' ? 'Noch nie beantwortet' : 'Never answered'}</p>
                   </div>
                 </div>
-                <ChevronRight className="text-gray-400" size={20} />
+                <BookOpen className="text-blue-500" size={20} />
               </div>
             </button>
 
+            {/* Weak Questions */}
             <button
               onClick={() => startQuiz('weak')}
               disabled={weakCount === 0}
-              className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-lg active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed touch-target-lg"
+              className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -182,14 +171,15 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
                     <p className="text-xs text-gray-500">{lang === 'de' ? 'Schwache & neue' : 'Weak & new'}</p>
                   </div>
                 </div>
-                <ChevronRight className="text-gray-400" size={20} />
+                <Target className="text-red-500" size={20} />
               </div>
             </button>
 
+            {/* Strong Questions */}
             <button
               onClick={() => startQuiz('strong')}
               disabled={strongCount === 0}
-              className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-lg active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed touch-target-lg"
+              className="w-full bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -201,13 +191,14 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
                     <p className="text-xs text-gray-500">{lang === 'de' ? 'Starke & mittlere' : 'Strong & medium'}</p>
                   </div>
                 </div>
-                <ChevronRight className="text-gray-400" size={20} />
+                <CheckCircle2 className="text-green-500" size={20} />
               </div>
             </button>
 
+            {/* All Questions */}
             <button
               onClick={() => startQuiz('all')}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl p-4 shadow-xl hover:shadow-2xl active:scale-98 transition-all touch-target-lg"
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all active:scale-98"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -215,11 +206,11 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
                     33
                   </div>
                   <div className="text-left">
-                    <p className="font-bold">{lang === 'de' ? 'Gemischtes Quiz' : 'Mixed Quiz'}</p>
-                    <p className="text-xs text-purple-100">{lang === 'de' ? 'Intelligente Auswahl' : 'Smart selection'}</p>
+                    <p className="font-semibold">{lang === 'de' ? 'Gemischtes Quiz' : 'Mixed Quiz'}</p>
+                    <p className="text-xs text-purple-100">{lang === 'de' ? 'Alle Fragen' : 'All questions'}</p>
                   </div>
                 </div>
-                <Award size={24} />
+                <Award className="text-white" size={20} />
               </div>
             </button>
           </div>
@@ -229,59 +220,108 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
   }
 
   if (currentIdx >= quizQuestions.length) {
-    const score = quizResults?.score || 0;
-    const percentage = Math.round((score / quizQuestions.length) * 100);
-    const passed = percentage >= 85;
-
+    if (!quizResults) return null;
+    
+    const { score, categoryBreakdown } = quizResults;
+    const passed = score >= 17;
+    const accuracy = Math.round((score / 33) * 100);
+    
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex flex-col main-content">
-        {showConfetti && (
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
-            <ConfettiExplosion 
-              force={0.6}
-              duration={3000}
-              particleCount={150}
-              width={1200}
-            />
-          </div>
-        )}
-
-        <div className="flex-1 flex flex-col mobile-container py-6 max-w-2xl mx-auto w-full">
-          {/* Result Card */}
-          <div className={`rounded-3xl p-6 text-white shadow-2xl mb-6 ${
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-20 md:pb-6">
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          {/* Results Header */}
+          <div className={`${
             passed 
-              ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
-              : 'bg-gradient-to-br from-orange-500 to-red-600'
-          }`}>
+              ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
+              : 'bg-gradient-to-r from-red-500 to-rose-600'
+          } rounded-2xl p-6 text-white shadow-xl mb-6`}>
             <div className="text-center">
               <div className="text-6xl mb-4">{passed ? '🎉' : '📚'}</div>
               <h2 className="text-3xl font-bold mb-2">
                 {passed 
                   ? (lang === 'de' ? 'Bestanden!' : 'Passed!') 
-                  : (lang === 'de' ? 'Weiter üben' : 'Keep Practicing')}
+                  : (lang === 'de' ? 'Nicht bestanden' : 'Not Passed')}
               </h2>
-              <p className="text-xl opacity-90">
-                {score} / {quizQuestions.length} {lang === 'de' ? 'richtig' : 'correct'}
+              <p className="text-lg opacity-90">
+                {score} / 33 {lang === 'de' ? 'richtig' : 'correct'}
               </p>
-              <div className="text-5xl font-black mt-4">{percentage}%</div>
+              <div className="mt-4 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-6 py-3">
+                <span className="text-4xl font-bold">{accuracy}%</span>
+              </div>
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="space-y-3 mt-auto">
-            <button
-              onClick={() => {
-                setStarted(false);
-                setCurrentIdx(0);
-                setAnswers([]);
-                setResultSaved(false);
-                setShowConfetti(false);
-              }}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-2xl py-4 font-bold text-lg shadow-xl active:scale-98 transition-transform touch-target-lg"
-            >
-              {lang === 'de' ? '🔄 Neues Quiz' : '🔄 New Quiz'}
-            </button>
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-white rounded-xl p-4 shadow-md text-center">
+              <div className="text-3xl font-bold text-green-600 mb-1">{score}</div>
+              <div className="text-sm text-gray-600">{lang === 'de' ? 'Richtig' : 'Correct'}</div>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-md text-center">
+              <div className="text-3xl font-bold text-red-600 mb-1">{33 - score}</div>
+              <div className="text-sm text-gray-600">{lang === 'de' ? 'Falsch' : 'Incorrect'}</div>
+            </div>
           </div>
+
+          {/* Category Breakdown */}
+          <div className="bg-white rounded-xl p-5 shadow-md mb-6">
+            <h3 className="font-bold text-gray-800 mb-4 text-lg flex items-center gap-2">
+              <BarChart3 size={20} className="text-purple-600" />
+              {lang === 'de' ? 'Leistung nach Kategorie' : 'Performance by Category'}
+            </h3>
+            <div className="space-y-3">
+              {Object.entries(categoryBreakdown).map(([cat, stats]: [string, { correct: number; total: number }]) => {
+                const percentage = Math.round((stats.correct / stats.total) * 100);
+                const isGood = stats.correct / stats.total >= 0.7;
+                return (
+                  <div key={cat} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-700 font-medium">{cat}</span>
+                      <span className={`font-bold ${isGood ? 'text-green-600' : 'text-orange-600'}`}>
+                        {stats.correct}/{stats.total} ({percentage}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all ${
+                          isGood ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-orange-400 to-orange-600'
+                        }`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Feedback */}
+          <div className="bg-white rounded-xl p-5 shadow-md mb-6">
+            <p className="text-gray-700 leading-relaxed">
+              {passed ? (
+                lang === 'de' 
+                  ? '🎯 Hervorragend! Du hast den Test bestanden. Mach weiter so!' 
+                  : '🎯 Excellent! You passed the test. Keep up the good work!'
+              ) : (
+                lang === 'de'
+                  ? '💪 Weiter üben! Konzentriere dich auf deine schwachen Bereiche.'
+                  : '💪 Keep practicing! Focus on your weak areas.'
+              )}
+            </p>
+          </div>
+
+          {/* Action Button */}
+          <button
+            onClick={() => {
+              setStarted(false);
+              setCurrentIdx(0);
+              setAnswers([]);
+              setResultSaved(false);
+            }}
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-2xl py-4 font-bold text-lg shadow-xl active:scale-98 transition-transform"
+          >
+            {lang === 'de' ? '🔄 Neues Quiz' : '🔄 New Quiz'}
+          </button>
         </div>
       </div>
     );
@@ -300,22 +340,39 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     newAnswers[currentIdx] = { selectedIndex: originalIndex, isCorrect };
     setAnswers(newAnswers);
     updateProgress(q.id, isCorrect, answerTime);
+
+    // Auto-advance on correct answer after 1 second (except last question)
+    if (isCorrect && currentIdx < quizQuestions.length - 1) {
+      setTimeout(() => {
+        setCurrentIdx(currentIdx + 1);
+        setShowTranslation(false);
+        setQuestionStartTime(Date.now());
+      }, 1000);
+    }
+  };
+
+  const sessionStats = {
+    correct: answers.filter((a: Answer) => a?.isCorrect).length,
+    incorrect: answers.filter((a: Answer) => a && !a.isCorrect).length
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex flex-col main-content overflow-hidden">
-      {/* Progress Bar */}
+      {/* Progress Bar - Fixed at top - MATCHES TrainingPage */}
       <div className="bg-white shadow-md px-4 py-3 shrink-0">
         <div className="flex items-center justify-between mb-2 max-w-2xl mx-auto">
           <span className="text-sm font-semibold text-gray-700">
             {currentIdx + 1} / {quizQuestions.length}
           </span>
-          <button
-            onClick={() => setShowTranslation(!showTranslation)}
-            className="flex items-center gap-1 text-sm font-medium text-purple-600 touch-target"
-          >
-            <Languages size={18} />
-          </button>
+          {/* Session stats */}
+          <div className="flex items-center gap-3 text-xs">
+            <span className="flex items-center gap-1 text-green-600 font-medium">
+              <CheckCircle2 size={14} /> {sessionStats.correct}
+            </span>
+            <span className="flex items-center gap-1 text-red-600 font-medium">
+              <AlertCircle size={14} /> {sessionStats.incorrect}
+            </span>
+          </div>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden max-w-2xl mx-auto">
           <motion.div 
@@ -327,14 +384,8 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
         </div>
       </div>
 
-      {/* Question Card */}
-      <motion.div 
-        className="flex-1 overflow-y-auto mobile-container py-4 max-w-2xl mx-auto w-full"
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
-        onDragEnd={handleDragEnd}
-      >
+      {/* Question Card - Scrollable if needed */}
+      <div className="flex-1 overflow-y-auto mobile-container py-4 max-w-2xl mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIdx}
@@ -344,7 +395,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
             transition={{ duration: 0.3 }}
             className="space-y-4"
           >
-            {/* Question */}
+            {/* Question - MATCHES TrainingPage */}
             <div className="bg-white rounded-2xl p-4 shadow-lg">
               {q.img?.url && (
                 <div className="mb-4 rounded-xl overflow-hidden">
@@ -355,16 +406,32 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
                   />
                 </div>
               )}
+              
+              {/* Translate button - MATCHES TrainingPage */}
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                <span className="text-xs font-semibold text-amber-600 uppercase tracking-wide">
+                  {lang === 'de' ? 'Frage' : 'Question'} {currentIdx + 1}
+                </span>
+                <button
+                  onClick={() => setShowTranslation(!showTranslation)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700 active:scale-95 transition-all touch-target bg-amber-50 px-3 py-1.5 rounded-lg"
+                >
+                  <Languages size={16} />
+                  <span>{showTranslation ? (lang === 'de' ? 'DE' : 'EN') : (lang === 'de' ? 'EN' : 'DE')}</span>
+                </button>
+              </div>
+              
               <p className="text-lg font-semibold text-gray-900 leading-relaxed">
                 {lang === 'de' ? q.question_de : q.question_en}
               </p>
               {showTranslation && (
-                <p className="text-sm text-gray-600 mt-2 italic">
+                <p className="text-sm text-gray-600 mt-3 pt-3 border-t border-gray-100 italic">
                   {lang === 'de' ? q.question_en : q.question_de}
                 </p>
               )}
             </div>
 
+            {/* Vocab Popup */}
             {selectedVocab && (
               <VocabPopup 
                 word={selectedVocab}
@@ -373,68 +440,93 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
               />
             )}
 
-            {/* Answer Options */}
-            <div className="space-y-2.5">
-              {shuffledOptions.map((opt: any, idx: number) => {
+            {/* Answer Options - MATCHES TrainingPage */}
+            <div className="space-y-3">
+              {shuffledOptions.map((opt: { text: string; originalIndex: number }, idx: number) => {
                 const isSelected = userAnswer?.selectedIndex === opt.originalIndex;
                 const isCorrectAnswer = opt.originalIndex === q.correct_index;
-                const showAsCorrect = answered && isCorrectAnswer;
-                const showAsWrong = answered && isSelected && !isCorrectAnswer;
+                const showFeedback = answered;
+                
+                let buttonClass = "w-full text-left p-4 rounded-2xl font-medium transition-all active:scale-98 touch-target ";
+                
+                if (!answered) {
+                  buttonClass += "bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300 text-gray-800 shadow-sm hover:shadow-md";
+                } else if (isCorrectAnswer) {
+                  buttonClass += "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-2 border-green-600 shadow-lg";
+                } else if (isSelected && !isCorrectAnswer) {
+                  buttonClass += "bg-gradient-to-r from-red-500 to-rose-600 text-white border-2 border-red-600 shadow-lg";
+                } else {
+                  buttonClass += "bg-white border-2 border-gray-200 text-gray-500 opacity-50";
+                }
 
                 return (
                   <motion.button
                     key={idx}
                     onClick={() => !answered && handleAnswer(opt.originalIndex)}
+                    className={buttonClass}
                     disabled={answered}
-                    whileTap={{ scale: answered ? 1 : 0.98 }}
-                    className={`w-full p-4 rounded-2xl font-medium text-left transition-all touch-target-lg ${
-                      showAsCorrect
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
-                        : showAsWrong
-                        ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg'
-                        : isSelected
-                        ? 'bg-purple-100 border-2 border-purple-500'
-                        : 'bg-white border-2 border-gray-200 hover:border-purple-300 active:bg-purple-50'
-                    }`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="flex-1">{opt.text}</span>
-                      {showAsCorrect && <CheckCircle2 size={20} />}
-                      {showAsWrong && <AlertCircle size={20} />}
+                    <div className="flex items-start gap-3">
+                      <span className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                        !answered 
+                          ? 'bg-gray-100 text-gray-600'
+                          : isCorrectAnswer
+                          ? 'bg-white/30 text-white'
+                          : isSelected
+                          ? 'bg-white/30 text-white'
+                          : 'bg-gray-50 text-gray-400'
+                      }`}>
+                        {String.fromCharCode(65 + idx)}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`leading-relaxed ${!answered ? 'text-gray-900' : ''}`}>
+                          {opt.text}
+                        </p>
+                        {showTranslation && (
+                          <p className={`text-sm mt-2 pt-2 border-t italic ${
+                            answered && isCorrectAnswer ? 'border-white/30 text-white/90' :
+                            answered && isSelected && !isCorrectAnswer ? 'border-white/30 text-white/90' :
+                            'border-gray-200 text-gray-600'
+                          }`}>
+                            {(lang === 'de' ? q.options_en : q.options_de)[opt.originalIndex]}
+                          </p>
+                        )}
+                      </div>
+                      {showFeedback && isCorrectAnswer && (
+                        <CheckCircle2 className="flex-shrink-0 text-white" size={24} />
+                      )}
+                      {showFeedback && isSelected && !isCorrectAnswer && (
+                        <AlertCircle className="flex-shrink-0 text-white" size={24} />
+                      )}
                     </div>
                   </motion.button>
                 );
               })}
             </div>
+
+            {/* Continue Button - Only show if answered incorrectly OR last question - MATCHES TrainingPage */}
+            {answered && (!userAnswer?.isCorrect || currentIdx === quizQuestions.length - 1) && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={() => { 
+                  setCurrentIdx(currentIdx + 1); 
+                  setShowTranslation(false); 
+                  setQuestionStartTime(Date.now());
+                }}
+                className="w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-red-500 text-white shadow-2xl text-lg active:scale-98 transition-transform touch-target"
+              >
+                {currentIdx === quizQuestions.length - 1 
+                  ? (lang === 'de' ? '🎯 Ergebnis anzeigen' : '🎯 Show Results') 
+                  : (lang === 'de' ? 'Weiter →' : 'Continue →')}
+              </motion.button>
+            )}
           </motion.div>
         </AnimatePresence>
-      </motion.div>
-
-      {/* Continue Button */}
-      {answered && (
-        <div className="bg-white border-t border-gray-200 px-4 py-3 shrink-0">
-          <motion.button
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            onClick={() => { 
-              setCurrentIdx(currentIdx + 1); 
-              setShowTranslation(false); 
-              setSelectedVocab(null);
-              setQuestionStartTime(Date.now());
-            }}
-            className="w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-red-500 text-white shadow-xl text-lg active:scale-98 transition-transform flex items-center justify-center gap-2 touch-target-lg max-w-2xl mx-auto"
-          >
-            {currentIdx === quizQuestions.length - 1 
-              ? (lang === 'de' ? '🎯 Ergebnis anzeigen' : '🎯 Show Results') 
-              : (
-                <>
-                  {lang === 'de' ? 'Weiter' : 'Continue'}
-                  <ChevronRight size={20} />
-                </>
-              )}
-          </motion.button>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
