@@ -429,22 +429,35 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
             transition={{ duration: 0.3 }}
             className="space-y-4"
             style={{ cursor: answered ? 'pointer' : 'default' }}
-            onClickCapture={(e) => {
-              // Tap anywhere to continue after answering (using capture phase)
+            onClick={(e) => {
+              // Tap anywhere to continue after answering
               if (!answered) return;
               
-              // Don't interfere with answer button clicks during review
               const target = e.target as HTMLElement;
-              const clickedAnswerOption = target.closest('.answer-option-button');
               
-              // If not clicking an answer option, advance to next question
-              if (!clickedAnswerOption) {
+              // Don't advance if clicking vocabulary word (they have their own handlers)
+              const clickedVocab = target.closest('.vocab-highlight');
+              if (clickedVocab) {
                 e.stopPropagation();
-                setCurrentIdx(currentIdx + 1); 
-                setShowTranslation(false); 
-                setSelectedVocab(null);
-                setQuestionStartTime(Date.now());
+                return;
               }
+              
+              // Don't advance if modal is open
+              if (selectedVocab) {
+                return;
+              }
+              
+              // Don't advance if clicking the main continue button (it has its own handler)
+              const clickedContinueButton = target.closest('.continue-button-main');
+              if (clickedContinueButton) {
+                return;
+              }
+              
+              // Otherwise, advance to next question
+              setCurrentIdx(currentIdx + 1); 
+              setShowTranslation(false); 
+              setSelectedVocab(null);
+              setQuestionStartTime(Date.now());
             }}
           >
             {/* Question */}
@@ -478,6 +491,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
                 <VocabHighlight 
                   text={lang === 'de' ? q.question_de : q.question_en}
                   onVocabClick={(vocabEntry) => setSelectedVocab(vocabEntry.de)}
+                  disabled={!answered}
                 />
               </p>
               {showTranslation && (
@@ -517,13 +531,17 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
                       // Don't answer if showing translation (long-press just happened)
                       if (showingAnswerTranslation === idx) {
                         e.preventDefault();
+                        e.stopPropagation();
                         return;
                       }
                       if (!answered) {
                         handleAnswer(opt.originalIndex);
+                        e.stopPropagation(); // Prevent propagation only when answering
                       }
+                      // If answered, don't stopPropagation - let it bubble to tap-anywhere handler
                     }}
                     onMouseDown={() => {
+                      if (answered) return; // Only allow long-press BEFORE answering
                       // Start long-press timer for desktop (500ms)
                       const timer = setTimeout(() => {
                         setShowingAnswerTranslation(idx);
@@ -551,6 +569,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
                       }
                     }}
                     onTouchStart={() => {
+                      if (answered) return; // Only allow long-press BEFORE answering
                       // Start long-press timer for mobile (500ms)
                       const timer = setTimeout(() => {
                         setShowingAnswerTranslation(idx);
@@ -578,7 +597,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
                       }
                       setShowingAnswerTranslation(null);
                     }}
-                    disabled={answered}
+                    style={{ pointerEvents: 'auto' }}
                     whileTap={{ scale: answered ? 1 : 0.98 }}
                     className={`answer-option-button w-full p-4 rounded-2xl font-medium text-left transition-all touch-target-lg ${
                       showAsCorrect
@@ -592,16 +611,13 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
                   >
                     <div className="flex items-center justify-between">
                       <span className="flex-1">
-                        {(showAsCorrect || showAsWrong) ? (
-                          // Don't highlight vocabulary in colored answers (harder to see)
-                          opt.text
-                        ) : (
-                          // Highlight vocabulary in unselected answers
-                          <VocabHighlight 
-                            text={opt.text}
-                            onVocabClick={(vocabEntry) => setSelectedVocab(vocabEntry.de)}
-                          />
-                        )}
+                        {/* Always show vocabulary highlighting, use light variant for colored answers */}
+                        <VocabHighlight 
+                          text={opt.text}
+                          onVocabClick={(vocabEntry) => setSelectedVocab(vocabEntry.de)}
+                          disabled={!answered}
+                          variant={(showAsCorrect || showAsWrong) ? 'light' : 'default'}
+                        />
                         {/* Show translation on long press */}
                         {showTranslationForThis && (
                           <motion.span
@@ -631,13 +647,14 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
           <motion.button
             initial={{ y: 100 }}
             animate={{ y: 0 }}
-            onClick={() => { 
+            onClick={(e) => { 
+              e.stopPropagation(); // Prevent double-trigger from tap-anywhere
               setCurrentIdx(currentIdx + 1); 
               setShowTranslation(false); 
               setSelectedVocab(null);
               setQuestionStartTime(Date.now());
             }}
-            className="w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xl text-lg active:scale-98 transition-transform flex items-center justify-center gap-2 touch-target-lg max-w-2xl mx-auto"
+            className="continue-button-main w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xl text-lg active:scale-98 transition-transform flex items-center justify-center gap-2 touch-target-lg max-w-2xl mx-auto"
           >
             {currentIdx === trainingQuestions.length - 1 
               ? (lang === 'de' ? '🎯 Ergebnis anzeigen' : '🎯 Show Results') 
@@ -649,9 +666,14 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
                 </>
               )}
           </motion.button>
-          <p className="text-center text-xs text-gray-500 mt-2">
-            {lang === 'de' ? 'Tippe irgendwo zum Fortfahren' : 'Tap anywhere to continue'}
-          </p>
+          <div className="text-center text-xs mt-2 space-y-1">
+            <p className="text-gray-500">
+              {lang === 'de' ? '💡 Tippe irgendwo zum Fortfahren' : '💡 Tap anywhere to continue'}
+            </p>
+            <p className="text-purple-600 font-medium">
+              {lang === 'de' ? 'Halte lila Wörter gedrückt zum Lernen' : 'Long-press purple words to learn'}
+            </p>
+          </div>
         </div>
       )}
     </div>

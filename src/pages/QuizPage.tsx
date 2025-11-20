@@ -415,12 +415,22 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
             exit={{ opacity: 0, x: -100 }}
             transition={{ duration: 0.3 }}
             className="space-y-4"
-            onClick={() => {
+            style={{ cursor: answered ? 'pointer' : 'default' }}
+            onClick={(e) => {
               // Tap anywhere to continue after answering
-              if (answered) {
-                setCurrentIdx(currentIdx + 1);
-                setQuestionStartTime(Date.now());
+              if (!answered) return;
+              
+              const target = e.target as HTMLElement;
+              
+              // Don't advance if clicking the main continue button (it has its own handler)
+              const clickedContinueButton = target.closest('.continue-button-main');
+              if (clickedContinueButton) {
+                return;
               }
+              
+              // Otherwise, advance to next question
+              setCurrentIdx(currentIdx + 1);
+              setQuestionStartTime(Date.now());
             }}
           >
             {/* Question - MATCHES TrainingPage */}
@@ -482,9 +492,15 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
                 return (
                   <motion.button
                     key={idx}
-                    onClick={() => !answered && handleAnswer(opt.originalIndex)}
+                    onClick={(e) => {
+                      if (!answered) {
+                        handleAnswer(opt.originalIndex);
+                        e.stopPropagation(); // Prevent propagation only when answering
+                      }
+                      // If answered, don't stopPropagation - let it bubble to tap-anywhere handler
+                    }}
                     className={buttonClass}
-                    disabled={answered}
+                    style={{ pointerEvents: 'auto' }}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
@@ -524,11 +540,12 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
                 <motion.button
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  onClick={() => { 
+                  onClick={(e) => { 
+                    e.stopPropagation(); // Prevent double-trigger from tap-anywhere
                     setCurrentIdx(currentIdx + 1);
                     setQuestionStartTime(Date.now());
                   }}
-                  className="w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-red-500 text-white shadow-2xl text-lg active:scale-98 transition-transform touch-target"
+                  className="continue-button-main w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-red-500 text-white shadow-2xl text-lg active:scale-98 transition-transform touch-target"
                 >
                   {currentIdx === quizQuestions.length - 1 
                     ? (lang === 'de' ? '🎯 Ergebnis anzeigen' : '🎯 Show Results') 
