@@ -1,13 +1,40 @@
-<svg width="192" height="192" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
+  <!-- Background Circle with Gradient -->
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
     </linearGradient>
   </defs>
-  <rect width="192" height="192" rx="48" fill="url(#grad)"/>
-  <text x="96" y="125" font-family="Arial, sans-serif" font-size="96" font-weight="bold" text-anchor="middle" fill="white">DE</text>
-  <circle cx="96" cy="40" r="8" fill="#fbbf24"/>
-  <circle cx="72" cy="40" r="8" fill="#000000"/>
-  <circle cx="120" cy="40" r="8" fill="#ef4444"/>
+  
+  <!-- Main Circle Background -->
+  <circle cx="96" cy="96" r="88" fill="url(#grad1)"/>
+  
+  <!-- German Flag Colors (top accent) -->
+  <path d="M 40 60 L 152 60 L 152 70 L 40 70 Z" fill="#000000" opacity="0.3"/>
+  <path d="M 40 70 L 152 70 L 152 80 L 40 80 Z" fill="#DD0000" opacity="0.3"/>
+  <path d="M 40 80 L 152 80 L 152 90 L 40 90 Z" fill="#FFCE00" opacity="0.3"/>
+  
+  <!-- Graduation Cap (Main Icon) -->
+  <g transform="translate(96, 110)">
+    <!-- Cap Base -->
+    <path d="M -50 -10 L 0 -30 L 50 -10 L 50 10 L -50 10 Z" fill="#ffffff" opacity="0.95"/>
+    <!-- Cap Top -->
+    <ellipse cx="0" cy="-10" rx="50" ry="12" fill="#ffffff"/>
+    <!-- Tassel -->
+    <circle cx="25" cy="-35" r="4" fill="#fbbf24"/>
+    <line x1="25" y1="-31" x2="25" y2="-15" stroke="#fbbf24" stroke-width="2"/>
+  </g>
+  
+  <!-- Checkmark (Success Symbol) -->
+  <path d="M 135 65 L 145 75 L 165 55" stroke="#22c55e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.9"/>
+  
+  <!-- Book Pages (Knowledge Symbol) -->
+  <g transform="translate(30, 65)">
+    <rect x="0" y="0" width="25" height="35" rx="2" fill="#ffffff" opacity="0.2"/>
+    <line x1="5" y1="10" x2="20" y2="10" stroke="#ffffff" stroke-width="1.5" opacity="0.6"/>
+    <line x1="5" y1="17" x2="20" y2="17" stroke="#ffffff" stroke-width="1.5" opacity="0.6"/>
+    <line x1="5" y1="24" x2="20" y2="24" stroke="#ffffff" stroke-width="1.5" opacity="0.6"/>
+  </g>
 </svg>

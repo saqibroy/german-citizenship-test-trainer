@@ -732,7 +732,7 @@ export default function LandingPage({ lang, onGetStarted }: { lang: 'de' | 'en',
           </div>
           
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400 text-sm">
-            <p>© 2025 German Citizenship Test Trainer. {lang === 'de' ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}</p>
+            <p>© 2025 Einbürger Coach. {lang === 'de' ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}</p>
             <p className="mt-2">
               <a href="#" className="hover:text-white transition-colors">{content.footer.links.items.privacy}</a>
               {' • '}

@@ -1,5 +1,4 @@
 import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
-import { BookOpen } from 'lucide-react';
 import { QUESTIONS } from './data.js';
 import { CITIZENSHIP_VOCABULARY } from './vacabulary.js';
 import { VocabPage, VocabTrainingPage } from './components.tsx';
@@ -25,7 +24,6 @@ const QuizPage = lazy(() => import('./pages/QuizPage.tsx').then(m => ({ default:
 const TrainingPage = lazy(() => import('./pages/TrainingPage.tsx').then(m => ({ default: m.TrainingPage })));
 const CardsPage = lazy(() => import('./pages/CardsPage.tsx').then(m => ({ default: m.CardsPage })));
 const GrammarLessonsPage = lazy(() => import('./GrammarLessons.tsx').then(m => ({ default: m.GrammarLessonsPage })));
-const StatsPage = lazy(() => import('./StatsPage.tsx').then(m => ({ default: m.StatsPage })));
 const SettingsPage = lazy(() => import('./SettingsPage.tsx').then(m => ({ default: m.SettingsPage })));
 const LandingPage = lazy(() => import('./pages/LandingPage.tsx'));
 const FAQPage = lazy(() => import('./pages/FAQPage.tsx'));
@@ -37,8 +35,7 @@ function PageLoader({ page }: { page: string }) {
       {page === 'training' && <SkeletonLoader type="question" />}
       {page === 'quiz' && <SkeletonLoader type="quiz" />}
       {page === 'cards' && <SkeletonLoader type="card" />}
-      {page === 'stats' && <SkeletonLoader type="stats" />}
-      {!['training', 'quiz', 'cards', 'stats'].includes(page) && (
+      {!['training', 'quiz', 'cards'].includes(page) && (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent mb-4"></div>
@@ -145,7 +142,6 @@ export default function AppContent() {
     cards: { de: 'Karten', en: 'Cards' },
     vocab: { de: 'Vokabeln', en: 'Vocab' },
     grammar: { de: 'Grammatik', en: 'Grammar' },
-    stats: { de: 'Statistik', en: 'Stats' },
     settings: { de: 'Einstellungen', en: 'Settings' }
   };
 
@@ -216,9 +212,9 @@ export default function AppContent() {
           <header className="bg-white shadow-md sticky top-0 z-50">
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-2">
-                <BookOpen className="text-indigo-600" size={24} />
+                <img src="/logo.svg" alt="Einbürger Coach" className="w-8 h-8" />
                 <h1 className="text-base md:text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  {lang === 'de' ? 'Einbürgerungstest' : 'Citizenship Test'}
+                  {lang === 'de' ? 'Einbürger Coach' : 'Einbürger Coach'}
                 </h1>
               </div>
               {/* Modern Language Selector */}
@@ -248,7 +244,7 @@ export default function AppContent() {
             
             {/* Desktop Navigation - Hidden on mobile */}
             <nav className="hidden md:flex border-t overflow-x-auto">
-              {['home', 'training', 'quiz', 'vocab', 'grammar', 'stats', 'settings'].map(p => (
+              {['home', 'training', 'quiz', 'vocab', 'grammar', 'settings'].map(p => (
                 <button key={p} onClick={() => setPage(p)} className={`flex-1 py-3 text-sm font-semibold whitespace-nowrap px-2 transition-colors ${page === p ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
                   {t[p as keyof typeof t][lang as 'de' | 'en']}
                 </button>
@@ -288,7 +284,6 @@ export default function AppContent() {
               </div>
             )}
             {page === 'grammar' && <GrammarLessonsPage lang={lang as 'de' | 'en'} />}
-            {page === 'stats' && <StatsPage lang={lang as 'de' | 'en'} progress={progress} questions={QUESTIONS} badges={badges} quizHistory={quizHistory} studyStreak={studyStreak} />}
             {page === 'settings' && <SettingsPage lang={lang as 'de' | 'en'} setPage={setPage} />}
           </Suspense>
         </main>

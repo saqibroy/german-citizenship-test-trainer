@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { 
-  Award, ChevronRight, AlertCircle, Brain, Target, BookMarked, BookOpen, Flame, LogIn, User
+  Award, ChevronRight, AlertCircle, Brain, Target, BookMarked, BookOpen, Flame, LogIn, User, Clock, Zap
 } from 'lucide-react';
 import { QUESTIONS } from '../data.js';
-import { daysSinceLastSeen } from '../srsAlgorithm';
+import { daysSinceLastSeen, calculateTestReadiness } from '../srsAlgorithm';
 import type { HomePageProps } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthModal } from '../components/AuthModal';
@@ -23,9 +23,20 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
     return daysSince >= (p.interval || 0);
   }).length;
   
-  // Simple progress calculation
-  const progressPercentage = totalQuestions > 0 ? Math.round((answered / totalQuestions) * 100) : 0;
+  // Calculate test readiness
+  const readiness = calculateTestReadiness(progress, totalQuestions);
+  
+  // Calculate strength groups
+  const strongCount = Object.values(progress).filter((p: any) => p.strength === 'strong').length;
+  const weakCount = Object.values(progress).filter((p: any) => p.strength === 'weak').length;
   const masteredCount = Object.values(progress).filter((p: any) => p.srsLevel === 'mastered').length;
+  
+  // Calculate study time estimate (0.5 min per attempt)
+  const totalAttempts = Object.values(progress).reduce(
+    (sum, p: any) => sum + p.correct + p.incorrect, 
+    0
+  );
+  const studyMinutes = Math.round(totalAttempts * 0.5);
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 space-y-4">
@@ -36,16 +47,21 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
       {/* Welcome Message */}
       <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-3xl p-8 shadow-2xl relative overflow-hidden">
         <div className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              {user 
-                ? `👋 ${lang === 'de' ? 'Hallo' : 'Hello'}, ${user.displayName || user.email?.split('@')[0] || 'User'}!`
-                : (lang === 'de' ? '👋 Willkommen zurück!' : '👋 Welcome back!')
-              }
-            </h1>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <img src="/logo.svg" alt="Einbürger Coach" className="w-16 h-16" />
+              <div>
+                <h1 className="text-3xl font-bold">
+                  {user 
+                    ? `👋 ${lang === 'de' ? 'Hallo' : 'Hello'}, ${user.displayName || user.email?.split('@')[0] || 'User'}!`
+                    : (lang === 'de' ? '👋 Willkommen!' : '👋 Welcome!')
+                  }
+                </h1>
+              </div>
+            </div>
             <p className="text-lg opacity-90">
               {answered === 0 
-                ? (lang === 'de' ? 'Beginne deine Reise zur deutschen Staatsbürgerschaft!' : 'Start your journey to German citizenship!')
+                ? (lang === 'de' ? 'Dein persönlicher Coach für den Einbürgerungstest' : 'Your personal coach for the citizenship test')
                 : (lang === 'de' ? 'Weiter so! Du machst Fortschritte.' : 'Keep going! You\'re making progress.')}
             </p>
           </div>
@@ -106,36 +122,99 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
         </p>
       </div>
 
-      {/* Progress Overview - MODERNIZED */}
-      <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-indigo-100">
-        <div className="flex justify-between items-center mb-4">
+      {/* Test Readiness - MAIN STATS CARD */}
+      <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-3xl p-6 text-white shadow-2xl">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-xl font-black text-gray-900">{lang === 'de' ? 'Dein Fortschritt' : 'Your Progress'}</h3>
-            <p className="text-sm text-gray-600 mt-0.5">{lang === 'de' ? 'Bis zur Prüfung' : 'Until exam ready'}</p>
+            <h2 className="text-xl font-bold mb-1">
+              {lang === 'de' ? 'Testbereitschaft' : 'Test Readiness'}
+            </h2>
+            <p className="text-sm text-indigo-100">
+              {lang === 'de' ? 'Wie gut bist du vorbereitet?' : 'How prepared are you?'}
+            </p>
           </div>
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-3 rounded-xl shadow-lg">
-            <div className="text-3xl font-black">{progressPercentage}%</div>
+          <Target className="text-white opacity-80" size={40} />
+        </div>
+        
+        <div className="text-center mb-5">
+          <div className="text-6xl font-bold mb-2">{readiness.score}%</div>
+          <div className="text-lg font-semibold mb-2">
+            {readiness.score >= 80 ? '🎉 ' + (lang === 'de' ? 'Bereit!' : 'Ready!') :
+             readiness.score >= 60 ? '👍 ' + (lang === 'de' ? 'Fast geschafft' : 'Almost There') :
+             readiness.score >= 40 ? '📚 ' + (lang === 'de' ? 'Weiter üben' : 'Keep Practicing') :
+             '🌱 ' + (lang === 'de' ? 'Guter Start' : 'Good Start')}
+          </div>
+          <div className="w-full bg-white/20 rounded-full h-3 shadow-inner">
+            <div 
+              className="bg-gradient-to-r from-yellow-300 via-green-400 to-green-500 h-3 rounded-full transition-all duration-700 shadow-lg"
+              style={{ width: `${readiness.score}%` }}
+            />
           </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden mb-5 shadow-inner">
-          <div 
-            className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500 shadow-lg"
-            style={{ width: `${progressPercentage}%` }}
-          ></div>
+        
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-white bg-opacity-95 rounded-xl p-3 text-center">
+            <div className="text-2xl font-bold text-indigo-700">{readiness.breakdown.coverage}%</div>
+            <div className="text-xs text-indigo-900 font-bold">{lang === 'de' ? 'Abdeckung' : 'Coverage'}</div>
+            <div className="text-xs text-gray-600 mt-1">{answered}/{totalQuestions}</div>
+          </div>
+          <div className="bg-white bg-opacity-95 rounded-xl p-3 text-center">
+            <div className="text-2xl font-bold text-purple-700">{readiness.breakdown.mastery}%</div>
+            <div className="text-xs text-purple-900 font-bold">{lang === 'de' ? 'Meisterung' : 'Mastery'}</div>
+            <div className="text-xs text-gray-600 mt-1">{masteredCount} {lang === 'de' ? 'gemeistert' : 'mastered'}</div>
+          </div>
+          <div className="bg-white bg-opacity-95 rounded-xl p-3 text-center">
+            <div className="text-2xl font-bold text-pink-700">{readiness.breakdown.averageAccuracy}%</div>
+            <div className="text-xs text-pink-900 font-bold">{lang === 'de' ? 'Genauigkeit' : 'Accuracy'}</div>
+            <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? 'Durchschnitt' : 'Average'}</div>
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center bg-indigo-50 rounded-xl p-3">
-            <div className="text-2xl font-black text-indigo-600 mb-1">{answered}</div>
-            <div className="text-xs text-gray-700 font-semibold">{lang === 'de' ? 'Beantwortet' : 'Answered'}</div>
+      </div>
+
+      {/* Quick Stats Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 shadow-lg border-2 border-green-200">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-2 rounded-lg">
+              <Brain className="text-white" size={20} />
+            </div>
+            <div className="text-xs font-bold text-gray-700">{lang === 'de' ? 'Stark' : 'Strong'}</div>
           </div>
-          <div className="text-center bg-green-50 rounded-xl p-3">
-            <div className="text-2xl font-black text-green-600 mb-1">{masteredCount}</div>
-            <div className="text-xs text-gray-700 font-semibold">{lang === 'de' ? 'Gemeistert' : 'Mastered'}</div>
+          <div className="text-3xl font-black text-green-600">{strongCount}</div>
+          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? 'Fragen' : 'questions'}</div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-4 shadow-lg border-2 border-yellow-200">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="bg-gradient-to-r from-yellow-500 to-orange-500 p-2 rounded-lg">
+              <AlertCircle className="text-white" size={20} />
+            </div>
+            <div className="text-xs font-bold text-gray-700">{lang === 'de' ? 'Schwach' : 'Weak'}</div>
           </div>
-          <div className="text-center bg-red-50 rounded-xl p-3">
-            <div className="text-2xl font-black text-red-600 mb-1">{dueCount}</div>
-            <div className="text-xs text-gray-700 font-semibold">{lang === 'de' ? 'Fällig' : 'Due'}</div>
+          <div className="text-3xl font-black text-orange-600">{weakCount}</div>
+          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? 'üben!' : 'practice!'}</div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 shadow-lg border-2 border-blue-200">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-500 p-2 rounded-lg">
+              <Clock className="text-white" size={20} />
+            </div>
+            <div className="text-xs font-bold text-gray-700">{lang === 'de' ? 'Lernzeit' : 'Study Time'}</div>
           </div>
+          <div className="text-3xl font-black text-blue-600">{studyMinutes}</div>
+          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? 'Minuten' : 'minutes'}</div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-2xl p-4 shadow-lg border-2 border-red-200">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="bg-gradient-to-r from-red-500 to-rose-500 p-2 rounded-lg">
+              <Zap className="text-white" size={20} />
+            </div>
+            <div className="text-xs font-bold text-gray-700">{lang === 'de' ? 'Fällig' : 'Due'}</div>
+          </div>
+          <div className="text-3xl font-black text-red-600">{dueCount}</div>
+          <div className="text-xs text-gray-600 mt-1">{lang === 'de' ? 'jetzt' : 'now'}</div>
         </div>
       </div>
 

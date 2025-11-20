@@ -25,6 +25,10 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
   const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
   const [sessionStats, setSessionStats] = useState({ correct: 0, incorrect: 0, total: 0 });
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [customSessionSize, setCustomSessionSize] = useState<number | null>(null);
+  // Long-press translation state
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showingAnswerTranslation, setShowingAnswerTranslation] = useState<number | null>(null);
 
   // Shuffled options with original indices
   const shuffledOptions = useMemo(() => {
@@ -89,7 +93,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
   };
 
   const startTraining = (mode: 'smart' | 'weak' | 'learning' | 'new' | 'bekannt' = 'smart') => {
-    const sessionSize = calculateSessionSize();
+    const sessionSize = customSessionSize || calculateSessionSize();
     const selected = selectTrainingQuestions(sessionSize, mode);
     setTrainingQuestions(selected);
     setStarted(true);
@@ -144,8 +148,28 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
               </div>
               <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2">
                 <Sparkles size={16} />
-                <span className="text-xl font-bold">{sessionSize}</span>
+                <span className="text-xl font-bold">{customSessionSize || sessionSize}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Session Size Selector */}
+          <div className="bg-white rounded-xl p-3 shadow-md mb-4 shrink-0">
+            <p className="text-xs font-medium text-gray-600 mb-2">{lang === 'de' ? 'Sitzungsgröße:' : 'Session Size:'}</p>
+            <div className="flex gap-2">
+              {[10, 20, 30, 40].map((size) => (
+                <button
+                  key={size}
+                  onClick={() => setCustomSessionSize(size)}
+                  className={`flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all active:scale-95 ${
+                    (customSessionSize || sessionSize) === size
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {size}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -357,15 +381,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
       total: prev.total + 1
     }));
     
-    // Auto-advance on correct answer after 1 second (except last question)
-    if (isCorrect && currentIdx < trainingQuestions.length - 1) {
-      setTimeout(() => {
-        setCurrentIdx(currentIdx + 1);
-        setShowTranslation(false);
-        setSelectedVocab(null);
-        setQuestionStartTime(Date.now());
-      }, 1000);
-    }
+    // No auto-advance - user must tap to continue
   };
 
   return (
@@ -412,15 +428,34 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
             exit={{ opacity: 0, x: -100 }}
             transition={{ duration: 0.3 }}
             className="space-y-4"
+            style={{ cursor: answered ? 'pointer' : 'default' }}
+            onClickCapture={(e) => {
+              // Tap anywhere to continue after answering (using capture phase)
+              if (!answered) return;
+              
+              // Don't interfere with answer button clicks during review
+              const target = e.target as HTMLElement;
+              const clickedAnswerOption = target.closest('.answer-option-button');
+              
+              // If not clicking an answer option, advance to next question
+              if (!clickedAnswerOption) {
+                e.stopPropagation();
+                setCurrentIdx(currentIdx + 1); 
+                setShowTranslation(false); 
+                setSelectedVocab(null);
+                setQuestionStartTime(Date.now());
+              }
+            }}
           >
             {/* Question */}
             <div className="bg-white rounded-2xl p-4 shadow-lg">
               {q.img?.url && (
                 <div className="mb-4 rounded-xl overflow-hidden">
                   <img 
-                    src={q.img.url} 
+                    src={`/images/question-${q.id}.png`}
                     alt="Question" 
                     className="w-full h-auto max-h-48 object-contain bg-gray-50"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                 </div>
               )}
@@ -468,14 +503,84 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
                 const isCorrectAnswer = opt.originalIndex === q.correct_index;
                 const showAsCorrect = answered && isCorrectAnswer;
                 const showAsWrong = answered && isSelected && !isCorrectAnswer;
+                const showTranslationForThis = showingAnswerTranslation === idx;
+
+                // Get translated text
+                const translatedText = lang === 'de' 
+                  ? (lang === 'de' ? q.options_en : q.options_de)[opt.originalIndex]
+                  : (lang === 'de' ? q.options_de : q.options_en)[opt.originalIndex];
 
                 return (
                   <motion.button
                     key={idx}
-                    onClick={() => !answered && handleAnswer(opt.originalIndex)}
+                    onClick={(e) => {
+                      // Don't answer if showing translation (long-press just happened)
+                      if (showingAnswerTranslation === idx) {
+                        e.preventDefault();
+                        return;
+                      }
+                      if (!answered) {
+                        handleAnswer(opt.originalIndex);
+                      }
+                    }}
+                    onMouseDown={() => {
+                      // Start long-press timer for desktop (500ms)
+                      const timer = setTimeout(() => {
+                        setShowingAnswerTranslation(idx);
+                      }, 500);
+                      setLongPressTimer(timer);
+                    }}
+                    onMouseUp={() => {
+                      // Clear timer on release
+                      if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        setLongPressTimer(null);
+                      }
+                      // Hide translation after a delay if it was shown
+                      if (showingAnswerTranslation === idx) {
+                        setTimeout(() => {
+                          setShowingAnswerTranslation(null);
+                        }, 800);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      // Clear timer if mouse leaves
+                      if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        setLongPressTimer(null);
+                      }
+                    }}
+                    onTouchStart={() => {
+                      // Start long-press timer for mobile (500ms)
+                      const timer = setTimeout(() => {
+                        setShowingAnswerTranslation(idx);
+                      }, 500);
+                      setLongPressTimer(timer);
+                    }}
+                    onTouchEnd={() => {
+                      // Clear timer on release
+                      if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        setLongPressTimer(null);
+                      }
+                      // Hide translation after a delay if it was shown
+                      if (showingAnswerTranslation === idx) {
+                        setTimeout(() => {
+                          setShowingAnswerTranslation(null);
+                        }, 800);
+                      }
+                    }}
+                    onTouchCancel={() => {
+                      // Clear timer if touch is cancelled
+                      if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        setLongPressTimer(null);
+                      }
+                      setShowingAnswerTranslation(null);
+                    }}
                     disabled={answered}
                     whileTap={{ scale: answered ? 1 : 0.98 }}
-                    className={`w-full p-4 rounded-2xl font-medium text-left transition-all touch-target-lg ${
+                    className={`answer-option-button w-full p-4 rounded-2xl font-medium text-left transition-all touch-target-lg ${
                       showAsCorrect
                         ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
                         : showAsWrong
@@ -497,6 +602,16 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
                             onVocabClick={(vocabEntry) => setSelectedVocab(vocabEntry.de)}
                           />
                         )}
+                        {/* Show translation on long press */}
+                        {showTranslationForThis && (
+                          <motion.span
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="block mt-2 pt-2 border-t border-white/30 text-sm italic opacity-90"
+                          >
+                            {translatedText}
+                          </motion.span>
+                        )}
                       </span>
                       {showAsCorrect && <CheckCircle2 size={20} />}
                       {showAsWrong && <AlertCircle size={20} />}
@@ -510,8 +625,8 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
       </motion.div>
 
       {/* Continue Button - Fixed at bottom */}
-      {/* Show if: answered incorrectly OR last question answered correctly */}
-      {answered && (!userAnswer?.isCorrect || currentIdx === trainingQuestions.length - 1) && (
+      {/* Show always when answered - tap anywhere or button to continue */}
+      {answered && (
         <div className="bg-white border-t border-gray-200 px-4 py-3 shrink-0">
           <motion.button
             initial={{ y: 100 }}
@@ -528,11 +643,15 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
               ? (lang === 'de' ? '🎯 Ergebnis anzeigen' : '🎯 Show Results') 
               : (
                 <>
+                  {userAnswer?.isCorrect ? '✓ ' : ''}
                   {lang === 'de' ? 'Weiter' : 'Continue'}
                   <ChevronRight size={20} />
                 </>
               )}
           </motion.button>
+          <p className="text-center text-xs text-gray-500 mt-2">
+            {lang === 'de' ? 'Tippe irgendwo zum Fortfahren' : 'Tap anywhere to continue'}
+          </p>
         </div>
       )}
     </div>
