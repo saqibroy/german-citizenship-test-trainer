@@ -1,154 +1,171 @@
-# 🔧 Firebase Auth Domain Fix
+# 🔧 Firebase Auth Domain Fix - Google Login 404 Error
 
-## Problem
-Getting `auth/unauthorized-domain` error when trying to login from `german-citizenship-test-trainer.vercel.app` even though the domain is added to Firebase Console.
+## ❌ Current Problem
+When clicking "Sign in with Google", you see:
+```
+404: NOT_FOUND
+Code: NOT_FOUND
+ID: fra1::tqm8b-1763659046623-5128ddd45e7e
+```
 
-## Root Cause
-The `authDomain` in your Firebase configuration might not match your production domain exactly.
+## 🎯 Root Cause
+Your app is hosted on **Vercel** (`german-citizenship-test-trainer.vercel.app`), but Firebase Authentication needs to use **Firebase Hosting** to handle the OAuth redirect at `/__/auth/handler`.
+
+The `authDomain` must point to your **Firebase Hosting domain** (e.g., `einburgercoach.web.app`), NOT your Vercel domain!
 
 ---
 
 ## ✅ Solution - Follow These Steps:
 
-### Step 1: Check Your Current Configuration
+### Step 1: Update Environment Variables in Vercel (CRITICAL FIX!)
 
-Your Firebase config should look like this in production:
+Go to your Vercel project settings and **change** the `authDomain`:
 
-```typescript
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "german-citizenship-test-trainer.vercel.app", // ← MUST match your domain!
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+**WRONG (causes 404):**
+```bash
+VITE_FIREBASE_AUTH_DOMAIN=german-citizenship-test-trainer.vercel.app  ❌
 ```
 
-### Step 2: Update Your Environment Variables
-
-Create/update your `.env` file (for local development):
-
-```env
-# Firebase Configuration
-VITE_FIREBASE_API_KEY=your_api_key_here
-VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
+**CORRECT (fixes 404):**
+```bash
+VITE_FIREBASE_AUTH_DOMAIN=einburgercoach.web.app  ✅
+# OR
+VITE_FIREBASE_AUTH_DOMAIN=einburgercoach.firebaseapp.com  ✅
 ```
 
-### Step 3: Configure Vercel Environment Variables
-
-In your Vercel dashboard:
-
-1. Go to your project
-2. Settings → Environment Variables
-3. Add these variables:
-
-```
-VITE_FIREBASE_API_KEY = your_api_key_here
-VITE_FIREBASE_AUTH_DOMAIN = german-citizenship-test-trainer.vercel.app
-VITE_FIREBASE_PROJECT_ID = your-project-id
-VITE_FIREBASE_STORAGE_BUCKET = your-project-id.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID = your_sender_id
-VITE_FIREBASE_APP_ID = your_app_id
+**All your environment variables should be:**
+```bash
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=einburgercoach.web.app  ← THIS IS THE FIX!
+VITE_FIREBASE_PROJECT_ID=einburgercoach
+VITE_FIREBASE_STORAGE_BUCKET=einburgercoach.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
 ```
 
-**IMPORTANT:** Make sure `VITE_FIREBASE_AUTH_DOMAIN` is set to:
-- **Production:** `german-citizenship-test-trainer.vercel.app`
-- **Local:** `your-project-id.firebaseapp.com`
+### Step 2: Add BOTH Domains to Firebase Console
 
-### Step 4: Update Firebase Console
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select project: **einburgercoach**
+3. Go to **Authentication** > **Settings** > **Authorized domains**
+4. Make sure these are ALL added:
+   - ✅ `einburgercoach.web.app` ← **Required for auth handler!**
+   - ✅ `german-citizenship-test-trainer.vercel.app` ← Your Vercel app
+   - ✅ `localhost` ← For development
 
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Select your project
-3. Go to **Authentication** → **Settings** → **Authorized domains**
-4. Make sure these domains are added:
-   - ✅ `localhost`
-   - ✅ `german-citizenship-test-trainer.vercel.app`
-   - ✅ `your-project-id.firebaseapp.com` (default)
-   - ✅ `your-project-id.web.app` (if using Firebase Hosting)
+### Step 3: Enable Firebase Hosting
 
-**Format:** Just the domain name, no `http://` or `https://`
+Firebase Hosting MUST be enabled (even if you don't deploy to it):
 
-### Step 5: Update OAuth Provider Settings (if using Google Sign-In)
+1. Go to Firebase Console > **Hosting**
+2. If you see "Get started", click it
+3. You can skip the actual deployment steps
+4. Just needs to be **enabled** for the auth handler to work
 
-If you're using Google Sign-In:
+### Step 4: Redeploy on Vercel
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Select your project
-3. **APIs & Services** → **Credentials**
-4. Click on your OAuth 2.0 Client ID
-5. Under "Authorized JavaScript origins", add:
-   - `https://german-citizenship-test-trainer.vercel.app`
+After updating environment variables:
+1. Go to your Vercel dashboard
+2. Trigger a new deployment (or it auto-deploys)
+3. Wait for completion
+
+### Step 5: Test
+
+1. Clear browser cache (Ctrl+Shift+Delete)
+2. Visit: `https://german-citizenship-test-trainer.vercel.app`
+3. Click "Sign in with Google"
+4. ✅ Should work now!
+
+---
+
+## 🔍 How It Works
+
+### Before (❌ 404 Error):
+```
+1. User on Vercel app clicks "Sign in with Google"
+2. Google authenticates user
+3. Google redirects to: 
+   https://german-citizenship-test-trainer.vercel.app/__/auth/handler
+4. ❌ Vercel doesn't have this handler → 404 NOT_FOUND
+```
+
+### After (✅ Working):
+```
+1. User on Vercel app clicks "Sign in with Google"
+2. Google authenticates user
+3. Google redirects to: 
+   https://einburgercoach.web.app/__/auth/handler
+4. ✅ Firebase Hosting serves the handler
+5. Firebase processes auth token
+6. User redirected back to Vercel app
+7. ✅ User is logged in!
+```
+
+---
+
+## 📋 Quick Checklist
+
+- [ ] `VITE_FIREBASE_AUTH_DOMAIN=einburgercoach.web.app` in Vercel env vars
+- [ ] `einburgercoach.web.app` in Firebase authorized domains
+- [ ] `german-citizenship-test-trainer.vercel.app` in Firebase authorized domains
+- [ ] Firebase Hosting enabled
+- [ ] Vercel redeployed
+- [ ] Browser cache cleared
+- [ ] Tested Google login
 6. Under "Authorized redirect URIs", add:
    - `https://german-citizenship-test-trainer.vercel.app/__/auth/handler`
 
 ### Step 6: Redeploy on Vercel
 
-After updating environment variables:
-
-```bash
-# Trigger a new deployment
-git commit --allow-empty -m "Update Firebase config"
-git push
-```
-
-Or manually trigger deployment in Vercel dashboard.
-
 ---
 
-## 🧪 Testing
+## 🆘 Still Having Issues?
 
-### Local Testing:
-1. Make sure `.env` has `authDomain` set to `your-project-id.firebaseapp.com`
-2. Run `npm run dev`
-3. Try logging in → should work
+### Verify Your Current Config
 
-### Production Testing:
-1. Make sure Vercel env vars have `authDomain` set to `german-citizenship-test-trainer.vercel.app`
-2. Deploy to Vercel
-3. Open `https://german-citizenship-test-trainer.vercel.app`
-4. Open DevTools Console (F12)
-5. Try logging in
-6. Check for errors
-
----
-
-## 🔍 Debugging
-
-If still not working, check these:
-
-### 1. Verify authDomain in Browser Console:
+Run this in browser console (F12) on your Vercel app:
 
 ```javascript
-// In browser console, type:
-console.log(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN)
+// Check what authDomain is actually being used
+console.log('Auth Domain:', auth.config.authDomain);
 ```
 
-Should show:
-- **Local:** `your-project-id.firebaseapp.com`
-- **Production:** `german-citizenship-test-trainer.vercel.app`
+Should show: `einburgercoach.web.app` or `einburgercoach.firebaseapp.com`
 
-### 2. Check Network Tab:
+If it shows your Vercel domain, env vars didn't update!
 
-1. Open DevTools → Network tab
-2. Try logging in
-3. Look for requests to `https://identitytoolkit.googleapis.com`
-4. Check if there's an error response
+### Verify Firebase Hosting is Enabled
 
-### 3. Clear Browser Cache:
+Visit: `https://einburgercoach.web.app`
 
+You should see SOMETHING (even a default page). If 404, Hosting isn't enabled.
+
+### Check All Authorized Domains
+
+Firebase Console > Authentication > Settings > Authorized domains
+
+Should have:
 ```
-Chrome: Ctrl+Shift+Delete → Clear cached images and files
-Firefox: Ctrl+Shift+Delete → Clear cache
+✅ einburgercoach.web.app
+✅ einburgercoach.firebaseapp.com  
+✅ german-citizenship-test-trainer.vercel.app
+✅ localhost
 ```
 
-### 4. Check Exact URL:
+---
 
-Make sure you're accessing exactly:
+## 💡 Why This Works
+
+Firebase Authentication with external providers (Google, Facebook) requires `/__/auth/handler`:
+
+1. **Only exists on Firebase Hosting** (*.web.app, *.firebaseapp.com)
+2. Processes OAuth redirect callbacks
+3. Exchanges authorization codes for tokens
+4. Returns authenticated user to your app
+
+Your Vercel app **cannot** serve this endpoint! You must use Firebase's domain for auth, even if your app is hosted elsewhere.
+
+This is **standard** for hosting Firebase apps on Vercel/Netlify!
 - ✅ `https://german-citizenship-test-trainer.vercel.app`
 - ❌ NOT `http://german-citizenship-test-trainer.vercel.app` (http)
 - ❌ NOT `www.german-citizenship-test-trainer.vercel.app` (www)
@@ -160,63 +177,36 @@ Make sure you're accessing exactly:
 If you need a quick fix for testing, temporarily hardcode in `src/lib/firebase.ts`:
 
 ```typescript
-const firebaseConfig = {
-  apiKey: "YOUR_ACTUAL_API_KEY",
-  authDomain: "german-citizenship-test-trainer.vercel.app", // ← Hardcoded
-  projectId: "YOUR_ACTUAL_PROJECT_ID",
-  storageBucket: "YOUR_ACTUAL_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_ACTUAL_SENDER_ID",
-  appId: "YOUR_ACTUAL_APP_ID"
-};
+---
+
+## ✅ SUMMARY - THE CRITICAL FIX
+
+**The Problem:**
+```
+404: NOT_FOUND when clicking Google Sign-In
 ```
 
-**Note:** Don't commit real API keys to Git! Use environment variables instead.
+**The Solution:**
+```bash
+# In Vercel Environment Variables:
+VITE_FIREBASE_AUTH_DOMAIN=einburgercoach.web.app  ✅
+
+# NOT this:
+VITE_FIREBASE_AUTH_DOMAIN=german-citizenship-test-trainer.vercel.app  ❌
+```
+
+**Why:**
+- Firebase's OAuth handler lives at `/__/auth/handler`
+- This endpoint **only exists** on Firebase Hosting domains
+- Your Vercel app can't serve it
+- So you use Firebase's domain for auth, then redirect back to Vercel
+
+**After changing:**
+1. ✅ Redeploy Vercel
+2. ✅ Clear browser cache
+3. ✅ Test Google login
+4. ✅ Should work perfectly!
 
 ---
 
-## 📋 Checklist
-
-- [ ] Environment variables updated in Vercel
-- [ ] `authDomain` matches production domain exactly
-- [ ] Domains added to Firebase Console (Authorized domains)
-- [ ] OAuth credentials updated (if using Google Sign-In)
-- [ ] Browser cache cleared
-- [ ] Redeployed to Vercel
-- [ ] Tested in production
-
----
-
-## 💡 Common Mistakes
-
-1. **Wrong format in Firebase Console:**
-   - ❌ `https://german-citizenship-test-trainer.vercel.app`
-   - ✅ `german-citizenship-test-trainer.vercel.app`
-
-2. **Forgot to redeploy after updating env vars**
-   - Environment variables only apply after redeployment
-
-3. **Using wrong domain:**
-   - Make sure you're not using preview URLs
-   - Use your main production domain
-
-4. **OAuth redirect URIs:**
-   - Must include `/__/auth/handler` path
-   - Must be `https://` (not `http://`)
-
----
-
-## 🎯 Expected Result
-
-After fixing:
-- ✅ Can login on `https://german-citizenship-test-trainer.vercel.app`
-- ✅ No `auth/unauthorized-domain` error
-- ✅ Google Sign-In works (if enabled)
-- ✅ Email Sign-In works
-
----
-
-**If still not working after all steps, check:**
-1. Firebase Console → Authentication → Settings → Check all authorized domains
-2. Google Cloud Console → Credentials → Check OAuth settings
-3. Vercel → Settings → Environment Variables → Verify all values
-4. Browser console for exact error message
+This is the **standard pattern** for hosting Firebase apps on Vercel! 🚀
