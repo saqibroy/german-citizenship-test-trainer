@@ -44,7 +44,7 @@ export function BottomNav({ currentPage, onNavigate, lang }: BottomNavProps) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id || 
-                            (item.id === 'more' && ['settings', 'cards', 'vocab', 'vocab-training', 'stats', 'faq', 'landing'].includes(currentPage));
+                            (item.id === 'more' && ['settings', 'cards', 'vocab', 'vocab-training', 'faq', 'landing'].includes(currentPage));
             
             return (
               <button

@@ -1,6 +1,6 @@
 {
-  "name": "German Citizenship Test Trainer",
-  "short_name": "DE Citizenship",
+  "name": "Einbürger Coach",
+  "short_name": "Einbürger Coach",
   "description": "Master all 310 questions for the German citizenship test with our intelligent SRS learning system",
   "start_url": "/",
   "display": "standalone",

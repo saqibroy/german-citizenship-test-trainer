@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  BookOpen, BarChart3, Trophy, Target, Award, CheckCircle2, Languages, AlertCircle
+  BookOpen, BarChart3, Trophy, Target, Award, CheckCircle2, AlertCircle, Clock
 } from 'lucide-react';
 import { calculateSRSWeight } from '../srsAlgorithm';
 import { VocabPopup } from '../components.tsx';
@@ -18,10 +18,10 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
-  const [showTranslation, setShowTranslation] = useState(false);
   const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
   const [resultSaved, setResultSaved] = useState(false);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [timeRemaining, setTimeRemaining] = useState<number>(60 * 60); // 60 minutes in seconds
 
   // Create shuffled options with original indices - CALL HOOKS FIRST, BEFORE ANY RETURNS!
   const shuffledOptions = useMemo(() => {
@@ -54,6 +54,20 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     
     return { score, categoryBreakdown };
   }, [currentIdx, quizQuestions, answers]);
+
+  // Timer countdown - runs every second during quiz
+  useEffect(() => {
+    if (!started || currentIdx >= quizQuestions.length) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 0) return 0;
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [started, currentIdx, quizQuestions.length]);
 
   // Save quiz result when completed (runs only once)
   useEffect(() => {
@@ -93,9 +107,9 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     setStarted(true);
     setCurrentIdx(0);
     setAnswers([]);
-    setShowTranslation(false);
     setResultSaved(false);
     setQuestionStartTime(Date.now());
+    setTimeRemaining(60 * 60); // Reset timer to 60 minutes
   };
 
   // NOW it's safe to have conditional returns
@@ -341,14 +355,12 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     setAnswers(newAnswers);
     updateProgress(q.id, isCorrect, answerTime);
 
-    // Auto-advance on correct answer after 1 second (except last question)
-    if (isCorrect && currentIdx < quizQuestions.length - 1) {
-      setTimeout(() => {
-        setCurrentIdx(currentIdx + 1);
-        setShowTranslation(false);
-        setQuestionStartTime(Date.now());
-      }, 1000);
+    // Reduce timer if answer is correct (reward good performance)
+    if (isCorrect) {
+      setTimeRemaining((prev) => Math.max(0, prev - 30)); // Reduce by 30 seconds for correct answer
     }
+
+    // No auto-advance - user must tap to continue
   };
 
   const sessionStats = {
@@ -364,6 +376,15 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
           <span className="text-sm font-semibold text-gray-700">
             {currentIdx + 1} / {quizQuestions.length}
           </span>
+          {/* Timer */}
+          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-bold text-sm ${
+            timeRemaining < 300 ? 'bg-red-100 text-red-700' : 
+            timeRemaining < 900 ? 'bg-orange-100 text-orange-700' : 
+            'bg-blue-100 text-blue-700'
+          }`}>
+            <Clock size={14} />
+            <span>{Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}</span>
+          </div>
           {/* Session stats */}
           <div className="flex items-center gap-3 text-xs">
             <span className="flex items-center gap-1 text-green-600 font-medium">
@@ -394,41 +415,40 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
             exit={{ opacity: 0, x: -100 }}
             transition={{ duration: 0.3 }}
             className="space-y-4"
+            onClick={() => {
+              // Tap anywhere to continue after answering
+              if (answered) {
+                setCurrentIdx(currentIdx + 1);
+                setQuestionStartTime(Date.now());
+              }
+            }}
           >
             {/* Question - MATCHES TrainingPage */}
             <div className="bg-white rounded-2xl p-4 shadow-lg">
               {q.img?.url && (
                 <div className="mb-4 rounded-xl overflow-hidden">
                   <img 
-                    src={q.img.url} 
+                    src={`/images/question-${q.id}.png`}
                     alt="Question" 
                     className="w-full h-auto max-h-48 object-contain bg-gray-50"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                 </div>
               )}
               
-              {/* Translate button - MATCHES TrainingPage */}
+              {/* Question number only - No translation in Quiz mode (exam simulation) */}
               <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
                 <span className="text-xs font-semibold text-amber-600 uppercase tracking-wide">
                   {lang === 'de' ? 'Frage' : 'Question'} {currentIdx + 1}
                 </span>
-                <button
-                  onClick={() => setShowTranslation(!showTranslation)}
-                  className="flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700 active:scale-95 transition-all touch-target bg-amber-50 px-3 py-1.5 rounded-lg"
-                >
-                  <Languages size={16} />
-                  <span>{showTranslation ? (lang === 'de' ? 'DE' : 'EN') : (lang === 'de' ? 'EN' : 'DE')}</span>
-                </button>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  {lang === 'de' ? 'Prüfungsmodus' : 'Exam Mode'}
+                </span>
               </div>
               
               <p className="text-lg font-semibold text-gray-900 leading-relaxed">
                 {lang === 'de' ? q.question_de : q.question_en}
               </p>
-              {showTranslation && (
-                <p className="text-sm text-gray-600 mt-3 pt-3 border-t border-gray-100 italic">
-                  {lang === 'de' ? q.question_en : q.question_de}
-                </p>
-              )}
             </div>
 
             {/* Vocab Popup */}
@@ -485,15 +505,6 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
                         <p className={`leading-relaxed ${!answered ? 'text-gray-900' : ''}`}>
                           {opt.text}
                         </p>
-                        {showTranslation && (
-                          <p className={`text-sm mt-2 pt-2 border-t italic ${
-                            answered && isCorrectAnswer ? 'border-white/30 text-white/90' :
-                            answered && isSelected && !isCorrectAnswer ? 'border-white/30 text-white/90' :
-                            'border-gray-200 text-gray-600'
-                          }`}>
-                            {(lang === 'de' ? q.options_en : q.options_de)[opt.originalIndex]}
-                          </p>
-                        )}
                       </div>
                       {showFeedback && isCorrectAnswer && (
                         <CheckCircle2 className="flex-shrink-0 text-white" size={24} />
@@ -507,22 +518,26 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
               })}
             </div>
 
-            {/* Continue Button - Only show if answered incorrectly OR last question - MATCHES TrainingPage */}
-            {answered && (!userAnswer?.isCorrect || currentIdx === quizQuestions.length - 1) && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                onClick={() => { 
-                  setCurrentIdx(currentIdx + 1); 
-                  setShowTranslation(false); 
-                  setQuestionStartTime(Date.now());
-                }}
-                className="w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-red-500 text-white shadow-2xl text-lg active:scale-98 transition-transform touch-target"
-              >
-                {currentIdx === quizQuestions.length - 1 
-                  ? (lang === 'de' ? '🎯 Ergebnis anzeigen' : '🎯 Show Results') 
-                  : (lang === 'de' ? 'Weiter →' : 'Continue →')}
-              </motion.button>
+            {/* Continue Button - Show always when answered */}
+            {answered && (
+              <div className="space-y-2">
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  onClick={() => { 
+                    setCurrentIdx(currentIdx + 1);
+                    setQuestionStartTime(Date.now());
+                  }}
+                  className="w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-red-500 text-white shadow-2xl text-lg active:scale-98 transition-transform touch-target"
+                >
+                  {currentIdx === quizQuestions.length - 1 
+                    ? (lang === 'de' ? '🎯 Ergebnis anzeigen' : '🎯 Show Results') 
+                    : (lang === 'de' ? 'Weiter →' : 'Continue →')}
+                </motion.button>
+                <p className="text-center text-xs text-gray-500">
+                  {lang === 'de' ? 'Tippe irgendwo zum Fortfahren' : 'Tap anywhere to continue'}
+                </p>
+              </div>
             )}
           </motion.div>
         </AnimatePresence>

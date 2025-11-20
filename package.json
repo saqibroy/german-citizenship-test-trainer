@@ -1,7 +1,7 @@
 {
-  "name": "einburgrungtest-trainer",
+  "name": "einburger-coach",
   "version": "1.0.0",
-  "description": "",
+  "description": "Einbürger Coach - Master the German Citizenship Test",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
