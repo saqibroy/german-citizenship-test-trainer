@@ -42,8 +42,24 @@ const extractCoreWords = (vocabDe: string): string[] => {
 const buildVocabMap = (): Record<string, VocabularyItem> => {
   const map: Record<string, VocabularyItem> = {};
   CITIZENSHIP_VOCABULARY.forEach((item: VocabularyItem) => {
+    // ALWAYS add the full .de field as a key (for direct lookups from VocabPopup)
+    map[item.de.toLowerCase()] = item;
+    map[normalizeText(item.de.toLowerCase())] = item;
+    
     // Extract all core words from the vocabulary entry
     const coreWords = extractCoreWords(item.de);
+    
+    // Also add forms from the forms array if present
+    if (item.forms && item.forms.length > 0) {
+      item.forms.forEach(form => {
+        // Remove article from form to get just the word
+        const withoutArticle = form.replace(/^(der|die|das|den|dem|des|ein|eine|einem|einer|einen|eines)\s+/i, '').trim();
+        if (withoutArticle && withoutArticle.length > 1) {
+          map[withoutArticle.toLowerCase()] = item;
+          map[normalizeText(withoutArticle.toLowerCase())] = item;
+        }
+      });
+    }
     
     coreWords.forEach(coreWord => {
       const lower = coreWord.toLowerCase();
@@ -53,7 +69,31 @@ const buildVocabMap = (): Record<string, VocabularyItem> => {
       map[lower] = item;
       map[normalized] = item;
       
-      // Also handle plural forms (simple heuristic: add 'n', 'en', 'e', 's')
+      // Also add word field if present
+      if (item.word) {
+        map[item.word.toLowerCase()] = item;
+        map[normalizeText(item.word.toLowerCase())] = item;
+      }
+      
+      // Generate verb conjugations for words ending in -en
+      if (lower.endsWith('en')) {
+        const stem = lower.slice(0, -2);
+        map[stem + 't'] = item;     // er/sie/es gehört
+        map[stem + 'e'] = item;     // ich gehe
+        map[stem + 'st'] = item;    // du gehst
+        map[stem + 'te'] = item;    // ich/er gehörte (past)
+        map[stem + 'ten'] = item;   // sie gehörten
+        map[stem] = item;           // just the stem
+      }
+      
+      // For verbs ending in -ern, -eln
+      if (lower.endsWith('ern') || lower.endsWith('eln')) {
+        const stem = lower.slice(0, -1);  // remove just n
+        map[stem + 't'] = item;
+        map[stem + 'te'] = item;
+      }
+      
+      // Also handle plural forms (simple heuristic: add 'n', 'en', 'e', 's', 'er')
       if (!lower.endsWith('n')) {
         map[lower + 'n'] = item;
         map[normalized + 'n'] = item;
@@ -65,6 +105,10 @@ const buildVocabMap = (): Record<string, VocabularyItem> => {
       if (!lower.endsWith('e')) {
         map[lower + 'e'] = item;
         map[normalized + 'e'] = item;
+      }
+      if (!lower.endsWith('er')) {
+        map[lower + 'er'] = item;
+        map[normalized + 'er'] = item;
       }
       if (!lower.endsWith('s')) {
         map[lower + 's'] = item;
@@ -84,20 +128,112 @@ const getVocabMap = (): Record<string, VocabularyItem> => {
   return VOCAB_MAP;
 };
 
+// Helper to detect gender from vocabulary item
+const getVocabGender = (vocabItem: VocabularyItem): 'masculine' | 'feminine' | 'neuter' | 'none' => {
+  if (vocabItem.gender) {
+    return vocabItem.gender === 'none' ? 'none' : vocabItem.gender;
+  }
+  
+  const firstForm = vocabItem.forms?.[0]?.toLowerCase() || vocabItem.de.toLowerCase();
+  
+  if (firstForm.startsWith('der ') || firstForm.startsWith('ein ')) {
+    return 'masculine';
+  }
+  if (firstForm.startsWith('die ') || firstForm.startsWith('eine ')) {
+    return 'feminine';
+  }
+  if (firstForm.startsWith('das ')) {
+    return 'neuter';
+  }
+  
+  return 'none';
+};
+
+// Helper to get case type for color coding
+const getCaseType = (form: string): 'nominativ' | 'akkusativ' | 'dativ' | 'genitiv' | 'plural' | 'default' => {
+  const lowerForm = form.toLowerCase();
+  
+  if (lowerForm.startsWith('den ') || lowerForm.startsWith('einen ')) {
+    return 'akkusativ';
+  }
+  if (lowerForm.startsWith('dem ') || lowerForm.startsWith('einem ')) {
+    return 'dativ';
+  }
+  if (lowerForm.startsWith('des ') || lowerForm.startsWith('eines ') || lowerForm.startsWith('einer ')) {
+    return 'genitiv';
+  }
+  if (lowerForm.startsWith('der ') || lowerForm.startsWith('die ') || lowerForm.startsWith('das ')) {
+    return 'nominativ';
+  }
+  
+  return 'default';
+};
+
+// Case color classes
+const caseColors: Record<string, { bg: string; text: string; border: string }> = {
+  nominativ: { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-300' },
+  akkusativ: { bg: 'bg-teal-50', text: 'text-teal-800', border: 'border-teal-300' },
+  dativ: { bg: 'bg-orange-50', text: 'text-orange-800', border: 'border-orange-300' },
+  genitiv: { bg: 'bg-purple-50', text: 'text-purple-800', border: 'border-purple-300' },
+  plural: { bg: 'bg-pink-50', text: 'text-pink-800', border: 'border-pink-300' },
+  default: { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' }
+};
+
+// Gender badge colors
+const genderBadgeColors: Record<string, { bg: string; text: string; border: string; label: string }> = {
+  masculine: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', label: 'der' },
+  feminine: { bg: 'bg-pink-100', text: 'text-pink-800', border: 'border-pink-300', label: 'die' },
+  neuter: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300', label: 'das' },
+  none: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', label: 'verb/other' }
+};
+
+// Generate forms for vocabulary item if not present
+const generateForms = (vocabItem: VocabularyItem): string[] => {
+  if (vocabItem.forms && vocabItem.forms.length > 0) {
+    return vocabItem.forms;
+  }
+  
+  const forms: string[] = [vocabItem.de];
+  const gender = getVocabGender(vocabItem);
+  
+  // Extract core word without article
+  const coreWord = vocabItem.de.replace(/^(der|die|das)\s+/i, '').trim();
+  
+  // For nouns, generate case forms
+  if (gender !== 'none' && coreWord) {
+    if (gender === 'masculine') {
+      forms.push(`der ${coreWord}`, `den ${coreWord}`, `dem ${coreWord}`, `des ${coreWord}s`);
+    } else if (gender === 'feminine') {
+      forms.push(`die ${coreWord}`, `der ${coreWord}`); // die = nom/akk, der = gen/dat
+    } else if (gender === 'neuter') {
+      forms.push(`das ${coreWord}`, `dem ${coreWord}`, `des ${coreWord}s`);
+    }
+  }
+  
+  // Dedupe
+  return [...new Set(forms)];
+};
+
 // Vocabulary Popup Component
 export function VocabPopup({ word, onClose, lang }: VocabPopupProps) {
   const vocabMap = getVocabMap();
   const cleanWord = word.toLowerCase().replace(/[.,!?;:]/g, '');
-  const normalized = normalizeText(cleanWord);
+  // Strip articles to match how vocab map keys are stored
+  const withoutArticle = cleanWord.replace(/^(der|die|das|den|dem|des|ein|eine|einem|einer|einen|eines)\s+/i, '').trim();
+  const normalized = normalizeText(withoutArticle);
   
-  // Try to find vocab item using the same logic as highlighting
-  const vocabItem = vocabMap[cleanWord] || vocabMap[normalized];
+  // Try to find vocab item - check with article stripped first, then original
+  const vocabItem = vocabMap[withoutArticle] || vocabMap[normalized] || vocabMap[cleanWord] || vocabMap[normalizeText(cleanWord)];
 
   if (!vocabItem) return null;
 
+  const gender = getVocabGender(vocabItem);
+  const genderBadge = genderBadgeColors[gender];
+  const forms = generateForms(vocabItem);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Sparkles className="text-indigo-600" size={24} />
@@ -107,27 +243,71 @@ export function VocabPopup({ word, onClose, lang }: VocabPopupProps) {
         </div>
 
         <div className="space-y-4">
+          {/* Main word with gender badge */}
           <div className="bg-indigo-50 rounded-xl p-4">
-            <p className="text-sm text-indigo-600 font-semibold mb-1">{lang === 'de' ? 'Deutsch' : 'German'}</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm text-indigo-600 font-semibold">{lang === 'de' ? 'Deutsch' : 'German'}</p>
+              <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${genderBadge.bg} ${genderBadge.text} ${genderBadge.border}`}>
+                {genderBadge.label}
+              </span>
+            </div>
             <p className="text-2xl font-bold text-indigo-900">{vocabItem.de}</p>
           </div>
 
+          {/* English meaning */}
           <div className="bg-green-50 rounded-xl p-4">
             <p className="text-sm text-green-600 font-semibold mb-1">{lang === 'de' ? 'Englisch' : 'English'}</p>
-            <p className="text-xl font-bold text-green-900">{vocabItem.en}</p>
+            <p className="text-xl font-bold text-green-900">{vocabItem.meaning || vocabItem.en}</p>
           </div>
 
+          {/* All Forms Section */}
+          {forms.length > 1 && (
+            <div className="border-t pt-4">
+              <p className="text-sm text-gray-500 font-semibold mb-2">
+                {lang === 'de' ? 'Alle Formen (Fälle & Nutzung)' : 'All Forms (Cases & Usage)'}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {forms.map((form, idx) => {
+                  const caseType = getCaseType(form);
+                  const caseColor = caseColors[caseType];
+                  return (
+                    <span
+                      key={idx}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg border ${caseColor.bg} ${caseColor.text} ${caseColor.border}`}
+                    >
+                      {form}
+                    </span>
+                  );
+                })}
+              </div>
+              
+              {/* Color Legend */}
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <p className="text-xs text-gray-400 mb-2">{lang === 'de' ? 'Farblegende:' : 'Color Key:'}</p>
+                <div className="flex flex-wrap gap-1">
+                  <span className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">Nom</span>
+                  <span className="text-xs px-1.5 py-0.5 bg-teal-50 text-teal-600 rounded">Akk</span>
+                  <span className="text-xs px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded">Dat</span>
+                  <span className="text-xs px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">Gen</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Category */}
           <div className="border-t pt-4">
             <p className="text-sm text-gray-500 font-semibold mb-2">{lang === 'de' ? 'Kategorie' : 'Category'}</p>
             <p className="text-gray-800">{vocabItem.category}</p>
           </div>
 
+          {/* Example */}
           <div className="border-t pt-4">
             <p className="text-sm text-gray-500 font-semibold mb-2">{lang === 'de' ? 'Beispiel' : 'Example'}</p>
             <p className="text-gray-800 italic mb-2">&ldquo;{vocabItem.example_de}&rdquo;</p>
             <p className="text-gray-600 text-sm">&ldquo;{vocabItem.example_en}&rdquo;</p>
           </div>
 
+          {/* Tier badge */}
           <div className="flex items-center gap-2 bg-yellow-50 rounded-lg p-3">
             <Star className="text-yellow-500" size={16} />
             <span className="text-sm font-semibold text-yellow-800">{vocabItem.tier_name}</span>

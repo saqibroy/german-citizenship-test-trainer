@@ -72,7 +72,16 @@ export interface VocabularyItem {
   tier_name: string;
   example_de: string;
   example_en: string;
+  // Enhanced vocabulary fields for better highlighting and display
+  word?: string;              // Core word without article (e.g., "Regierung")
+  forms?: string[];           // All grammatical forms for matching and display
+  meaning?: string;           // Optional enhanced meaning with grammar notes
+  gender?: 'masculine' | 'feminine' | 'neuter' | 'none';  // Noun gender
+  wordType?: 'noun' | 'verb' | 'adjective' | 'preposition' | 'conjunction' | 'other';
 }
+
+// Gender type for vocabulary
+export type VocabGender = 'masculine' | 'feminine' | 'neuter' | 'dative' | 'none';
 
 // Badge Types
 export type BadgeName = string;
