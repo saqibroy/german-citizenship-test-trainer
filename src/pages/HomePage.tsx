@@ -53,16 +53,16 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
               <div>
                 <h1 className="text-3xl font-bold">
                   {user 
-                    ? `👋 ${lang === 'de' ? 'Hallo' : 'Hello'}, ${user.displayName || user.email?.split('@')[0] || 'User'}!`
-                    : (lang === 'de' ? '👋 Willkommen!' : '👋 Welcome!')
+                    ? `${lang === 'de' ? 'Hallo' : 'Hello'}, ${user.displayName || user.email?.split('@')[0] || 'User'}!`
+                    : (lang === 'de' ? 'Willkommen!' : 'Welcome!')
                   }
                 </h1>
               </div>
             </div>
             <p className="text-lg opacity-90">
               {answered === 0 
-                ? (lang === 'de' ? 'Dein persönlicher Coach für den Einbürgerungstest' : 'Your personal coach for the citizenship test')
-                : (lang === 'de' ? 'Weiter so! Du machst Fortschritte.' : 'Keep going! You\'re making progress.')}
+                ? (lang === 'de' ? 'Ihr persönlicher Coach für den Einbürgerungstest' : 'Your personal coach for the citizenship test')
+                : (lang === 'de' ? 'Weiter so! Sie machen Fortschritte.' : 'Keep going! You\'re making progress.')}
             </p>
           </div>
           
@@ -104,21 +104,21 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-800">{lang === 'de' ? 'Lern-Streak' : 'Study Streak'}</h3>
-              <p className="text-sm text-gray-600">{lang === 'de' ? 'Bleib dran!' : 'Keep it up!'}</p>
+              <p className="text-sm text-gray-600">{lang === 'de' ? 'Bleiben Sie dran!' : 'Keep it up!'}</p>
             </div>
           </div>
           <div className="text-5xl font-black text-orange-600">{studyStreak}</div>
         </div>
         <p className="text-sm text-gray-700">
           {studyStreak === 0 
-            ? (lang === 'de' ? '🔥 Starte heute deinen Streak!' : '🔥 Start your streak today!')
+            ? (lang === 'de' ? 'Starten Sie heute Ihren Streak!' : 'Start your streak today!')
             : studyStreak === 1
-            ? (lang === 'de' ? '🎉 Erster Tag! Mach weiter!' : '🎉 First day! Keep going!')
+            ? (lang === 'de' ? 'Erster Tag! Machen Sie weiter!' : 'First day! Keep going!')
             : studyStreak < 7
-            ? (lang === 'de' ? `💪 ${studyStreak} Tage in Folge!` : `💪 ${studyStreak} days in a row!`)
+            ? (lang === 'de' ? `${studyStreak} Tage in Folge!` : `${studyStreak} days in a row!`)
             : studyStreak < 30
-            ? (lang === 'de' ? `🔥 Großartig! ${studyStreak} Tage!` : `🔥 Amazing! ${studyStreak} days!`)
-            : (lang === 'de' ? `🏆 Unglaublich! ${studyStreak} Tage!` : `🏆 Incredible! ${studyStreak} days!`)}
+            ? (lang === 'de' ? `Großartig! ${studyStreak} Tage!` : `Amazing! ${studyStreak} days!`)
+            : (lang === 'de' ? `Unglaublich! ${studyStreak} Tage!` : `Incredible! ${studyStreak} days!`)}
         </p>
       </div>
 
@@ -130,7 +130,7 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
               {lang === 'de' ? 'Testbereitschaft' : 'Test Readiness'}
             </h2>
             <p className="text-sm text-indigo-100">
-              {lang === 'de' ? 'Wie gut bist du vorbereitet?' : 'How prepared are you?'}
+              {lang === 'de' ? 'Wie gut sind Sie vorbereitet?' : 'How prepared are you?'}
             </p>
           </div>
           <Target className="text-white opacity-80" size={40} />
@@ -139,10 +139,10 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
         <div className="text-center mb-5">
           <div className="text-6xl font-bold mb-2">{readiness.score}%</div>
           <div className="text-lg font-semibold mb-2">
-            {readiness.score >= 80 ? '🎉 ' + (lang === 'de' ? 'Bereit!' : 'Ready!') :
-             readiness.score >= 60 ? '👍 ' + (lang === 'de' ? 'Fast geschafft' : 'Almost There') :
-             readiness.score >= 40 ? '📚 ' + (lang === 'de' ? 'Weiter üben' : 'Keep Practicing') :
-             '🌱 ' + (lang === 'de' ? 'Guter Start' : 'Good Start')}
+            {readiness.score >= 80 ? (lang === 'de' ? 'Bereit!' : 'Ready!') :
+             readiness.score >= 60 ? (lang === 'de' ? 'Fast geschafft' : 'Almost There') :
+             readiness.score >= 40 ? (lang === 'de' ? 'Weiter üben' : 'Keep Practicing') :
+             (lang === 'de' ? 'Guter Start' : 'Good Start')}
           </div>
           <div className="w-full bg-white/20 rounded-full h-3 shadow-inner">
             <div 

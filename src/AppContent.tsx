@@ -184,7 +184,7 @@ export default function AppContent() {
           <div className="flex items-center justify-center gap-2">
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
             <span className="font-semibold">
-              {lang === 'de' ? '🔄 Daten werden migriert...' : '🔄 Migrating your data...'}
+              {lang === 'de' ? 'Daten werden migriert...' : 'Migrating your data...'}
             </span>
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function AppContent() {
       {migrationComplete && user && !isMigrating && (
         <div className="fixed top-0 left-0 right-0 z-[100] bg-green-600 text-white p-3 text-center animate-[slideDown_0.3s_ease-out,slideUp_0.3s_ease-in_3s_forwards]">
           <span className="font-semibold">
-            {lang === 'de' ? '✅ Alle Daten erfolgreich synchronisiert!' : '✅ All data synced successfully!'}
+            {lang === 'de' ? 'Alle Daten erfolgreich synchronisiert!' : 'All data synced successfully!'}
           </span>
         </div>
       )}
@@ -201,7 +201,7 @@ export default function AppContent() {
       {migrationError && (
         <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white p-3 text-center">
           <span className="font-semibold">
-            {lang === 'de' ? '⚠️ Fehler beim Synchronisieren (Lokale Daten sind sicher)' : '⚠️ Sync error (Your local data is safe)'}
+            {lang === 'de' ? 'Fehler beim Synchronisieren (Lokale Daten sind sicher)' : 'Sync error (Your local data is safe)'}
           </span>
         </div>
       )}
@@ -269,13 +269,13 @@ export default function AppContent() {
                       onClick={() => setVocabMode('learn')}
                       className={`flex-1 py-3 font-semibold ${vocabMode === 'learn' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
                     >
-                      {lang === 'de' ? '📚 Lernen' : '📚 Learn'}
+                      {lang === 'de' ? 'Lernen' : 'Learn'}
                     </button>
                     <button 
                       onClick={() => setVocabMode('training')}
                       className={`flex-1 py-3 font-semibold ${vocabMode === 'training' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
                     >
-                      {lang === 'de' ? '🧠 Training' : '🧠 Training'}
+                      {lang === 'de' ? 'Training' : 'Training'}
                     </button>
                   </div>
                 </div>

@@ -14,22 +14,22 @@ interface TrainingCompletionProps {
 const MOTIVATIONAL_MESSAGES = {
   de: {
     excellent: [
-      "Hervorragend! Du beherrschst das Material!",
-      "Fantastisch! Du bist bereit für die Prüfung!",
-      "Ausgezeichnet! Deine harte Arbeit zahlt sich aus!",
+      "Hervorragend! Sie beherrschen das Material!",
+      "Fantastisch! Sie sind bereit für die Prüfung!",
+      "Ausgezeichnet! Ihre harte Arbeit zahlt sich aus!",
       "Perfekt! Weiter so!"
     ],
     good: [
-      "Gut gemacht! Du machst tolle Fortschritte!",
-      "Sehr gut! Bleib dran!",
-      "Toll! Du bist auf dem richtigen Weg!",
-      "Super! Deine Kenntnisse verbessern sich stetig!"
+      "Gut gemacht! Sie machen tolle Fortschritte!",
+      "Sehr gut! Bleiben Sie dran!",
+      "Toll! Sie sind auf dem richtigen Weg!",
+      "Super! Ihre Kenntnisse verbessern sich stetig!"
     ],
     needsWork: [
-      "Nicht schlecht! Übe weiter für bessere Ergebnisse!",
-      "Gut begonnen! Mit mehr Übung wirst du besser!",
-      "Bleib dabei! Wiederholung ist der Schlüssel zum Erfolg!",
-      "Guter Versuch! Konzentriere dich auf deine schwachen Bereiche!"
+      "Nicht schlecht! Üben Sie weiter für bessere Ergebnisse!",
+      "Gut begonnen! Mit mehr Übung werden Sie besser!",
+      "Bleiben Sie dabei! Wiederholung ist der Schlüssel zum Erfolg!",
+      "Guter Versuch! Konzentrieren Sie sich auf Ihre schwachen Bereiche!"
     ]
   },
   en: {
@@ -75,23 +75,23 @@ export function TrainingCompletion({
   const getRecommendation = () => {
     if (lang === 'de') {
       if (accuracy >= 85) {
-        return "🎯 Du bist in großartiger Verfassung! Mache morgen eine kurze Wiederholung, um dein Wissen zu festigen.";
+        return "Sie sind in großartiger Verfassung! Machen Sie morgen eine kurze Wiederholung, um Ihr Wissen zu festigen.";
       } else if (accuracy >= 70) {
-        return "📚 Konzentriere dich auf deine schwachen Kategorien. Überprüfe die falschen Antworten noch einmal.";
+        return "Konzentrieren Sie sich auf Ihre schwachen Kategorien. Überprüfen Sie die falschen Antworten noch einmal.";
       } else if (weakCategories.length > 0) {
-        return `🔍 Fokus-Bereiche: ${weakCategories.join(', ')}. Übe diese Kategorien gezielt.`;
+        return `Fokus-Bereiche: ${weakCategories.join(', ')}. Üben Sie diese Kategorien gezielt.`;
       } else {
-        return "💪 Wiederhole dieses Training morgen. Die Spaced Repetition wird dir helfen!";
+        return "Wiederholen Sie dieses Training morgen. Die Spaced Repetition wird Ihnen helfen!";
       }
     } else {
       if (accuracy >= 85) {
-        return "🎯 You're in great shape! Do a quick review tomorrow to solidify your knowledge.";
+        return "You're in great shape! Do a quick review tomorrow to solidify your knowledge.";
       } else if (accuracy >= 70) {
-        return "📚 Focus on your weak categories. Review the incorrect answers again.";
+        return "Focus on your weak categories. Review the incorrect answers again.";
       } else if (weakCategories.length > 0) {
-        return `🔍 Focus areas: ${weakCategories.join(', ')}. Practice these categories specifically.`;
+        return `Focus areas: ${weakCategories.join(', ')}. Practice these categories specifically.`;
       } else {
-        return "💪 Repeat this training tomorrow. Spaced repetition will help you!";
+        return "Repeat this training tomorrow. Spaced repetition will help you!";
       }
     }
   };
@@ -214,7 +214,7 @@ export function TrainingCompletion({
             <p className="text-sm text-purple-800 font-medium flex items-center justify-center gap-2">
               <Lightbulb size={16} className="text-purple-600" />
               {lang === 'de' 
-                ? 'Tipp: Komme morgen zurück für optimale Wiederholung!' 
+                ? 'Tipp: Kommen Sie morgen zurück für optimale Wiederholung!' 
                 : 'Tip: Come back tomorrow for optimal review!'}
             </p>
           </div>
@@ -224,7 +224,7 @@ export function TrainingCompletion({
               <p className="text-sm text-green-800 font-medium flex items-center justify-center gap-2">
                 <Award size={16} className="text-green-600" />
                 {lang === 'de' 
-                  ? 'Ausgezeichnet! Du bist bereit für die Prüfung!' 
+                  ? 'Ausgezeichnet! Sie sind bereit für die Prüfung!' 
                   : 'Excellent! You\'re ready for the exam!'}
               </p>
             </div>

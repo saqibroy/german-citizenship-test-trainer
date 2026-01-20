@@ -366,6 +366,19 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
   const answered = answers[currentIdx] !== undefined;
   const userAnswer = answers[currentIdx];
 
+  // Scroll to top when moving to next question
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const goToNextQuestion = () => {
+    setCurrentIdx(currentIdx + 1);
+    setShowTranslation(false);
+    setSelectedVocab(null);
+    setQuestionStartTime(Date.now());
+    scrollToTop();
+  };
+
   const handleAnswer = (originalIndex: any) => {
     const isCorrect = originalIndex === q.correct_index;
     const answerTime = Math.floor((Date.now() - questionStartTime) / 1000);
@@ -423,10 +436,10 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIdx}
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             className="space-y-4"
             style={{ cursor: answered ? 'pointer' : 'default' }}
             onClick={(e) => {
@@ -454,14 +467,11 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
               }
               
               // Otherwise, advance to next question
-              setCurrentIdx(currentIdx + 1); 
-              setShowTranslation(false); 
-              setSelectedVocab(null);
-              setQuestionStartTime(Date.now());
+              goToNextQuestion();
             }}
           >
             {/* Question */}
-            <div className="bg-white rounded-2xl p-4 shadow-lg">
+            <div className="bg-white rounded-2xl p-4 shadow-lg min-h-[120px]">
               {q.img?.url && (
                 <div className="mb-4 rounded-xl overflow-hidden">
                   <img 
@@ -645,22 +655,18 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
       {answered && (
         <div className="bg-white border-t border-gray-200 px-4 py-3 shrink-0">
           <motion.button
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             onClick={(e) => { 
               e.stopPropagation(); // Prevent double-trigger from tap-anywhere
-              setCurrentIdx(currentIdx + 1); 
-              setShowTranslation(false); 
-              setSelectedVocab(null);
-              setQuestionStartTime(Date.now());
+              goToNextQuestion();
             }}
             className="continue-button-main w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xl text-lg active:scale-98 transition-transform flex items-center justify-center gap-2 touch-target-lg max-w-2xl mx-auto"
           >
             {currentIdx === trainingQuestions.length - 1 
-              ? (lang === 'de' ? '🎯 Ergebnis anzeigen' : '🎯 Show Results') 
+              ? (lang === 'de' ? 'Ergebnis anzeigen' : 'Show Results') 
               : (
                 <>
-                  {userAnswer?.isCorrect ? '✓ ' : ''}
                   {lang === 'de' ? 'Weiter' : 'Continue'}
                   <ChevronRight size={20} />
                 </>
@@ -668,10 +674,10 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
           </motion.button>
           <div className="text-center text-xs mt-2 space-y-1">
             <p className="text-gray-500">
-              {lang === 'de' ? '💡 Tippe irgendwo zum Fortfahren' : '💡 Tap anywhere to continue'}
+              {lang === 'de' ? 'Tippen Sie irgendwo, um fortzufahren' : 'Tap anywhere to continue'}
             </p>
             <p className="text-purple-600 font-medium">
-              {lang === 'de' ? 'Halte lila Wörter gedrückt zum Lernen' : 'Long-press purple words to learn'}
+              {lang === 'de' ? 'Halten Sie markierte Wörter gedrückt, um sie zu übersetzen' : 'Long-press highlighted words to translate'}
             </p>
           </div>
         </div>

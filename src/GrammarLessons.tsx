@@ -29,9 +29,14 @@ export function GrammarLessonsPage({ lang }: { lang: 'de' | 'en' }) {
 
   const currentLesson = sortedLessons[currentLessonIndex];
   
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const startLesson = (index: number) => {
     setCurrentLessonIndex(index);
     setViewMode('lesson');
+    scrollToTop();
   };
 
   const completeAndNext = () => {
@@ -39,6 +44,7 @@ export function GrammarLessonsPage({ lang }: { lang: 'de' | 'en' }) {
       markLessonComplete(currentLesson.id);
       if (currentLessonIndex < sortedLessons.length - 1) {
         setCurrentLessonIndex(currentLessonIndex + 1);
+        scrollToTop();
       } else {
         setViewMode('list');
       }
@@ -47,6 +53,7 @@ export function GrammarLessonsPage({ lang }: { lang: 'de' | 'en' }) {
 
   const backToList = () => {
     setViewMode('list');
+    scrollToTop();
   };
 
   const getLevelColor = (level: string) => {
@@ -121,21 +128,21 @@ export function GrammarLessonsPage({ lang }: { lang: 'de' | 'en' }) {
 
           {currentLesson.content.examples && currentLesson.content.examples.length > 0 && (
             <div className="space-y-3">
-              <h3 className="font-bold text-gray-800 text-lg">{lang === 'de' ? '💡 Beispiele' : '💡 Examples'}</h3>
+              <h3 className="font-bold text-gray-800 text-lg">{lang === 'de' ? 'Beispiele' : 'Examples'}</h3>
               {currentLesson.content.examples.map((example: any, idx: number) => (
                 <div key={idx} className="bg-gray-50 rounded-xl p-4 border-l-4 border-gray-300">
                   <div className="space-y-3">
                     <div>
-                      <div className="text-xs font-semibold text-gray-600 mb-1">🇩🇪 {lang === 'de' ? 'Deutsch' : 'German'}</div>
+                      <div className="text-xs font-semibold text-gray-600 mb-1">{lang === 'de' ? 'Deutsch' : 'German'}</div>
                       <p className="font-semibold text-gray-900">{example.german}</p>
                     </div>
                     <div>
-                      <div className="text-xs font-semibold text-gray-600 mb-1">🇬🇧 {lang === 'de' ? 'Englisch' : 'English'}</div>
+                      <div className="text-xs font-semibold text-gray-600 mb-1">{lang === 'de' ? 'Englisch' : 'English'}</div>
                       <p className="text-gray-700">{example.english}</p>
                     </div>
                     {example.breakdown && (
                       <div className="bg-white rounded-lg p-3">
-                        <div className="text-xs font-semibold text-blue-600 mb-2">📝 {lang === 'de' ? 'Aufschlüsselung' : 'Breakdown'}</div>
+                        <div className="text-xs font-semibold text-blue-600 mb-2">{lang === 'de' ? 'Aufschlüsselung' : 'Breakdown'}</div>
                         <div className="space-y-1 text-sm">
                           {Object.entries(example.breakdown).map(([key, value]: [string, any]) => (
                             <div key={key} className="flex gap-2">
@@ -148,7 +155,7 @@ export function GrammarLessonsPage({ lang }: { lang: 'de' | 'en' }) {
                     )}
                     {example.notes && (
                       <div className="bg-yellow-50 rounded-lg p-3 text-sm">
-                        <div className="text-xs font-semibold text-yellow-800 mb-1">💡 {lang === 'de' ? 'Hinweise' : 'Notes'}</div>
+                        <div className="text-xs font-semibold text-yellow-800 mb-1">{lang === 'de' ? 'Hinweise' : 'Notes'}</div>
                         <p className="text-yellow-900">{example.notes}</p>
                       </div>
                     )}
@@ -162,7 +169,7 @@ export function GrammarLessonsPage({ lang }: { lang: 'de' | 'en' }) {
             <div className="bg-green-50 rounded-xl p-4 border-l-4 border-green-500">
               <h3 className="font-bold text-green-900 mb-3 flex items-center gap-2">
                 <CheckCircle2 className="text-green-600" size={20} />
-                {lang === 'de' ? '✅ Wichtige Regeln' : '✅ Key Rules'}
+                {lang === 'de' ? 'Wichtige Regeln' : 'Key Rules'}
               </h3>
               <ul className="space-y-2">
                 {currentLesson.content.keyRules.map((rule: string, idx: number) => (
@@ -179,7 +186,7 @@ export function GrammarLessonsPage({ lang }: { lang: 'de' | 'en' }) {
             <div className="bg-red-50 rounded-xl p-4 border-l-4 border-red-500">
               <h3 className="font-bold text-red-900 mb-3 flex items-center gap-2">
                 <AlertCircle className="text-red-600" size={20} />
-                {lang === 'de' ? '⚠️ Häufige Fehler' : '⚠️ Common Mistakes'}
+                {lang === 'de' ? 'Häufige Fehler' : 'Common Mistakes'}
               </h3>
               <div className="space-y-2">
                 {currentLesson.content.commonMistakes.map((mistake: string, idx: number) => (
@@ -193,7 +200,7 @@ export function GrammarLessonsPage({ lang }: { lang: 'de' | 'en' }) {
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border-l-4 border-purple-500">
               <h3 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
                 <Lightbulb className="text-purple-600" size={20} />
-                {lang === 'de' ? '⚡ Schnelle Tipps' : '⚡ Quick Tips'}
+                {lang === 'de' ? 'Schnelle Tipps' : 'Quick Tips'}
               </h3>
               <div className="space-y-2">
                 {currentLesson.content.quickTips.map((tip: string, idx: number) => (
@@ -209,7 +216,7 @@ export function GrammarLessonsPage({ lang }: { lang: 'de' | 'en' }) {
             <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-4 border-l-4 border-orange-500">
               <h3 className="font-bold text-orange-900 mb-3 flex items-center gap-2">
                 <GraduationCap className="text-orange-600" size={20} />
-                {lang === 'de' ? '🎓 Prüfungstipps' : '🎓 Exam Tips'}
+                {lang === 'de' ? 'Prüfungstipps' : 'Exam Tips'}
               </h3>
               <div className="space-y-2">
                 {currentLesson.content.examTips.map((tip: string, idx: number) => (
@@ -252,14 +259,14 @@ export function GrammarLessonsPage({ lang }: { lang: 'de' | 'en' }) {
         </div>
         <p className="opacity-90 text-sm">
           {lang === 'de' 
-            ? 'Lerne deutsche Satzstruktur und Grammatik für den Einbürgerungstest' 
+            ? 'Lernen Sie deutsche Satzstruktur und Grammatik für den Einbürgerungstest' 
             : 'Learn German sentence structure and grammar for the citizenship test'}
         </p>
         <div className="bg-white bg-opacity-20 rounded-lg p-3 mt-4">
-          <p className="text-sm font-semibold text-gray-900">
+          <p className="text-sm font-semibold text-white">
             {lang === 'de'
-              ? '📚 12 umfassende Lektionen • Alle Erklärungen auf Englisch'
-              : '📚 12 comprehensive lessons • All explanations in English'}
+              ? '12 umfassende Lektionen mit Erklärungen auf Englisch'
+              : '12 comprehensive lessons with explanations in English'}
           </p>
         </div>
       </div>

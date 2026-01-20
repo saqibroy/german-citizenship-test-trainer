@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, Award } from 'lucide-react';
 import { CATEGORY_ICONS } from '../data.js';
 import { calculateSRSWeight } from '../srsAlgorithm';
 import type { Question, CardsPageProps } from '../types';
@@ -66,9 +66,9 @@ export function CardsPage({ lang, questions, updateProgress, progress }: CardsPa
         <div className="bg-white rounded-2xl p-6 shadow-lg">
           <h2 className="text-2xl font-bold mb-4 text-gray-800">{lang === 'de' ? 'Kartenset Modus' : 'Flashcard Mode'}</h2>
           <div className="space-y-3 mb-6">
-            <p className="text-gray-700">{lang === 'de' ? '✓ Intelligente Reihenfolge basiert auf deinen Schwächen' : '✓ Smart order based on your weaknesses'}</p>
-            <p className="text-gray-700">{lang === 'de' ? '✓ Tippe auf die Karte zum Umdrehen' : '✓ Tap card to flip'}</p>
-            <p className="text-gray-700">{lang === 'de' ? '✓ Bewerte dein Wissen selbst' : '✓ Self-assess your knowledge'}</p>
+            <p className="text-gray-700">{lang === 'de' ? 'Intelligente Reihenfolge basierend auf Ihren Schwächen' : 'Smart order based on your weaknesses'}</p>
+            <p className="text-gray-700">{lang === 'de' ? 'Tippen Sie auf die Karte zum Umdrehen' : 'Tap card to flip'}</p>
+            <p className="text-gray-700">{lang === 'de' ? 'Bewerten Sie Ihr Wissen selbst' : 'Self-assess your knowledge'}</p>
           </div>
           <button onClick={startCards} className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl py-4 font-bold shadow-lg">{lang === 'de' ? 'Kartenset starten' : 'Start Flashcards'}</button>
         </div>
@@ -80,7 +80,7 @@ export function CardsPage({ lang, questions, updateProgress, progress }: CardsPa
     return (
       <div className="p-4">
         <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
-          <div className="text-6xl mb-4">🎊</div>
+          <div className="text-6xl mb-4"><Award size={64} className="mx-auto text-green-500" /></div>
           <h2 className="text-2xl font-bold mb-4">{lang === 'de' ? 'Alle Karten durchgegangen!' : 'All cards reviewed!'}</h2>
           <p className="text-gray-700 mb-6">{lang === 'de' ? 'Ausgezeichnete Arbeit!' : 'Excellent work!'}</p>
           <button onClick={() => setStarted(false)} className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl py-3 font-bold shadow-lg">{lang === 'de' ? 'Neu starten' : 'Restart'}</button>
@@ -165,7 +165,7 @@ export function CardsPage({ lang, questions, updateProgress, progress }: CardsPa
             )}
             
             <div className="mt-6 text-sm opacity-75">
-              {flipped ? '✓' : (lang === 'de' ? '👆 Tippen zum Umdrehen' : '👆 Tap to flip')}
+              {flipped ? '' : (lang === 'de' ? 'Tippen zum Umdrehen' : 'Tap to flip')}
             </div>
           </div>
         </div>

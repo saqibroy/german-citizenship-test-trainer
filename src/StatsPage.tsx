@@ -110,7 +110,7 @@ export function StatsPage({
             <BarChart3 size={28} />
             <h2 className="text-2xl font-bold">{lang === 'de' ? 'Statistiken' : 'Statistics'}</h2>
           </div>
-          <p className="opacity-90 text-sm">{lang === 'de' ? 'Dein Lernfortschritt im Detail' : 'Your learning progress in detail'}</p>
+          <p className="opacity-90 text-sm">{lang === 'de' ? 'Ihr Lernfortschritt im Detail' : 'Your learning progress in detail'}</p>
         </div>
 
         {/* Test Readiness Card */}
@@ -122,7 +122,7 @@ export function StatsPage({
               </h2>
               <p className="text-indigo-100">
                 {lang === 'de' 
-                  ? 'Wie gut bist du vorbereitet?' 
+                  ? 'Wie gut sind Sie vorbereitet?' 
                   : 'How well prepared are you?'}
               </p>
             </div>
@@ -132,10 +132,10 @@ export function StatsPage({
           <div className="text-center mb-6">
             <div className="text-6xl md:text-7xl font-bold mb-2">{readiness.score}%</div>
             <div className="text-xl md:text-2xl font-semibold mb-3">
-              {readiness.score >= 80 ? '🎉 ' + (lang === 'de' ? 'Bereit!' : 'Ready!') :
-               readiness.score >= 60 ? '👍 ' + (lang === 'de' ? 'Fast geschafft' : 'Almost There') :
-               readiness.score >= 40 ? '📚 ' + (lang === 'de' ? 'Weiter üben' : 'Keep Practicing') :
-               '🌱 ' + (lang === 'de' ? 'Guter Start' : 'Good Start')}
+              {readiness.score >= 80 ? (lang === 'de' ? 'Bereit!' : 'Ready!') :
+               readiness.score >= 60 ? (lang === 'de' ? 'Fast geschafft' : 'Almost There') :
+               readiness.score >= 40 ? (lang === 'de' ? 'Weiter üben' : 'Keep Practicing') :
+               (lang === 'de' ? 'Guter Start' : 'Good Start')}
             </div>
             {/* Overall Progress Bar */}
             <div className="w-full max-w-md mx-auto bg-white bg-opacity-30 rounded-full h-3 mt-2">
@@ -205,7 +205,7 @@ export function StatsPage({
                 {lang === 'de' ? 'Tage Streak' : 'Day Streak'}
               </h3>
               <p className="text-xs text-gray-600 mt-1">
-                {lang === 'de' ? 'Bleib dran!' : 'Keep it up!'}
+                {lang === 'de' ? 'Bleiben Sie dran!' : 'Keep it up!'}
               </p>
             </div>
           </div>
