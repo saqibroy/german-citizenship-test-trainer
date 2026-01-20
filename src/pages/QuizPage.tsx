@@ -133,7 +133,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
               </div>
               <div>
                 <h2 className="text-2xl font-bold">{lang === 'de' ? 'Quiz' : 'Quiz'}</h2>
-                <p className="text-orange-100 text-xs">{lang === 'de' ? 'Teste dein Wissen' : 'Test Your Knowledge'}</p>
+                <p className="text-orange-100 text-xs">{lang === 'de' ? 'Testen Sie Ihr Wissen' : 'Test Your Knowledge'}</p>
               </div>
             </div>
             <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-5 py-2.5 border border-white/30">
@@ -250,7 +250,9 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
               : 'bg-gradient-to-r from-red-500 to-rose-600'
           } rounded-2xl p-6 text-white shadow-xl mb-6`}>
             <div className="text-center">
-              <div className="text-6xl mb-4">{passed ? '🎉' : '📚'}</div>
+              <div className="mb-4">
+                {passed ? <Trophy size={64} className="mx-auto" /> : <BookOpen size={64} className="mx-auto" />}
+              </div>
               <h2 className="text-3xl font-bold mb-2">
                 {passed 
                   ? (lang === 'de' ? 'Bestanden!' : 'Passed!') 
@@ -314,12 +316,12 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
             <p className="text-gray-700 leading-relaxed">
               {passed ? (
                 lang === 'de' 
-                  ? '🎯 Hervorragend! Du hast den Test bestanden. Mach weiter so!' 
-                  : '🎯 Excellent! You passed the test. Keep up the good work!'
+                  ? 'Hervorragend! Sie haben den Test bestanden. Machen Sie weiter so!' 
+                  : 'Excellent! You passed the test. Keep up the good work!'
               ) : (
                 lang === 'de'
-                  ? '💪 Weiter üben! Konzentriere dich auf deine schwachen Bereiche.'
-                  : '💪 Keep practicing! Focus on your weak areas.'
+                  ? 'Weiter üben! Konzentrieren Sie sich auf Ihre schwachen Bereiche.'
+                  : 'Keep practicing! Focus on your weak areas.'
               )}
             </p>
           </div>
@@ -334,7 +336,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
             }}
             className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-2xl py-4 font-bold text-lg shadow-xl active:scale-98 transition-transform"
           >
-            {lang === 'de' ? '🔄 Neues Quiz' : '🔄 New Quiz'}
+            {lang === 'de' ? 'Neues Quiz starten' : 'Start New Quiz'}
           </button>
         </div>
       </div>
@@ -346,6 +348,11 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
 
   const answered = answers[currentIdx] !== undefined;
   const userAnswer = answers[currentIdx];
+
+  // Scroll to top when moving to next question
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleAnswer = (originalIndex: number) => {
     const isCorrect = originalIndex === q.correct_index;
@@ -361,6 +368,12 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     }
 
     // No auto-advance - user must tap to continue
+  };
+
+  const goToNextQuestion = () => {
+    setCurrentIdx(currentIdx + 1);
+    setQuestionStartTime(Date.now());
+    scrollToTop();
   };
 
   const sessionStats = {
@@ -410,10 +423,10 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIdx}
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             className="space-y-4"
             style={{ cursor: answered ? 'pointer' : 'default' }}
             onClick={(e) => {
@@ -429,12 +442,11 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
               }
               
               // Otherwise, advance to next question
-              setCurrentIdx(currentIdx + 1);
-              setQuestionStartTime(Date.now());
+              goToNextQuestion();
             }}
           >
             {/* Question - MATCHES TrainingPage */}
-            <div className="bg-white rounded-2xl p-4 shadow-lg">
+            <div className="bg-white rounded-2xl p-4 shadow-lg min-h-[120px]">
               {q.img?.url && (
                 <div className="mb-4 rounded-xl overflow-hidden">
                   <img 
@@ -533,32 +545,31 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
                 );
               })}
             </div>
-
-            {/* Continue Button - Show always when answered */}
-            {answered && (
-              <div className="space-y-2">
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  onClick={(e) => { 
-                    e.stopPropagation(); // Prevent double-trigger from tap-anywhere
-                    setCurrentIdx(currentIdx + 1);
-                    setQuestionStartTime(Date.now());
-                  }}
-                  className="continue-button-main w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-red-500 text-white shadow-2xl text-lg active:scale-98 transition-transform touch-target"
-                >
-                  {currentIdx === quizQuestions.length - 1 
-                    ? (lang === 'de' ? '🎯 Ergebnis anzeigen' : '🎯 Show Results') 
-                    : (lang === 'de' ? 'Weiter →' : 'Continue →')}
-                </motion.button>
-                <p className="text-center text-xs text-gray-500">
-                  {lang === 'de' ? 'Tippe irgendwo zum Fortfahren' : 'Tap anywhere to continue'}
-                </p>
-              </div>
-            )}
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Continue Button - Fixed at bottom */}
+      {answered && (
+        <div className="bg-white border-t border-gray-200 px-4 py-3 shrink-0">
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={(e) => { 
+              e.stopPropagation(); // Prevent double-trigger from tap-anywhere
+              goToNextQuestion();
+            }}
+            className="continue-button-main w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-red-500 text-white shadow-xl text-lg active:scale-98 transition-transform touch-target max-w-2xl mx-auto"
+          >
+            {currentIdx === quizQuestions.length - 1 
+              ? (lang === 'de' ? 'Ergebnis anzeigen' : 'Show Results') 
+              : (lang === 'de' ? 'Weiter' : 'Continue')}
+          </motion.button>
+          <p className="text-center text-xs text-gray-500 mt-2">
+            {lang === 'de' ? 'Tippen Sie irgendwo, um fortzufahren' : 'Tap anywhere to continue'}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
