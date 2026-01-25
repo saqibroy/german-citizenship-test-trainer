@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Calendar, Target, Download, Upload, Trash2, 
-  Save, Info, Bell, User, Cloud, CloudOff
+  Save, Info, Bell, User, Cloud, CloudOff, LogIn
 } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 import { UserProfile } from './components/UserProfile';
+import { AuthModal } from './components/AuthModal';
 
 interface SettingsPageProps {
   lang: 'de' | 'en';
@@ -26,6 +27,7 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
   });
   const [saved, setSaved] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -255,7 +257,7 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
 
         {/* Offline Mode Info */}
         {!user && (
-          <div className="bg-gray-50 rounded-2xl p-6 shadow-lg border-2 border-gray-300">
+          <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-indigo-200">
             <div className="flex items-center gap-3 mb-4">
               <CloudOff className="text-gray-500" size={24} />
               <h3 className="text-lg font-bold text-gray-700">
@@ -264,14 +266,21 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
             </div>
             <p className="text-sm text-gray-600 mb-4">
               {lang === 'de' 
-                ? 'Du verwendest die App derzeit ohne Konto. Deine Daten werden nur lokal auf diesem Gerät gespeichert.' 
+                ? 'Sie verwenden die App derzeit ohne Konto. Ihre Daten werden nur lokal auf diesem Gerät gespeichert.' 
                 : 'You are currently using the app without an account. Your data is only stored locally on this device.'}
             </p>
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white py-3 rounded-xl font-bold shadow-md transition-all min-h-[44px] flex items-center justify-center gap-2"
+            >
+              <LogIn size={20} />
+              {lang === 'de' ? 'Jetzt anmelden' : 'Login Now'}
+            </button>
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mt-4">
               <p className="text-sm text-blue-800">
                 <strong>💡 {lang === 'de' ? 'Tipp:' : 'Tip:'}</strong> {lang === 'de' 
-                  ? 'Erstelle ein Konto auf der Startseite, um deine Daten geräteübergreifend zu synchronisieren.' 
-                  : 'Create an account on the home page to sync your data across devices.'}
+                  ? 'Erstellen Sie ein Konto, um Ihre Daten geräteübergreifend zu synchronisieren.' 
+                  : 'Create an account to sync your data across devices.'}
               </p>
             </div>
           </div>
@@ -456,6 +465,31 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
         {setPage && (
           <div className="bg-white rounded-2xl p-6 shadow-lg">
             <h3 className="text-lg font-bold text-gray-800 mb-4">
+              {lang === 'de' ? '📚 Weitere Lernbereiche' : '📚 More Learning Areas'}
+            </h3>
+            <div className="space-y-3">
+              <button
+                onClick={() => setPage('vocab')}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white py-3 rounded-xl font-bold shadow-md transition-all min-h-[44px] flex items-center justify-center gap-2"
+              >
+                <span className="text-xl">📖</span>
+                {lang === 'de' ? 'Vokabeln lernen' : 'Learn Vocabulary'}
+              </button>
+              <button
+                onClick={() => setPage('cards')}
+                className="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white py-3 rounded-xl font-bold shadow-md transition-all min-h-[44px] flex items-center justify-center gap-2"
+              >
+                <span className="text-xl">🃏</span>
+                {lang === 'de' ? 'Karteikarten' : 'Flashcards'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Help & Resources */}
+        {setPage && (
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">
               {lang === 'de' ? '❓ Hilfe & Ressourcen' : '❓ Help & Resources'}
             </h3>
             <div className="space-y-3">
@@ -506,6 +540,11 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
         <UserProfile 
           onClose={() => setShowProfile(false)}
         />
+      )}
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} />
       )}
     </div>
   );

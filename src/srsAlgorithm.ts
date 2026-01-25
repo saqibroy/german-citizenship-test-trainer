@@ -366,6 +366,11 @@ export function getSRSLevelInfo(level: SRSLevel, lang: 'de' | 'en' = 'en'): {
 
 /**
  * Calculate test readiness score (0-100%)
+ * 
+ * Improved algorithm that:
+ * - Doesn't inflate early progress with high accuracy on few questions
+ * - Weights retention (young/mature/mastered) more heavily
+ * - Requires minimum coverage before accuracy significantly impacts score
  */
 export function calculateTestReadiness(
   questionProgress: Record<number, QuestionProgress>,
@@ -374,7 +379,7 @@ export function calculateTestReadiness(
   score: number;
   breakdown: {
     coverage: number;      // % of questions seen
-    mastery: number;       // % of questions mastered
+    mastery: number;       // % of questions at young level or higher
     averageAccuracy: number;
     readyQuestions: number; // Questions at mature/mastered level
   };
@@ -384,6 +389,8 @@ export function calculateTestReadiness(
   
   let totalAccuracy = 0;
   let masteredCount = 0;
+  let matureCount = 0;
+  let youngCount = 0;
   let readyCount = 0;
   
   Object.values(questionProgress).forEach(p => {
@@ -391,21 +398,41 @@ export function calculateTestReadiness(
     const accuracy = total > 0 ? p.correct / total : 0;
     totalAccuracy += accuracy;
     
-    if (p.srsLevel === 'mastered') masteredCount++;
-    if (p.srsLevel === 'mature' || p.srsLevel === 'mastered') readyCount++;
+    if (p.srsLevel === 'mastered') {
+      masteredCount++;
+      readyCount++;
+    } else if (p.srsLevel === 'mature') {
+      matureCount++;
+      readyCount++;
+    } else if (p.srsLevel === 'young') {
+      youngCount++;
+    }
   });
   
   const averageAccuracy = seen > 0 ? (totalAccuracy / seen) * 100 : 0;
-  const mastery = (masteredCount / totalQuestions) * 100;
   
-  // Weighted score: 40% coverage + 40% mastery + 20% accuracy
-  const score = (coverage * 0.4) + (mastery * 0.4) + (averageAccuracy * 0.2);
+  // Retention score: weighted by SRS level (young=0.5, mature=0.8, mastered=1.0)
+  const retentionScore = totalQuestions > 0 
+    ? ((youngCount * 0.5) + (matureCount * 0.8) + (masteredCount * 1.0)) / totalQuestions * 100
+    : 0;
+  
+  // Accuracy weight scales with coverage - low coverage = low accuracy impact
+  // At 0% coverage: accuracy weight = 0%
+  // At 50%+ coverage: accuracy weight = 15%
+  const coverageRatio = Math.min(coverage / 50, 1); // Caps at 50% coverage
+  const adjustedAccuracyWeight = 0.15 * coverageRatio;
+  
+  // New weighted score:
+  // - 35% coverage (how many questions you've seen)
+  // - 50% retention (weighted SRS level progress)
+  // - 0-15% accuracy (scales with coverage to prevent early inflation)
+  const score = (coverage * 0.35) + (retentionScore * 0.50) + (averageAccuracy * adjustedAccuracyWeight);
   
   return {
-    score: Math.round(score),
+    score: Math.round(Math.min(score, 100)), // Cap at 100%
     breakdown: {
       coverage: Math.round(coverage),
-      mastery: Math.round(mastery),
+      mastery: Math.round(retentionScore), // Now shows retention score instead of just mastered
       averageAccuracy: Math.round(averageAccuracy),
       readyQuestions: readyCount
     }

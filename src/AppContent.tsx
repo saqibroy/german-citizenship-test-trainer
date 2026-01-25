@@ -256,7 +256,7 @@ export default function AppContent() {
         <main className={!['landing', 'faq'].includes(page) ? 'main-content' : ''}>
           <Suspense fallback={<PageLoader page={page} />}>
             {page === 'landing' && <LandingPage lang={lang as 'de' | 'en'} onGetStarted={() => setPage('home')} />}
-            {page === 'faq' && <FAQPage lang={lang as 'de' | 'en'} />}
+            {page === 'faq' && <FAQPage lang={lang as 'de' | 'en'} setPage={setPage} />}
             {page === 'home' && <HomePage lang={lang} badges={badges} progress={progress} setPage={setPage} studyStreak={studyStreak} />}
             {page === 'training' && <TrainingPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
             {page === 'quiz' && <QuizPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} saveQuizResult={saveQuizResult} />}

@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, HelpCircle, Book, Trophy, Clock, Smartphone, Lock, Globe } from 'lucide-react';
+import { ChevronDown, ChevronUp, HelpCircle, Book, Trophy, Clock, Smartphone, Lock, Globe, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -10,7 +10,12 @@ interface FAQItem {
   icon: any;
 }
 
-export default function FAQPage({ lang }: { lang: 'de' | 'en' }) {
+interface FAQPageProps {
+  lang: 'de' | 'en';
+  setPage?: (page: string) => void;
+}
+
+export default function FAQPage({ lang, setPage }: FAQPageProps) {
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
 
   const toggleItem = (id: string) => {
@@ -387,9 +392,26 @@ export default function FAQPage({ lang }: { lang: 'de' | 'en' }) {
 
   const categories = Array.from(new Set(faqs.map(f => f.category)));
 
+  const handleBack = () => {
+    if (setPage) {
+      setPage('home');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 pb-24 pt-4 px-4">
       <div className="max-w-4xl mx-auto">
+        {/* Back Button - Top */}
+        {setPage && (
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 mb-4 px-4 py-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all text-gray-700 hover:text-indigo-600 font-medium"
+          >
+            <ArrowLeft size={20} />
+            {lang === 'de' ? 'Zurück zur Startseite' : 'Back to Home'}
+          </button>
+        )}
+
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 mb-8 text-white shadow-xl">
           <div className="flex items-center gap-3 mb-4">
@@ -506,34 +528,79 @@ export default function FAQPage({ lang }: { lang: 'de' | 'en' }) {
 
         {/* Quick Links */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a
-            href="/#home"
-            className="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all text-center"
-          >
-            <div className="text-3xl mb-2">🏠</div>
-            <div className="font-semibold text-gray-800">
-              {lang === 'de' ? 'Zur Startseite' : 'Go to Home'}
-            </div>
-          </a>
-          <a
-            href="/#training"
-            className="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all text-center"
-          >
-            <div className="text-3xl mb-2">📚</div>
-            <div className="font-semibold text-gray-800">
-              {lang === 'de' ? 'Training starten' : 'Start Training'}
-            </div>
-          </a>
-          <a
-            href="/#quiz"
-            className="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all text-center"
-          >
-            <div className="text-3xl mb-2">📝</div>
-            <div className="font-semibold text-gray-800">
-              {lang === 'de' ? 'Quiz machen' : 'Take Quiz'}
-            </div>
-          </a>
+          {setPage ? (
+            <>
+              <button
+                onClick={() => setPage('home')}
+                className="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all text-center"
+              >
+                <div className="text-3xl mb-2">🏠</div>
+                <div className="font-semibold text-gray-800">
+                  {lang === 'de' ? 'Zur Startseite' : 'Go to Home'}
+                </div>
+              </button>
+              <button
+                onClick={() => setPage('training')}
+                className="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all text-center"
+              >
+                <div className="text-3xl mb-2">📚</div>
+                <div className="font-semibold text-gray-800">
+                  {lang === 'de' ? 'Training starten' : 'Start Training'}
+                </div>
+              </button>
+              <button
+                onClick={() => setPage('quiz')}
+                className="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all text-center"
+              >
+                <div className="text-3xl mb-2">📝</div>
+                <div className="font-semibold text-gray-800">
+                  {lang === 'de' ? 'Quiz machen' : 'Take Quiz'}
+                </div>
+              </button>
+            </>
+          ) : (
+            <>
+              <a
+                href="/#home"
+                className="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all text-center"
+              >
+                <div className="text-3xl mb-2">🏠</div>
+                <div className="font-semibold text-gray-800">
+                  {lang === 'de' ? 'Zur Startseite' : 'Go to Home'}
+                </div>
+              </a>
+              <a
+                href="/#training"
+                className="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all text-center"
+              >
+                <div className="text-3xl mb-2">📚</div>
+                <div className="font-semibold text-gray-800">
+                  {lang === 'de' ? 'Training starten' : 'Start Training'}
+                </div>
+              </a>
+              <a
+                href="/#quiz"
+                className="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all text-center"
+              >
+                <div className="text-3xl mb-2">📝</div>
+                <div className="font-semibold text-gray-800">
+                  {lang === 'de' ? 'Quiz machen' : 'Take Quiz'}
+                </div>
+              </a>
+            </>
+          )}
         </div>
+
+        {/* Back Button - Bottom */}
+        {setPage && (
+          <button
+            onClick={handleBack}
+            className="w-full mt-8 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transition-all text-white font-semibold"
+          >
+            <ArrowLeft size={20} />
+            {lang === 'de' ? 'Zurück zur Startseite' : 'Back to Home'}
+          </button>
+        )}
       </div>
     </div>
   );
