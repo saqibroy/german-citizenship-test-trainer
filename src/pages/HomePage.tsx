@@ -78,10 +78,10 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
           ) : (
             <button 
               onClick={() => setShowAuthModal(true)}
-              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-full transition-all active:scale-95"
+              className="flex items-center gap-2 bg-white text-indigo-600 hover:bg-indigo-100 shadow-lg px-4 py-2 rounded-full transition-all active:scale-95 font-bold"
             >
               <LogIn size={20} />
-              <span className="hidden sm:inline font-semibold">{lang === 'de' ? 'Anmelden' : 'Login'}</span>
+              <span className="font-semibold">{lang === 'de' ? 'Anmelden' : 'Login'}</span>
             </button>
           )}
         </div>
