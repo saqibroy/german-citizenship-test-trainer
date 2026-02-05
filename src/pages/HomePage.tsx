@@ -46,7 +46,7 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
       
       {/* Welcome Message */}
       <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-        <div className="flex items-start justify-between mb-4">
+       <div className="flex flex-col sm:flex-row items-start sm:justify-between mb-4 gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
               <img src="/logo.svg" alt="Einbürger Coach" className="w-16 h-16" />
@@ -76,13 +76,13 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
               <span className="hidden sm:inline font-semibold">{lang === 'de' ? 'Profil' : 'Profile'}</span>
             </button>
           ) : (
-            <button 
-              onClick={() => setShowAuthModal(true)}
-              className="flex items-center gap-2 bg-white text-indigo-600 hover:bg-indigo-100 shadow-lg px-4 py-2 rounded-full transition-all active:scale-95 font-bold"
-            >
-              <LogIn size={20} />
-              <span className="font-semibold">{lang === 'de' ? 'Anmelden' : 'Login'}</span>
-            </button>
+          <button 
+  onClick={() => setShowAuthModal(true)}
+  className="flex items-center justify-center gap-2 bg-white hover:bg-gray-100 text-blue-600 shadow-lg px-8 py-3 rounded-full transition-all active:scale-95 font-bold border-2 border-blue-200 mx-auto max-w-xs"
+>
+  <LogIn size={18} />
+  <span className="text-lg">{lang === 'de' ? 'Anmelden' : 'Login'}</span>
+</button>
           )}
         </div>
         
