@@ -461,12 +461,13 @@ export default function LandingPage({ lang, onGetStarted }: { lang: 'de' | 'en',
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
             {[
               { label: content.stats.questions, icon: BookOpen },
-              { label: content.stats.languages, icon: Globe },
+              //{ label: content.stats.languages, icon: Globe },
               { label: content.stats.success, icon: Trophy },
-              { label: content.stats.users, icon: Users }
+               { label: content.stats.languages, icon: Globe }
+              //{ label: content.stats.users, icon: Users }
             ].map((stat, i) => (
               <div key={i} className="text-center">
                 <stat.icon size={40} className="mx-auto mb-2 opacity-80" />
@@ -644,6 +645,7 @@ export default function LandingPage({ lang, onGetStarted }: { lang: 'de' | 'en',
       </div>
     */}
       {/* Testimonials */}
+      {/* 
       <div className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -673,7 +675,7 @@ export default function LandingPage({ lang, onGetStarted }: { lang: 'de' | 'en',
           </div>
         </div>
       </div>
-
+  */}
       {/* Final CTA */}
       <div className="py-24 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
