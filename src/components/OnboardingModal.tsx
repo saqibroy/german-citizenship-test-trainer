@@ -14,8 +14,8 @@ const ONBOARDING_STEPS = {
       icon: Brain,
       content: (
         <>
-          <p className="mb-3">Master all 310 questions for your German citizenship test using our intelligent learning system.</p>
-          <p className="font-medium text-indigo-700">Smart, Efficient, Exam-Ready!</p>
+          <p className="mb-3 text-xs sm:text-sm lg:text-base">Master all 310 questions for your German citizenship test using our intelligent learning system.</p>
+          <p className="font-medium text-indigo-700 text-xs sm:text-sm lg:text-base">Smart, Efficient, Exam-Ready!</p>
         </>
       )
     },
@@ -24,15 +24,15 @@ const ONBOARDING_STEPS = {
       icon: Calendar,
       content: (
         <>
-          <p className="mb-3">Our AI-powered algorithm shows you questions exactly when you need to review them:</p>
-          <ul className="list-disc list-inside space-y-2 text-sm">
+          <p className="mb-3 text-xs sm:text-sm lg:text-base">Our AI-powered algorithm shows you questions exactly when you need to review them:</p>
+          <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm lg:text-base">
             <li><span className="font-medium">New:</span> Questions you haven't seen yet</li>
             <li><span className="font-medium">Learning:</span> Review in 10 minutes → 1 day</li>
             <li><span className="font-medium">Young:</span> Review every 1-3 days</li>
             <li><span className="font-medium">Mature:</span> Review every 3-5 days</li>
             <li><span className="font-medium">Mastered:</span> Review every 5-7 days</li>
           </ul>
-          <p className="mt-3 text-sm text-gray-600">Optimized for your exam - no question waits more than 7 days!</p>
+          <p className="mt-3 text-xs sm:text-sm lg:text-base text-gray-600">Optimized for your exam - no question waits more than 7 days!</p>
         </>
       )
     },
@@ -41,8 +41,8 @@ const ONBOARDING_STEPS = {
       icon: Target,
       content: (
         <>
-          <p className="mb-3">Choose how you want to study:</p>
-          <div className="space-y-3 text-sm">
+          <p className="mb-3 text-xs sm:text-sm lg:text-base">Choose how you want to study:</p>
+          <div className="space-y-3 text-xs sm:text-sm lg:text-base">
             <div className="bg-blue-50 p-3 rounded-lg">
               <p className="font-medium text-blue-900">📚 Training Mode</p>
               <p className="text-blue-700">Practice 20-40 questions with instant feedback</p>
@@ -68,15 +68,15 @@ const ONBOARDING_STEPS = {
       icon: Award,
       content: (
         <>
-          <p className="mb-3">Stay motivated as you learn:</p>
-          <ul className="list-disc list-inside space-y-2 text-sm">
+          <p className="mb-3 text-xs sm:text-sm lg:text-base">Stay motivated as you learn:</p>
+          <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm lg:text-base">
             <li><span className="font-medium">Daily Streaks:</span> Build consistency with daily study</li>
             <li><span className="font-medium">Performance Stats:</span> See your improvement over time</li>
             <li><span className="font-medium">30+ Badges:</span> Unlock achievements as you progress</li>
             <li><span className="font-medium">Category Mastery:</span> Track progress by topic area</li>
           </ul>
           <div className="mt-4 bg-gradient-to-r from-yellow-50 to-amber-50 p-3 rounded-lg border border-yellow-200">
-            <p className="text-sm font-medium text-amber-900">🎯 Your Goal: Pass with 17+ correct answers!</p>
+            <p className="text-xs sm:text-sm lg:text-base font-medium text-amber-900">🎯 Your Goal: Pass with 17+ correct answers!</p>
           </div>
         </>
       )
@@ -86,8 +86,8 @@ const ONBOARDING_STEPS = {
       icon: CalendarDays,
       content: (
         <>
-          <p className="mb-4">When is your citizenship test scheduled?</p>
-          <p className="text-sm text-gray-600 mb-4">We'll help you prepare with a personalized study plan.</p>
+          <p className="mb-4 text-xs sm:text-sm lg:text-base">When is your citizenship test scheduled?</p>
+          <p className="text-xs sm:text-sm lg:text-base text-gray-600 mb-4">We'll help you prepare with a personalized study plan.</p>
           <div className="space-y-3">
             <input
               type="date"
@@ -131,8 +131,8 @@ const ONBOARDING_STEPS = {
       icon: TrendingUp,
       content: (
         <>
-          <p className="mb-4">How many questions do you want to practice each day?</p>
-          <p className="text-sm text-gray-600 mb-4">Consistency is key! Start with a manageable goal.</p>
+          <p className="mb-4 text-xs sm:text-sm lg:text-base font-medium">How many questions do you want to practice each day?</p>
+          <p className="text-xs sm:text-sm lg:text-base text-gray-600 mb-4">Consistency is key! Start with a manageable goal.</p>
           <div className="grid grid-cols-2 gap-3">
             {[
               { value: 10, label: 'Light', desc: '~5 minutes/day', color: 'from-blue-500 to-blue-600' },
@@ -158,11 +158,11 @@ const ONBOARDING_STEPS = {
                   }
                 }}
                 id={`goal-${goal.value}`}
-                className={`daily-goal-btn bg-gradient-to-r ${goal.color} text-white p-4 rounded-lg hover:opacity-90 transition-all transform hover:scale-105`}
+                className={`daily-goal-btn bg-gradient-to-r ${goal.color} text-white p-1.5 rounded-lg hover:opacity-90 transition-all`}
               >
-                <div className="text-3xl font-bold">{goal.value}</div>
-                <div className="text-sm font-medium mt-1">{goal.label}</div>
-                <div className="text-xs opacity-90 mt-1">{goal.desc}</div>
+                <div className="text-sm sm:text-base lg:text-lg font-bold">{goal.value}</div>
+                <div className="text-[9px] sm:text-[10px] lg:text-xs font-medium mt-0.5">{goal.label}</div>
+                <div className="text-[8px] sm:text-[9px] lg:text-[10px] opacity-90">{goal.desc}</div>
               </button>
             ))}
           </div>
@@ -178,8 +178,8 @@ const ONBOARDING_STEPS = {
       icon: Brain,
       content: (
         <>
-          <p className="mb-3">Meistere alle 310 Fragen für deinen Einbürgerungstest mit unserem intelligenten Lernsystem.</p>
-          <p className="font-medium text-indigo-700">Smart, Effizient, Prüfungsbereit!</p>
+          <p className="mb-3 text-xs sm:text-sm lg:text-base">Meistere alle 310 Fragen für deinen Einbürgerungstest mit unserem intelligenten Lernsystem.</p>
+          <p className="font-medium text-indigo-700 text-xs sm:text-sm lg:text-base">Smart, Effizient, Prüfungsbereit!</p>
         </>
       )
     },
@@ -188,15 +188,15 @@ const ONBOARDING_STEPS = {
       icon: Calendar,
       content: (
         <>
-          <p className="mb-3">Unser KI-gesteuerter Algorithmus zeigt dir Fragen genau dann, wenn du sie wiederholen musst:</p>
-          <ul className="list-disc list-inside space-y-2 text-sm">
+          <p className="mb-3 text-xs sm:text-sm lg:text-base">Unser KI-gesteuerter Algorithmus zeigt dir Fragen genau dann, wenn du sie wiederholen musst:</p>
+          <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm lg:text-base">
             <li><span className="font-medium">Neu:</span> Fragen, die du noch nicht gesehen hast</li>
             <li><span className="font-medium">Lernen:</span> Wiederholung in 10 Minuten → 1 Tag</li>
             <li><span className="font-medium">Jung:</span> Wiederholung alle 1-3 Tage</li>
             <li><span className="font-medium">Ausgereift:</span> Wiederholung alle 3-5 Tage</li>
             <li><span className="font-medium">Gemeistert:</span> Wiederholung alle 5-7 Tage</li>
           </ul>
-          <p className="mt-3 text-sm text-gray-600">Optimiert für deine Prüfung - keine Frage wartet länger als 7 Tage!</p>
+          <p className="mt-3 text-xs sm:text-sm lg:text-base text-gray-600">Optimiert für deine Prüfung - keine Frage wartet länger als 7 Tage!</p>
         </>
       )
     },
@@ -205,8 +205,8 @@ const ONBOARDING_STEPS = {
       icon: Target,
       content: (
         <>
-          <p className="mb-3">Wähle, wie du lernen möchtest:</p>
-          <div className="space-y-3 text-sm">
+          <p className="mb-3 text-xs sm:text-sm lg:text-base">Wähle, wie du lernen möchtest:</p>
+          <div className="space-y-3 text-xs sm:text-sm lg:text-base">
             <div className="bg-blue-50 p-3 rounded-lg">
               <p className="font-medium text-blue-900">📚 Training-Modus</p>
               <p className="text-blue-700">Übe 20-40 Fragen mit sofortigem Feedback</p>
@@ -232,15 +232,15 @@ const ONBOARDING_STEPS = {
       icon: Award,
       content: (
         <>
-          <p className="mb-3">Bleib motiviert beim Lernen:</p>
-          <ul className="list-disc list-inside space-y-2 text-sm">
+          <p className="mb-3 text-xs sm:text-sm lg:text-base">Bleib motiviert beim Lernen:</p>
+          <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm lg:text-base">
             <li><span className="font-medium">Tägliche Streaks:</span> Baue Konsistenz mit täglichem Lernen auf</li>
             <li><span className="font-medium">Leistungsstatistiken:</span> Sieh deine Verbesserung im Laufe der Zeit</li>
             <li><span className="font-medium">30+ Abzeichen:</span> Schalte Erfolge frei, während du Fortschritte machst</li>
             <li><span className="font-medium">Kategorien-Meisterschaft:</span> Verfolge Fortschritt nach Themenbereich</li>
           </ul>
           <div className="mt-4 bg-gradient-to-r from-yellow-50 to-amber-50 p-3 rounded-lg border border-yellow-200">
-            <p className="text-sm font-medium text-amber-900">🎯 Dein Ziel: Bestehe mit 17+ richtigen Antworten!</p>
+            <p className="text-xs sm:text-sm lg:text-base font-medium text-amber-900">🎯 Dein Ziel: Bestehe mit 17+ richtigen Antworten!</p>
           </div>
         </>
       )
@@ -250,8 +250,8 @@ const ONBOARDING_STEPS = {
       icon: CalendarDays,
       content: (
         <>
-          <p className="mb-4">Wann ist dein Einbürgerungstest geplant?</p>
-          <p className="text-sm text-gray-600 mb-4">Wir helfen dir mit einem personalisierten Lernplan.</p>
+          <p className="mb-4 text-xs sm:text-sm lg:text-base">Wann ist dein Einbürgerungstest geplant?</p>
+          <p className="text-xs sm:text-sm lg:text-base text-gray-600 mb-4">Wir helfen dir mit einem personalisierten Lernplan.</p>
           <div className="space-y-3">
             <input
               type="date"
@@ -295,8 +295,8 @@ const ONBOARDING_STEPS = {
       icon: TrendingUp,
       content: (
         <>
-          <p className="mb-4">Wie viele Fragen möchtest du täglich üben?</p>
-          <p className="text-sm text-gray-600 mb-4">Konsistenz ist der Schlüssel! Beginne mit einem erreichbaren Ziel.</p>
+          <p className="mb-4 text-xs sm:text-sm lg:text-base font-medium">Wie viele Fragen möchtest du täglich üben?</p>
+          <p className="text-xs sm:text-sm lg:text-base text-gray-600 mb-4">Konsistenz ist der Schlüssel! Beginne mit einem erreichbaren Ziel.</p>
           <div className="grid grid-cols-2 gap-3">
             {[
               { value: 10, label: 'Leicht', desc: '~5 Minuten/Tag', color: 'from-blue-500 to-blue-600' },
@@ -322,11 +322,11 @@ const ONBOARDING_STEPS = {
                   }
                 }}
                 id={`goal-de-${goal.value}`}
-                className={`daily-goal-btn-de bg-gradient-to-r ${goal.color} text-white p-4 rounded-lg hover:opacity-90 transition-all transform hover:scale-105`}
+                className={`daily-goal-btn-de bg-gradient-to-r ${goal.color} text-white p-1.5 rounded-lg hover:opacity-90 transition-all`}
               >
-                <div className="text-3xl font-bold">{goal.value}</div>
-                <div className="text-sm font-medium mt-1">{goal.label}</div>
-                <div className="text-xs opacity-90 mt-1">{goal.desc}</div>
+                <div className="text-sm sm:text-base lg:text-lg font-bold">{goal.value}</div>
+                <div className="text-[9px] sm:text-[10px] lg:text-xs font-medium mt-0.5">{goal.label}</div>
+                <div className="text-[8px] sm:text-[9px] lg:text-[10px] opacity-90">{goal.desc}</div>
               </button>
             ))}
           </div>
@@ -366,92 +366,93 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete, la
   const Icon = currentStepData.icon;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-xs sm:max-w-md lg:max-w-2xl h-[85vh] sm:h-[90vh] lg:max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-t-2xl">
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-3">
-              <div className="bg-white bg-opacity-20 p-2 rounded-lg">
-                <Icon className="w-6 h-6" />
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 py-2 sm:px-4 sm:py-3 lg:px-6 lg:py-4 rounded-t-xl sm:rounded-t-2xl flex-shrink-0 h-20 sm:h-24 lg:h-28 flex items-center overflow-hidden">
+          <div className="flex justify-between items-center gap-2 sm:gap-3 w-full">
+            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 min-w-0 flex-1">
+              <div className="bg-white bg-opacity-20 p-0.5 sm:p-1 lg:p-2 rounded-lg flex-shrink-0">
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
               </div>
-              <div>
-                <h2 className="text-xl font-bold">{currentStepData.title}</h2>
-                <p className="text-sm text-indigo-100 mt-1">
-                  {lang === 'en' ? 'Step' : 'Schritt'} {currentStep + 1} {lang === 'en' ? 'of' : 'von'} {steps.length}
+              <div className="min-w-0">
+                <h2 className="text-xs sm:text-base lg:text-xl font-bold leading-tight break-words">{currentStepData.title}</h2>
+                <p className="text-[9px] sm:text-xs lg:text-sm text-indigo-100 mt-0.5 sm:mt-1">
+                  {lang === 'en' ? 'Step' : 'Schritt'} {currentStep + 1}/{steps.length}
                 </p>
               </div>
             </div>
             <button
               onClick={handleSkip}
-              className="text-white hover:text-gray-200 transition-colors"
+              className="text-white hover:text-gray-200 transition-colors flex-shrink-0 p-1 lg:p-2"
               aria-label={lang === 'en' ? 'Close' : 'Schließen'}
             >
-              <X className="w-6 h-6" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
             </button>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6">
-          <div className="text-gray-700 leading-relaxed">
+        <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6">
+          <div className="text-xs sm:text-sm lg:text-base text-gray-700 leading-relaxed">
             {currentStepData.content}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-50 p-6 rounded-b-2xl border-t">
+        <div className="bg-gray-50 px-3 py-2 sm:px-4 sm:py-3 lg:px-6 lg:py-4 rounded-b-xl sm:rounded-b-2xl border-t flex-shrink-0 space-y-2 sm:space-y-3">
           {/* Progress Dots */}
-          <div className="flex justify-center gap-2 mb-4">
+          <div className="flex justify-center gap-1 sm:gap-1.5 lg:gap-2 mb-2 sm:mb-3">
             {steps.map((_, index) => (
               <div
                 key={index}
-                className={`h-2 rounded-full transition-all ${
+                className={`h-1 sm:h-1.5 lg:h-2 rounded-full transition-all ${
                   index === currentStep
-                    ? 'w-8 bg-indigo-600'
+                    ? 'w-5 sm:w-6 lg:w-8 bg-indigo-600'
                     : index < currentStep
-                    ? 'w-2 bg-indigo-300'
-                    : 'w-2 bg-gray-300'
+                    ? 'w-1 sm:w-1.5 lg:w-2 bg-indigo-300'
+                    : 'w-1 sm:w-1.5 lg:w-2 bg-gray-300'
                 }`}
               />
             ))}
           </div>
 
-          {/* Navigation Buttons */}
-          <div className="flex justify-between items-center">
+          {/* Navigation Buttons - Responsive layout */}
+          <div className="grid grid-cols-3 gap-1 sm:gap-2 lg:gap-3 lg:flex lg:justify-between">
             <button
               onClick={handlePrev}
               disabled={isFirstStep}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              className={`col-span-1 flex items-center justify-center gap-0.5 sm:gap-1 px-1.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-lg text-[9px] sm:text-xs lg:text-sm transition-colors font-medium ${
                 isFirstStep
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-700 hover:bg-gray-200'
+                  ? 'text-gray-400 cursor-not-allowed bg-gray-100'
+                  : 'text-gray-700 hover:bg-gray-200 bg-white border border-gray-200'
               }`}
             >
-              <ArrowLeft className="w-4 h-4" />
-              {lang === 'en' ? 'Back' : 'Zurück'}
+              <ArrowLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4" />
+              <span className="hidden sm:inline">{lang === 'en' ? 'Back' : 'Zurück'}</span>
             </button>
 
             <button
               onClick={handleSkip}
-              className="text-gray-500 hover:text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+              className="col-span-1 flex items-center justify-center gap-0.5 sm:gap-1 px-1.5 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-lg text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-colors text-[9px] sm:text-xs lg:text-sm bg-white border border-gray-200 font-medium"
             >
-              {lang === 'en' ? 'Skip Tutorial' : 'Tutorial überspringen'}
+              <span className="hidden sm:inline">{lang === 'en' ? 'Skip' : 'Übersp.'}</span>
+              <span className="sm:hidden text-base">⊗</span>
             </button>
 
             <button
               onClick={handleNext}
-              className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
+              className="col-span-1 flex items-center justify-center gap-0.5 sm:gap-1 lg:gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-1.5 sm:px-3 lg:px-6 py-1 sm:py-1.5 lg:py-2 rounded-lg transition-all text-[9px] sm:text-xs lg:text-sm shadow-sm font-medium"
             >
               {isLastStep ? (
                 <>
-                  {lang === 'en' ? "Let's Start!" : 'Los geht\'s!'}
-                  <Award className="w-4 h-4" />
+                  <span className="hidden sm:inline">{lang === 'en' ? 'Start' : 'Los'}</span>
+                  <span className="sm:hidden text-base">▶</span>
                 </>
               ) : (
                 <>
-                  {lang === 'en' ? 'Next' : 'Weiter'}
-                  <ArrowRight className="w-4 h-4" />
+                  <span className="hidden sm:inline">{lang === 'en' ? 'Next' : 'Weiter'}</span>
+                  <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4" />
                 </>
               )}
             </button>

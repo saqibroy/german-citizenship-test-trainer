@@ -210,18 +210,22 @@ export default function AppContent() {
         {/* Header - Only show on non-landing/FAQ pages */}
         {!['landing', 'faq'].includes(page) && (
           <header className="bg-white shadow-md sticky top-0 z-50">
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-2">
-                <img src="/logo.svg" alt="Einbürger Coach" className="w-8 h-8" />
+            <div className="flex items-center justify-between py-3 px-4">
+              <button 
+                onClick={() => setPage('home')}
+                className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
+                aria-label="Go to home"
+              >
+                <img src="/logo.svg" alt="Einbürger Coach" className="w-14 h-14" /> 
                 <h1 className="text-base md:text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  {lang === 'de' ? 'Einbürger Coach' : 'Einbürger Coach'}
+                 {/*  {lang === 'de' ? 'Einbürger Coach' : 'Einbürger Coach'}*/}
                 </h1>
-              </div>
+              </button>
               {/* Modern Language Selector */}
-              <div className="flex gap-1 bg-gray-100 rounded-full p-1">
+              <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5">
                 <button
                   onClick={() => setLang('de')}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all touch-target ${
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                     lang === 'de'
                       ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
                       : 'text-gray-600 hover:text-gray-900'
@@ -231,7 +235,7 @@ export default function AppContent() {
                 </button>
                 <button
                   onClick={() => setLang('en')}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all touch-target ${
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                     lang === 'en'
                       ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
                       : 'text-gray-600 hover:text-gray-900'
@@ -255,7 +259,7 @@ export default function AppContent() {
 
         <main className={!['landing', 'faq'].includes(page) ? 'main-content' : ''}>
           <Suspense fallback={<PageLoader page={page} />}>
-            {page === 'landing' && <LandingPage lang={lang as 'de' | 'en'} onGetStarted={() => setPage('home')} />}
+            {page === 'landing' && <LandingPage lang={lang as 'de' | 'en'} onGetStarted={() => setPage('home')} onNavigate={setPage} />}
             {page === 'faq' && <FAQPage lang={lang as 'de' | 'en'} setPage={setPage} />}
             {page === 'home' && <HomePage lang={lang} badges={badges} progress={progress} setPage={setPage} studyStreak={studyStreak} />}
             {page === 'training' && <TrainingPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}

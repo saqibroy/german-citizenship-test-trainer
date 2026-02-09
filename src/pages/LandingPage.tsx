@@ -1,10 +1,10 @@
 import { 
   Brain, BookOpen, Target, Trophy, Smartphone, Globe, 
   Lock, Zap, TrendingUp, Award, Check, 
-  ArrowRight, Star, Users, Heart
+  ArrowRight, Heart
 } from 'lucide-react';
 
-export default function LandingPage({ lang, onGetStarted }: { lang: 'de' | 'en', onGetStarted: () => void }) {
+export default function LandingPage({ lang, onGetStarted, onNavigate }: { lang: 'de' | 'en', onGetStarted: () => void, onNavigate?: (page: string) => void }) {
   const content = lang === 'de' ? {
     hero: {
       title: 'Bestehen Sie den Einbürgerungstest',
@@ -199,13 +199,13 @@ export default function LandingPage({ lang, onGetStarted }: { lang: 'de' | 'en',
       button: 'Kostenlos starten'
     },
     footer: {
-      tagline: 'Made with ❤️ for everyone pursuing German citizenship',
+      tagline: 'Mit ❤️ gemacht für alle, die die deutsche Staatsbürgerschaft anstreben',
       links: {
         product: 'Produkt',
         resources: 'Ressourcen',
         legal: 'Rechtliches',
         items: {
-          features: 'Features',
+          features: 'Funktionen',
           pricing: 'Preise',
           faq: 'FAQ',
           docs: 'Dokumentation',
@@ -726,7 +726,7 @@ export default function LandingPage({ lang, onGetStarted }: { lang: 'de' | 'en',
             <div>
               <h4 className="font-bold mb-4">{content.footer.links.resources}</h4>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">{content.footer.links.items.faq}</a></li>
+                <li><button onClick={() => onNavigate?.('faq')} className="text-gray-400 hover:text-white transition-colors cursor-pointer">{content.footer.links.items.faq}</button></li>
                 <li><a href="#" className="text-gray-400 hover:text-white transition-colors">{content.footer.links.items.docs}</a></li>
                 <li><a href="#" className="text-gray-400 hover:text-white transition-colors">{content.footer.links.items.blog}</a></li>
               </ul>
