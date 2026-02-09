@@ -49,7 +49,7 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
        <div className="flex flex-col sm:flex-row items-start sm:justify-between mb-4 gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
-              <img src="/logo.svg" alt="Einbürger Coach" className="w-16 h-16" />
+              {/*<img src="/logo.svg" alt="Einbürger Coach" className="w-16 h-16" /> */}
               <div>
                 <h1 className="text-3xl font-bold">
                   {user 
