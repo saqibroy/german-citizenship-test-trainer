@@ -216,10 +216,7 @@ export default function AppContent() {
                 className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
                 aria-label="Go to home"
               >
-                <img src="/logo.svg" alt="Einbürger Coach" className="w-14 h-14" /> 
-                <h1 className="text-base md:text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                 {/*  {lang === 'de' ? 'Einbürger Coach' : 'Einbürger Coach'}*/}
-                </h1>
+                <img src="/logo.svg" alt="Einbürger Coach" className="h-10 md:h-12 w-auto" /> 
               </button>
               {/* Modern Language Selector */}
               <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5">
