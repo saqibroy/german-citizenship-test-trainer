@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Calendar, Target, Download, Upload, Trash2, 
-  Save, Info, Bell, User, Cloud, CloudOff, LogIn
+  Save, Info, User, Cloud, CloudOff, LogIn
 } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 import { UserProfile } from './components/UserProfile';
@@ -208,7 +208,7 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl lg:max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-2xl p-6 shadow-xl">
           <div className="flex items-center gap-3 mb-2">
@@ -237,13 +237,13 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
             </button>
             
             {/* Sync Status */}
-            <div className="mt-4 bg-green-50 border-2 border-green-200 rounded-xl p-4">
+            <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
               <div className="flex items-center gap-2">
                 <Cloud className="text-green-600" size={20} />
                 <p className="text-sm text-green-800 font-semibold">
                   {lang === 'de' 
-                    ? '🟢 Daten werden automatisch synchronisiert' 
-                    : '🟢 Data automatically synced'}
+                    ? 'Daten werden automatisch synchronisiert' 
+                    : 'Data automatically synced'}
                 </p>
               </div>
               <p className="text-xs text-green-700 mt-2">
@@ -257,7 +257,7 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
 
         {/* Offline Mode Info */}
         {!user && (
-          <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-indigo-200">
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-indigo-200">
             <div className="flex items-center gap-3 mb-4">
               <CloudOff className="text-gray-500" size={24} />
               <h3 className="text-lg font-bold text-gray-700">
@@ -276,103 +276,84 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
               <LogIn size={20} />
               {lang === 'de' ? 'Jetzt anmelden' : 'Login Now'}
             </button>
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mt-4">
-              <p className="text-sm text-blue-800">
-                <strong>💡 {lang === 'de' ? 'Tipp:' : 'Tip:'}</strong> {lang === 'de' 
-                  ? 'Erstellen Sie ein Konto, um Ihre Daten geräteübergreifend zu synchronisieren.' 
-                  : 'Create an account to sync your data across devices.'}
-              </p>
-            </div>
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              {lang === 'de' 
+                ? 'Erstellen Sie ein Konto, um Ihre Daten geräteübergreifend zu synchronisieren.' 
+                : 'Create an account to sync your data across devices.'}
+            </p>
           </div>
         )}
 
-        {/* Exam Date Setting */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <Calendar className="text-indigo-600" size={24} />
-            <h3 className="text-lg font-bold text-gray-800">
-              {lang === 'de' ? 'Prüfungsdatum' : 'Exam Date'}
-            </h3>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            {lang === 'de' 
-              ? 'Legen Sie Ihr Prüfungsdatum fest, um personalisierte Lernpläne zu erhalten.' 
-              : 'Set your exam date to get personalized study plans.'}
-          </p>
-          <div className="space-y-3">
-            <input 
-              type="date" 
-              value={settings.examDate}
-              onChange={(e) => setSettings({ ...settings, examDate: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none text-lg font-semibold"
-            />
-            {daysUntilExam !== null && (
-              <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4">
-                <p className="text-center">
-                  <span className="text-3xl font-bold text-indigo-600">{daysUntilExam}</span>
-                  <span className="text-gray-700 ml-2">
-                    {lang === 'de' ? 'Tage bis zur Prüfung' : 'days until exam'}
-                  </span>
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Daily Goal Setting */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <Target className="text-purple-600" size={24} />
-            <h3 className="text-lg font-bold text-gray-800">
-              {lang === 'de' ? 'Tägliches Ziel' : 'Daily Goal'}
-            </h3>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            {lang === 'de' 
-              ? 'Wie viele neue Fragen möchten Sie pro Tag lernen?' 
-              : 'How many new questions do you want to learn per day?'}
-          </p>
-          <div className="space-y-3">
-            <div className="flex items-center gap-4">
-              <input 
-                type="range" 
-                min="5" 
-                max="50" 
-                step="5"
-                value={settings.dailyGoal}
-                onChange={(e) => setSettings({ ...settings, dailyGoal: parseInt(e.target.value) })}
-                className="flex-1"
-              />
-              <div className="bg-purple-100 border-2 border-purple-300 rounded-xl px-6 py-2 min-w-[80px] text-center">
-                <span className="text-2xl font-bold text-purple-600">{settings.dailyGoal}</span>
-              </div>
+        {/* Exam Date & Daily Goal - Side by side on desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Exam Date Setting */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <Calendar className="text-indigo-600" size={24} />
+              <h3 className="text-lg font-bold text-gray-800">
+                {lang === 'de' ? 'Prüfungsdatum' : 'Exam Date'}
+              </h3>
             </div>
-            <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-3">
-              <p className="text-sm text-purple-800">
-                💡 {lang === 'de' 
+            <p className="text-sm text-gray-600 mb-4">
+              {lang === 'de' 
+                ? 'Legen Sie Ihr Prüfungsdatum fest, um personalisierte Lernpläne zu erhalten.' 
+                : 'Set your exam date to get personalized study plans.'}
+            </p>
+            <div className="space-y-3">
+              <input 
+                type="date" 
+                value={settings.examDate}
+                onChange={(e) => setSettings({ ...settings, examDate: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none text-lg font-semibold"
+              />
+              {daysUntilExam !== null && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                  <p className="text-center">
+                    <span className="text-3xl font-bold text-indigo-600">{daysUntilExam}</span>
+                    <span className="text-gray-700 ml-2">
+                      {lang === 'de' ? 'Tage bis zur Prüfung' : 'days until exam'}
+                    </span>
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Daily Goal Setting */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <Target className="text-purple-600" size={24} />
+              <h3 className="text-lg font-bold text-gray-800">
+                {lang === 'de' ? 'Tägliches Ziel' : 'Daily Goal'}
+              </h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              {lang === 'de' 
+                ? 'Wie viele neue Fragen möchten Sie pro Tag lernen?' 
+                : 'How many new questions do you want to learn per day?'}
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-4">
+                <input 
+                  type="range" 
+                  min="5" 
+                  max="50" 
+                  step="5"
+                  value={settings.dailyGoal}
+                  onChange={(e) => setSettings({ ...settings, dailyGoal: parseInt(e.target.value) })}
+                  className="flex-1"
+                />
+                <div className="bg-purple-100 border border-purple-300 rounded-xl px-6 py-2 min-w-[80px] text-center">
+                  <span className="text-2xl font-bold text-purple-600">{settings.dailyGoal}</span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">
+                {lang === 'de' 
                   ? `Mit ${settings.dailyGoal} Fragen pro Tag können Sie in ${Math.ceil(300 / settings.dailyGoal)} Tagen fertig sein.` 
                   : `With ${settings.dailyGoal} questions per day, you can finish in ${Math.ceil(300 / settings.dailyGoal)} days.`}
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Notifications (Future Feature) */}
-        <div className="bg-gray-50 rounded-2xl p-6 shadow-lg border-2 border-gray-200 opacity-60">
-          <div className="flex items-center gap-3 mb-4">
-            <Bell className="text-gray-500" size={24} />
-            <h3 className="text-lg font-bold text-gray-700">
-              {lang === 'de' ? 'Benachrichtigungen' : 'Notifications'}
-            </h3>
-            <span className="ml-auto bg-gray-300 text-gray-600 text-xs px-3 py-1 rounded-full font-semibold">
-              {lang === 'de' ? 'Bald verfügbar' : 'Coming Soon'}
-            </span>
-          </div>
-          <p className="text-sm text-gray-500">
-            {lang === 'de' 
-              ? 'Erhalten Sie tägliche Erinnerungen für Ihr Lernziel.' 
-              : 'Get daily reminders for your study goals.'}
-          </p>
         </div>
 
         {/* Save Button */}
@@ -400,16 +381,16 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
         {/* Data Management */}
         <div className="bg-white rounded-2xl p-6 shadow-lg">
           <h3 className="text-lg font-bold text-gray-800 mb-4">
-            {lang === 'de' ? '📊 Datenverwaltung (DSGVO)' : '📊 Data Management (GDPR)'}
+            {lang === 'de' ? 'Datenverwaltung' : 'Data Management'}
           </h3>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
             {/* Export Data */}
             <button 
               onClick={handleExportData}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all min-h-[44px]"
+              className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all min-h-[44px]"
             >
               <Download size={20} />
-              {lang === 'de' ? 'Daten exportieren (JSON)' : 'Export My Data (JSON)'}
+              {lang === 'de' ? 'Exportieren' : 'Export Data'}
             </button>
             
             {/* Import Data */}
@@ -429,108 +410,88 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
                   className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all min-h-[44px]"
                 >
                   <Upload size={20} />
-                  {lang === 'de' ? 'Daten importieren' : 'Import Data'}
+                  {lang === 'de' ? 'Importieren' : 'Import Data'}
                 </button>
               </label>
-            </div>
-            
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-              <p className="text-sm text-blue-800">
-                <strong>{lang === 'de' ? 'DSGVO-konform:' : 'GDPR Compliant:'}</strong> {lang === 'de' 
-                  ? 'Exportieren und importieren Sie alle Ihre Daten. Ihre Daten bleiben auf Ihrem Gerät.' 
-                  : 'Export and import all your data. Your data stays on your device.'}
-              </p>
             </div>
 
             {/* Delete Data */}
             <button 
               onClick={handleClearData}
-              className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all min-h-[44px]"
+              className="bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all min-h-[44px]"
             >
               <Trash2 size={20} />
-              {lang === 'de' ? 'Alle Daten löschen' : 'Delete All My Data'}
+              {lang === 'de' ? 'Daten löschen' : 'Delete All'}
             </button>
-
-            <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
-              <p className="text-sm text-red-800">
-                <strong>{lang === 'de' ? 'Warnung:' : 'Warning:'}</strong> {lang === 'de' 
-                  ? 'Dies löscht dauerhaft Ihren gesamten Fortschritt, Quiz-Verlauf, Abzeichen und Einstellungen. Exportieren Sie Ihre Daten zuerst!' 
-                  : 'This permanently deletes all your progress, quiz history, badges, and settings. Export your data first!'}
-              </p>
-            </div>
           </div>
+
+          <p className="text-xs text-gray-500">
+            {lang === 'de' 
+              ? 'DSGVO-konform: Exportieren, importieren oder löschen Sie Ihre Daten jederzeit. Ihre Daten bleiben auf Ihrem Gerät.' 
+              : 'GDPR Compliant: Export, import, or delete your data at any time. Your data stays on your device.'}
+          </p>
         </div>
 
-        {/* Help & Resources */}
+        {/* Quick Links - Combined Help & Learning Areas */}
         {setPage && (
           <div className="bg-white rounded-2xl p-6 shadow-lg">
             <h3 className="text-lg font-bold text-gray-800 mb-4">
-              {lang === 'de' ? '📚 Weitere Lernbereiche' : '📚 More Learning Areas'}
+              {lang === 'de' ? 'Weitere Bereiche' : 'Quick Links'}
             </h3>
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <button
                 onClick={() => setPage('vocab')}
-                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white py-3 rounded-xl font-bold shadow-md transition-all min-h-[44px] flex items-center justify-center gap-2"
+                className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 py-3 rounded-xl font-semibold transition-all min-h-[44px] text-sm"
               >
-                <span className="text-xl">📖</span>
-                {lang === 'de' ? 'Vokabeln lernen' : 'Learn Vocabulary'}
+                {lang === 'de' ? 'Vokabeln' : 'Vocabulary'}
               </button>
               <button
                 onClick={() => setPage('cards')}
-                className="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white py-3 rounded-xl font-bold shadow-md transition-all min-h-[44px] flex items-center justify-center gap-2"
+                className="bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-800 py-3 rounded-xl font-semibold transition-all min-h-[44px] text-sm"
               >
-                <span className="text-xl">🃏</span>
-                {lang === 'de' ? 'Karteikarten' : 'Flashcards'}
+                {lang === 'de' ? 'Lernkarten' : 'Flashcards'}
               </button>
-            </div>
-          </div>
-        )}
-
-        {/* Help & Resources */}
-        {setPage && (
-          <div className="bg-white rounded-2xl p-6 shadow-lg">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">
-              {lang === 'de' ? '❓ Hilfe & Ressourcen' : '❓ Help & Resources'}
-            </h3>
-            <div className="space-y-3">
               <button
                 onClick={() => setPage('faq')}
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-xl font-bold shadow-md transition-all min-h-[44px] flex items-center justify-center gap-2"
+                className="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 py-3 rounded-xl font-semibold transition-all min-h-[44px] text-sm"
               >
-                <span className="text-xl">💬</span>
-                {lang === 'de' ? 'Häufig gestellte Fragen (FAQ)' : 'Frequently Asked Questions (FAQ)'}
+                {lang === 'de' ? 'FAQ' : 'FAQ'}
               </button>
               <button
                 onClick={() => setPage('landing')}
-                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-xl font-bold shadow-md transition-all min-h-[44px] flex items-center justify-center gap-2"
+                className="bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-800 py-3 rounded-xl font-semibold transition-all min-h-[44px] text-sm"
               >
-                <span className="text-xl">🚀</span>
-                {lang === 'de' ? 'Über diese App' : 'About This App'}
+                {lang === 'de' ? 'Über die App' : 'About'}
               </button>
             </div>
           </div>
         )}
 
         {/* App Info */}
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 shadow-lg border-2 border-gray-200">
-          <h3 className="text-lg font-bold text-gray-800 mb-3">
-            {lang === 'de' ? 'ℹ️ App-Info' : 'ℹ️ App Info'}
-          </h3>
-          <div className="space-y-2 text-sm text-gray-700">
-            <p><strong>{lang === 'de' ? 'Version:' : 'Version:'}</strong> 1.0.0</p>
-            <p><strong>{lang === 'de' ? 'Fragen:' : 'Questions:'}</strong> 310</p>
-            <p><strong>{lang === 'de' ? 'Vokabeln:' : 'Vocabulary:'}</strong> 150+</p>
-            <p><strong>{lang === 'de' ? 'Grammatiklektionen:' : 'Grammar Lessons:'}</strong> 12</p>
-            <p className="pt-2 border-t border-gray-300">
-              {lang === 'de' 
-                ? '🇩🇪 Deutsche Einbürgerungstest Trainer' 
-                : '🇩🇪 German Citizenship Test Trainer'}
-            </p>
-            <p className="text-xs text-gray-500">
-              {lang === 'de' 
-                ? 'Entwickelt mit ❤️ für angehende deutsche Staatsbürger' 
-                : 'Built with ❤️ for aspiring German citizens'}
-            </p>
+        <div className="bg-gray-50 rounded-2xl p-6 shadow-sm border border-gray-200">
+          <div className="flex items-center gap-3 mb-3">
+            <Info className="text-gray-500" size={20} />
+            <h3 className="text-base font-bold text-gray-700">
+              {lang === 'de' ? 'App-Info' : 'App Info'}
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm text-gray-600">
+            <div>
+              <p className="text-xs text-gray-400">{lang === 'de' ? 'Version' : 'Version'}</p>
+              <p className="font-semibold">1.0.0</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">{lang === 'de' ? 'Fragen' : 'Questions'}</p>
+              <p className="font-semibold">310</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">{lang === 'de' ? 'Vokabeln' : 'Vocabulary'}</p>
+              <p className="font-semibold">150+</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">{lang === 'de' ? 'Lektionen' : 'Lessons'}</p>
+              <p className="font-semibold">12</p>
+            </div>
           </div>
         </div>
       </div>

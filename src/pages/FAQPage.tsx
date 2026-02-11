@@ -69,8 +69,8 @@ export default function FAQPage({ lang, setPage }: FAQPageProps) {
     },
     {
       id: 'srs-levels',
-      question: 'Was bedeuten die SRS-Level (Neu, Lernen, Jung, usw.)?',
-      answer: '🆕 Neu = noch nicht gesehen | 📖 Lernen = 1-2 Mal gesehen | 🌱 Jung = wird vertraut | 💪 Reif = gut bekannt | ⭐ Gemeistert = vollständig gemeistert. Fragen bewegen sich nach oben bei richtigen Antworten und nach unten bei falschen.',
+      question: 'Was bedeuten die SRS-Stufen (Schwach, Lerne, Bekannt, Gemeistert)?',
+      answer: 'Schwach = braucht mehr Übung | Lerne = gerade dabei zu lernen | Bekannt = gut gelernt, Wiederholung alle 1–3 Tage | Gemeistert = vollständig gemeistert, Wiederholung alle 5–7 Tage. Fragen steigen bei richtigen Antworten auf und bei falschen ab.',
       category: 'Lernen',
       icon: Book
     },
@@ -249,8 +249,8 @@ export default function FAQPage({ lang, setPage }: FAQPageProps) {
     },
     {
       id: 'srs-levels',
-      question: 'What do the SRS levels mean (New, Learning, Young, etc.)?',
-      answer: '🆕 New = haven\'t seen yet | 📖 Learning = seen 1-2 times | 🌱 Young = getting familiar | 💪 Mature = know well | ⭐ Mastered = fully mastered. Questions move up with correct answers and down with incorrect ones.',
+      question: 'What do the SRS levels mean (Weak, Learning, Familiar, Mastered)?',
+      answer: 'Weak = needs more practice | Learning = currently in progress | Familiar = well learned, reviewed every 1–3 days | Mastered = fully mastered, reviewed every 5–7 days. Questions move up with correct answers and down with incorrect ones.',
       category: 'Learning',
       icon: Book
     },
