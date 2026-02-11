@@ -268,22 +268,22 @@ export function StatsPage({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 shadow-md border-2 border-green-200 active:scale-95 transition-transform touch-target">
               <div className="text-3xl md:text-4xl font-black text-green-600 mb-2">{strengthGroups.strong.length}</div>
-              <div className="text-xs md:text-sm text-gray-800 font-bold">{lang === 'de' ? '💪 Stark' : '💪 Strong'}</div>
+              <div className="text-xs md:text-sm text-gray-800 font-bold">{lang === 'de' ? 'Stark' : 'Strong'}</div>
               <div className="text-[10px] text-gray-600 mt-1">{lang === 'de' ? 'Sehr gut' : 'Very good'}</div>
             </div>
             <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-4 shadow-md border-2 border-yellow-200 active:scale-95 transition-transform touch-target">
               <div className="text-3xl md:text-4xl font-black text-yellow-600 mb-2">{strengthGroups.medium.length}</div>
-              <div className="text-xs md:text-sm text-gray-800 font-bold">{lang === 'de' ? '📚 Mittel' : '📚 Medium'}</div>
+              <div className="text-xs md:text-sm text-gray-800 font-bold">{lang === 'de' ? 'Mittel' : 'Medium'}</div>
               <div className="text-[10px] text-gray-600 mt-1">{lang === 'de' ? 'Üben' : 'Practice'}</div>
             </div>
             <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-4 shadow-md border-2 border-red-200 active:scale-95 transition-transform touch-target">
               <div className="text-3xl md:text-4xl font-black text-red-600 mb-2">{strengthGroups.weak.length}</div>
-              <div className="text-xs md:text-sm text-gray-800 font-bold">{lang === 'de' ? '🔄 Schwach' : '🔄 Weak'}</div>
+              <div className="text-xs md:text-sm text-gray-800 font-bold">{lang === 'de' ? 'Schwach' : 'Weak'}</div>
               <div className="text-[10px] text-gray-600 mt-1">{lang === 'de' ? 'Fokus' : 'Focus'}</div>
             </div>
             <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-4 shadow-md border-2 border-gray-200 active:scale-95 transition-transform touch-target">
               <div className="text-3xl md:text-4xl font-black text-gray-600 mb-2">{strengthGroups.unanswered.length}</div>
-              <div className="text-xs md:text-sm text-gray-800 font-bold">{lang === 'de' ? '❓ Neu' : '❓ New'}</div>
+              <div className="text-xs md:text-sm text-gray-800 font-bold">{lang === 'de' ? 'Neu' : 'New'}</div>
               <div className="text-[10px] text-gray-600 mt-1">{lang === 'de' ? 'Nicht beantwortet' : 'Not answered'}</div>
             </div>
           </div>
@@ -348,11 +348,11 @@ export function StatsPage({
               const percentage = (count / totalQuestions) * 100;
               
               const levelInfo = {
-                new: { emoji: '🆕', name: lang === 'de' ? 'Neu' : 'New', color: '#6366f1' },
-                learning: { emoji: '📖', name: lang === 'de' ? 'Lerne' : 'Learning', color: '#f97316' },
-                young: { emoji: '🌱', name: lang === 'de' ? 'Jung' : 'Young', color: '#eab308' },
-                mature: { emoji: '🌳', name: lang === 'de' ? 'Reif' : 'Mature', color: '#22c55e' },
-                mastered: { emoji: '⭐', name: lang === 'de' ? 'Gemeistert' : 'Mastered', color: '#a855f7' }
+                new: { emoji: '·', name: lang === 'de' ? 'Neu' : 'New', color: '#6366f1' },
+                learning: { emoji: '·', name: lang === 'de' ? 'Lerne' : 'Learning', color: '#f97316' },
+                young: { emoji: '·', name: lang === 'de' ? 'Bekannt' : 'Familiar', color: '#eab308' },
+                mature: { emoji: '·', name: lang === 'de' ? 'Bekannt' : 'Familiar', color: '#22c55e' },
+                mastered: { emoji: '·', name: lang === 'de' ? 'Gemeistert' : 'Mastered', color: '#a855f7' }
               }[level];
               
               return (

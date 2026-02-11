@@ -4,6 +4,7 @@ import { CITIZENSHIP_VOCABULARY } from './vacabulary.js';
 import { VocabPage, VocabTrainingPage } from './components.tsx';
 import { updateProgress as updateSRSProgress } from './srsAlgorithm';
 import { OnboardingModal } from './components/OnboardingModal.tsx';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { SkeletonLoader } from './components/SkeletonLoader.tsx';
 import { BottomNav } from './components/BottomNav';
 import { safeGetItem, safeSetItem, validateVocabProgress } from './utils/storage';
@@ -297,6 +298,9 @@ export default function AppContent() {
             lang={lang}
           />
         )}
+
+        {/* PWA Install Prompt */}
+        <PWAInstallPrompt lang={lang as 'de' | 'en'} />
       </div>
     </>
   );

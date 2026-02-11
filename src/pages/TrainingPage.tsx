@@ -133,7 +133,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex flex-col main-content">
-        <div className="flex-1 flex flex-col mobile-container py-4 max-w-2xl mx-auto w-full overflow-y-auto">
+        <div className="flex-1 flex flex-col mobile-container py-4 max-w-2xl lg:max-w-4xl mx-auto w-full overflow-y-auto">
           {/* Header - Compact */}
           <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-4 text-white shadow-xl mb-4 shrink-0">
             <div className="flex items-center justify-between">
@@ -401,7 +401,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex flex-col main-content overflow-hidden">
       {/* Progress Bar - Fixed at top */}
       <div className="bg-white shadow-md px-4 py-3 shrink-0">
-        <div className="flex items-center justify-between mb-2 max-w-2xl mx-auto">
+        <div className="flex items-center justify-between mb-2 max-w-2xl lg:max-w-4xl mx-auto">
           <span className="text-sm font-semibold text-gray-700">
             {currentIdx + 1} / {trainingQuestions.length}
           </span>
@@ -415,7 +415,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
             </span>
           </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden max-w-2xl mx-auto">
+        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden max-w-2xl lg:max-w-4xl mx-auto">
           <motion.div 
             className="bg-gradient-to-r from-purple-600 to-pink-500 h-2"
             initial={{ width: '0%' }}
@@ -427,7 +427,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
 
       {/* Question Card - Scrollable if needed, but optimized to fit */}
       <motion.div 
-        className="flex-1 overflow-y-auto mobile-container py-4 max-w-2xl mx-auto w-full"
+        className="flex-1 overflow-y-auto mobile-container py-4 max-w-2xl lg:max-w-4xl mx-auto w-full"
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.2}
@@ -661,7 +661,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
               e.stopPropagation(); // Prevent double-trigger from tap-anywhere
               goToNextQuestion();
             }}
-            className="continue-button-main w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xl text-lg active:scale-98 transition-transform flex items-center justify-center gap-2 touch-target-lg max-w-2xl mx-auto"
+            className="continue-button-main w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xl text-lg active:scale-98 transition-transform flex items-center justify-center gap-2 touch-target-lg max-w-2xl lg:max-w-4xl mx-auto"
           >
             {currentIdx === trainingQuestions.length - 1 
               ? (lang === 'de' ? 'Ergebnis anzeigen' : 'Show Results') 

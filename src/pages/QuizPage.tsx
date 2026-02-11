@@ -124,7 +124,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-20 md:pb-6">
-        <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="max-w-2xl lg:max-w-4xl mx-auto px-4 py-6">
           {/* Header */}
           <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 rounded-2xl p-6 text-white shadow-xl mb-6">
             <div className="flex items-center gap-3 mb-3">
@@ -242,7 +242,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-20 md:pb-6">
-        <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="max-w-2xl lg:max-w-4xl mx-auto px-4 py-6">
           {/* Results Header */}
           <div className={`${
             passed 
@@ -385,7 +385,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex flex-col main-content overflow-hidden">
       {/* Progress Bar - Fixed at top - MATCHES TrainingPage */}
       <div className="bg-white shadow-md px-4 py-3 shrink-0">
-        <div className="flex items-center justify-between mb-2 max-w-2xl mx-auto">
+        <div className="flex items-center justify-between mb-2 max-w-2xl lg:max-w-4xl mx-auto">
           <span className="text-sm font-semibold text-gray-700">
             {currentIdx + 1} / {quizQuestions.length}
           </span>
@@ -408,7 +408,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
             </span>
           </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden max-w-2xl mx-auto">
+        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden max-w-2xl lg:max-w-4xl mx-auto">
           <motion.div 
             className="bg-gradient-to-r from-amber-500 to-red-500 h-2"
             initial={{ width: '0%' }}
@@ -419,7 +419,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
       </div>
 
       {/* Question Card - Scrollable if needed */}
-      <div className="flex-1 overflow-y-auto mobile-container py-4 max-w-2xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto mobile-container py-4 max-w-2xl lg:max-w-4xl mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIdx}
@@ -559,7 +559,7 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
               e.stopPropagation(); // Prevent double-trigger from tap-anywhere
               goToNextQuestion();
             }}
-            className="continue-button-main w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-red-500 text-white shadow-xl text-lg active:scale-98 transition-transform touch-target max-w-2xl mx-auto"
+            className="continue-button-main w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-red-500 text-white shadow-xl text-lg active:scale-98 transition-transform touch-target max-w-2xl lg:max-w-4xl mx-auto"
           >
             {currentIdx === quizQuestions.length - 1 
               ? (lang === 'de' ? 'Ergebnis anzeigen' : 'Show Results') 

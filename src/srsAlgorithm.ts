@@ -325,7 +325,7 @@ export function getSRSLevelInfo(level: SRSLevel, lang: 'de' | 'en' = 'en'): {
       description: lang === 'de' 
         ? 'Noch nicht gelernt' 
         : 'Not yet learned',
-      emoji: '🆕'
+      emoji: ''
     },
     learning: {
       name: lang === 'de' ? 'Lerne' : 'Learning',
@@ -333,23 +333,23 @@ export function getSRSLevelInfo(level: SRSLevel, lang: 'de' | 'en' = 'en'): {
       description: lang === 'de'
         ? 'Gerade dabei zu lernen'
         : 'Currently learning',
-      emoji: '📚'
+      emoji: ''
     },
     young: {
-      name: lang === 'de' ? 'Jung' : 'Young',
+      name: lang === 'de' ? 'Bekannt' : 'Familiar',
       color: 'yellow',
       description: lang === 'de'
-        ? 'Kürzlich gelernt'
-        : 'Recently learned',
-      emoji: '🌱'
+        ? 'Wird vertraut (täglich)'
+        : 'Getting familiar (daily)',
+      emoji: ''
     },
     mature: {
-      name: lang === 'de' ? 'Reif' : 'Mature',
+      name: lang === 'de' ? 'Bekannt' : 'Familiar',
       color: 'green',
       description: lang === 'de'
         ? 'Gut gelernt (alle 3 Tage)'
         : 'Well learned (every 3 days)',
-      emoji: '🌿'
+      emoji: ''
     },
     mastered: {
       name: lang === 'de' ? 'Gemeistert' : 'Mastered',
@@ -357,7 +357,7 @@ export function getSRSLevelInfo(level: SRSLevel, lang: 'de' | 'en' = 'en'): {
       description: lang === 'de'
         ? 'Perfekt beherrscht (alle 5-7 Tage)'
         : 'Perfectly mastered (every 5-7 days)',
-      emoji: '🏆'
+      emoji: '✓'
     }
   };
   

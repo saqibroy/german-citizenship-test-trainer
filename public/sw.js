@@ -1,11 +1,15 @@
-const CACHE_NAME = 'de-citizenship-v2';
-const STATIC_CACHE = 'static-v2';
-const DYNAMIC_CACHE = 'dynamic-v2';
+const CACHE_NAME = 'de-citizenship-v3';
+const STATIC_CACHE = 'static-v3';
+const DYNAMIC_CACHE = 'dynamic-v3';
 
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/icon-192.svg',
+  '/icon-512.svg',
+  '/icon-maskable.svg',
+  '/logo.svg',
 ];
 
 // Install event - cache resources
@@ -29,6 +33,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip Firebase/Firestore API requests - don't cache these
+  if (url.pathname.startsWith('/api') || url.pathname.includes('firestore') || url.pathname.includes('googleapis')) {
+    return;
+  }
+
   // For navigation requests, use Network First
   if (request.mode === 'navigate') {
     event.respondWith(
@@ -41,33 +50,49 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          return caches.match(request);
+          return caches.match(request) || caches.match('/index.html');
         })
     );
     return;
   }
 
-  // For JS/CSS/Images - Cache First strategy
+  // For Vite hashed assets (contain hash in filename) - Cache First (immutable)
+  if (url.pathname.match(/\/assets\/.*\.[a-f0-9]+\.(js|css|woff2?|ttf|eot|svg|png|jpg|webp)$/)) {
+    event.respondWith(
+      caches.match(request)
+        .then((response) => {
+          if (response) {
+            return response;
+          }
+          return fetch(request).then((fetchResponse) => {
+            if (fetchResponse && fetchResponse.status === 200) {
+              const responseToCache = fetchResponse.clone();
+              caches.open(STATIC_CACHE).then((cache) => {
+                cache.put(request, responseToCache);
+              });
+            }
+            return fetchResponse;
+          });
+        })
+    );
+    return;
+  }
+
+  // For other JS/CSS/Images - Stale While Revalidate
   event.respondWith(
     caches.match(request)
       .then((response) => {
-        if (response) {
-          return response;
-        }
-
-        return fetch(request).then((response) => {
-          // Only cache successful responses
-          if (!response || response.status !== 200) {
-            return response;
+        const fetchPromise = fetch(request).then((fetchResponse) => {
+          if (fetchResponse && fetchResponse.status === 200) {
+            const responseToCache = fetchResponse.clone();
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+              cache.put(request, responseToCache);
+            });
           }
-
-          const responseToCache = response.clone();
-          caches.open(DYNAMIC_CACHE).then((cache) => {
-            cache.put(request, responseToCache);
-          });
-
-          return response;
+          return fetchResponse;
         });
+
+        return response || fetchPromise;
       })
       .catch(() => {
         // Return offline page or fallback
