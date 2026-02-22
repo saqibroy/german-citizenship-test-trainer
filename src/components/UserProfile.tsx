@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { User as UserIcon, LogOut, Mail, Calendar, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface UserProfileProps {
   onClose: () => void;
@@ -8,6 +9,9 @@ interface UserProfileProps {
 
 export function UserProfile({ onClose }: UserProfileProps) {
   const { user, logout } = useAuth();
+
+  // Lock body scroll when modal is open
+  useBodyScrollLock(!!user);
 
   const handleLogout = async () => {
     try {

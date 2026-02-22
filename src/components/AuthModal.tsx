@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, User, Eye, EyeOff, LogIn, UserPlus, AlertCircle, Chrome } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -19,6 +20,9 @@ export function AuthModal({ onClose, initialMode = 'login' }: AuthModalProps) {
   const [resetSent, setResetSent] = useState(false);
 
   const { signup, login, loginWithGoogle, resetPassword } = useAuth();
+
+  // Lock body scroll when modal is open
+  useBodyScrollLock(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
