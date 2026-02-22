@@ -8,6 +8,7 @@ import type { HomePageProps } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthModal } from '../components/AuthModal';
 import { UserProfile } from '../components/UserProfile';
+import { getBadgeInfo } from '../utils/badgeInfo';
 
 export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomePageProps) {
   const { user } = useAuth();
@@ -313,11 +314,19 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {badges.map((b: any, i: any) => (
-              <span key={i} className="bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg border-2 border-yellow-300">
-                {b}
-              </span>
-            ))}
+            {badges.map((b: any, i: any) => {
+              const info = getBadgeInfo(b, lang as 'de' | 'en');
+              return (
+                <div
+                  key={i}
+                  className="bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 text-white px-4 py-2.5 rounded-xl shadow-lg border-2 border-yellow-300 flex items-center gap-2"
+                  title={info.description}
+                >
+                  <span className="text-lg">{info.icon}</span>
+                  <span className="text-sm font-bold">{info.name}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Calendar, Target, Download, Upload, Trash2, 
-  Save, Info, User, Cloud, CloudOff, LogIn
+  Save, Info, User, Cloud, CloudOff, LogIn, Scale, Shield, ExternalLink
 } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 import { UserProfile } from './components/UserProfile';
@@ -467,6 +467,36 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
           </div>
         )}
 
+        {/* Legal & Compliance (German Law Requirements) */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <div className="flex items-center gap-3 mb-4">
+            <Scale className="text-indigo-600" size={24} />
+            <h3 className="text-lg font-bold text-gray-800">
+              {lang === 'de' ? 'Rechtliches' : 'Legal'}
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {setPage && (
+              <>
+                <button
+                  onClick={() => setPage('impressum')}
+                  className="bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-800 py-3 rounded-xl font-semibold transition-all min-h-[44px] text-sm flex items-center justify-center gap-2"
+                >
+                  <Scale size={16} />
+                  {lang === 'de' ? 'Impressum' : 'Legal Notice'}
+                </button>
+                <button
+                  onClick={() => setPage('datenschutz')}
+                  className="bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-800 py-3 rounded-xl font-semibold transition-all min-h-[44px] text-sm flex items-center justify-center gap-2"
+                >
+                  <Shield size={16} />
+                  {lang === 'de' ? 'Datenschutz' : 'Privacy Policy'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* App Info */}
         <div className="bg-gray-50 rounded-2xl p-6 shadow-sm border border-gray-200">
           <div className="flex items-center gap-3 mb-3">
@@ -492,6 +522,23 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
               <p className="text-xs text-gray-400">{lang === 'de' ? 'Lektionen' : 'Lessons'}</p>
               <p className="font-semibold">12</p>
             </div>
+          </div>
+          
+          {/* Developer / Company Credit */}
+          <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+            <p className="text-xs text-gray-500 mb-1">
+              {lang === 'de' ? 'Entwickelt und betrieben von' : 'Developed and operated by'}
+            </p>
+            <a
+              href="https://www.dtechfarm.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+            >
+              D TechFarm UG
+              <ExternalLink size={12} />
+            </a>
+            <p className="text-xs text-gray-400 mt-2">© {new Date().getFullYear()} Einbürger Coach. {lang === 'de' ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}</p>
           </div>
         </div>
       </div>

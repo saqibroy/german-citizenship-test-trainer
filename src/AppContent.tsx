@@ -8,6 +8,7 @@ import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { SkeletonLoader } from './components/SkeletonLoader.tsx';
 import { BottomNav } from './components/BottomNav';
 import { safeGetItem, safeSetItem, validateVocabProgress } from './utils/storage';
+import { trackPageView } from './lib/analytics';
 import type { QuestionProgress, CategoryBreakdown, VocabProgress } from './types';
 
 // Import custom hooks
@@ -28,6 +29,7 @@ const GrammarLessonsPage = lazy(() => import('./GrammarLessons.tsx').then(m => (
 const SettingsPage = lazy(() => import('./SettingsPage.tsx').then(m => ({ default: m.SettingsPage })));
 const LandingPage = lazy(() => import('./pages/LandingPage.tsx'));
 const FAQPage = lazy(() => import('./pages/FAQPage.tsx'));
+const LegalPage = lazy(() => import('./pages/LegalPage.tsx'));
 
 // Loading component with skeleton based on current page
 function PageLoader({ page }: { page: string }) {
@@ -101,6 +103,11 @@ export default function AppContent() {
       setFavoriteVocab(favData);
     }
   }, []);
+
+  // Track page views for analytics (GA4 + Vercel)
+  useEffect(() => {
+    trackPageView(page);
+  }, [page]);
 
   // Memoize callbacks for performance
   const updateProgress = useCallback((qId: number, correct: boolean, answerTime: number = 5) => {
@@ -259,6 +266,8 @@ export default function AppContent() {
           <Suspense fallback={<PageLoader page={page} />}>
             {page === 'landing' && <LandingPage lang={lang as 'de' | 'en'} onGetStarted={() => setPage('home')} onNavigate={setPage} />}
             {page === 'faq' && <FAQPage lang={lang as 'de' | 'en'} setPage={setPage} />}
+            {page === 'impressum' && <LegalPage lang={lang as 'de' | 'en'} setPage={setPage} initialSection="impressum" />}
+            {page === 'datenschutz' && <LegalPage lang={lang as 'de' | 'en'} setPage={setPage} initialSection="datenschutz" />}
             {page === 'home' && <HomePage lang={lang} badges={badges} progress={progress} setPage={setPage} studyStreak={studyStreak} />}
             {page === 'training' && <TrainingPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
             {page === 'quiz' && <QuizPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} saveQuizResult={saveQuizResult} />}

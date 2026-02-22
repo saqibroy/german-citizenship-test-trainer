@@ -702,14 +702,20 @@ export default function LandingPage({ lang, onGetStarted, onNavigate }: { lang: 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
             <div className="col-span-1 sm:col-span-2">
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4">German Citizenship Test Trainer</h3>
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4">Einbürger Coach</h3>
               <p className="text-gray-400 mb-4">
                 {content.footer.tagline}
               </p>
-              <div className="flex gap-4">
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">GitHub</a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">Twitter</a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">LinkedIn</a>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span>{lang === 'de' ? 'Ein Produkt von' : 'A product by'}</span>
+                <a 
+                  href="https://www.dtechfarm.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
+                >
+                  D TechFarm UG
+                </a>
               </div>
             </div>
             
@@ -725,18 +731,20 @@ export default function LandingPage({ lang, onGetStarted, onNavigate }: { lang: 
               <h4 className="font-bold mb-4">{content.footer.links.resources}</h4>
               <ul className="space-y-2">
                 <li><button onClick={() => onNavigate?.('faq')} className="text-gray-400 hover:text-white transition-colors cursor-pointer">{content.footer.links.items.faq}</button></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">{content.footer.links.items.docs}</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">{content.footer.links.items.blog}</a></li>
+                <li><button onClick={() => onNavigate?.('impressum')} className="text-gray-400 hover:text-white transition-colors cursor-pointer">{lang === 'de' ? 'Impressum' : 'Legal Notice'}</button></li>
+                <li><button onClick={() => onNavigate?.('datenschutz')} className="text-gray-400 hover:text-white transition-colors cursor-pointer">{content.footer.links.items.privacy}</button></li>
               </ul>
             </div>
           </div>
           
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400 text-sm">
-            <p>© 2025 Einbürger Coach. {lang === 'de' ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}</p>
+            <p>© {new Date().getFullYear()} Einbürger Coach · D TechFarm UG (haftungsbeschränkt). {lang === 'de' ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}</p>
             <p className="mt-2">
-              <a href="#" className="hover:text-white transition-colors">{content.footer.links.items.privacy}</a>
+              <button onClick={() => onNavigate?.('impressum')} className="hover:text-white transition-colors cursor-pointer">{lang === 'de' ? 'Impressum' : 'Legal Notice'}</button>
               {' • '}
-              <a href="#" className="hover:text-white transition-colors">{content.footer.links.items.terms}</a>
+              <button onClick={() => onNavigate?.('datenschutz')} className="hover:text-white transition-colors cursor-pointer">{content.footer.links.items.privacy}</button>
+              {' • '}
+              <button onClick={() => onNavigate?.('faq')} className="hover:text-white transition-colors cursor-pointer">FAQ</button>
             </p>
           </div>
         </div>

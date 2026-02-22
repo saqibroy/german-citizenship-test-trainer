@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   BookMarked, Star, CheckCircle2, XCircle, Brain, Sparkles,
   Calendar, Target, AlertCircle, Flame, Clock,
@@ -7,6 +7,28 @@ import {
 import { CITIZENSHIP_VOCABULARY } from './vacabulary.js';
 import { calculateSRSWeight } from './srsAlgorithm';
 import type { VocabPopupProps, HighlightedTextProps, VocabPageProps, StudyPlanPageProps, VocabTrainingPageProps, VocabularyItem } from './types';
+
+// Inline scroll lock for components that can't use hooks before conditional returns
+function ScrollLockWrapper({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    const body = document.body;
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      body.style.overflow = '';
+      body.style.position = '';
+      body.style.top = '';
+      body.style.width = '';
+      document.documentElement.style.overflow = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+  return <>{children}</>;
+}
 
 // Helper function to normalize German text for matching
 const normalizeText = (text: string) => {
@@ -232,6 +254,7 @@ export function VocabPopup({ word, onClose, lang }: VocabPopupProps) {
   const forms = generateForms(vocabItem);
 
   return (
+    <ScrollLockWrapper>
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
@@ -315,6 +338,7 @@ export function VocabPopup({ word, onClose, lang }: VocabPopupProps) {
         </div>
       </div>
     </div>
+    </ScrollLockWrapper>
   );
 }
 

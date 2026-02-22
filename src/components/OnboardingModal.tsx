@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Brain, Target, Calendar, Award, ArrowRight, ArrowLeft, CalendarDays, TrendingUp } from 'lucide-react';
 import { safeSetItem } from '../utils/storage';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface OnboardingModalProps {
   onComplete: () => void;
@@ -445,6 +446,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete, la
   const steps = ONBOARDING_STEPS[lang];
   const isLastStep = currentStep === steps.length - 1;
   const isFirstStep = currentStep === 0;
+
+  // Lock body scroll when modal is open
+  useBodyScrollLock(true);
 
   const handleNext = () => {
     if (isLastStep) {

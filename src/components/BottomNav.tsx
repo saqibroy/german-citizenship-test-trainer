@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Home, Brain, Trophy, Settings, BookOpen } from 'lucide-react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface BottomNavProps {
   currentPage: string;
@@ -113,6 +114,9 @@ export function MoreMenu({ isOpen, onClose, onNavigate, lang }: MoreMenuProps) {
     { id: 'grammar', icon: BookOpen, label: lang === 'de' ? 'Grammatik' : 'Grammar' },
     { id: 'faq', icon: BookOpen, label: 'FAQ' },
   ];
+
+  // Lock body scroll when menu is open
+  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 
