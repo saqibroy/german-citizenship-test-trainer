@@ -1,15 +1,14 @@
-const CACHE_NAME = 'de-citizenship-v3';
-const STATIC_CACHE = 'static-v3';
-const DYNAMIC_CACHE = 'dynamic-v3';
+const CACHE_NAME = 'de-citizenship-v4';
+const STATIC_CACHE = 'static-v4';
+const DYNAMIC_CACHE = 'dynamic-v4';
 
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon-192.svg',
-  '/icon-512.svg',
+  '/icon.svg',
   '/icon-maskable.svg',
-  '/logo.svg',
+  '/final-logo.svg',
 ];
 
 // Install event - cache resources
