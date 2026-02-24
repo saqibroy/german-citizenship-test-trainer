@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
-import { motion, AnimatePresence, PanInfo } from 'framer-motion';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain, Sparkles, AlertCircle, CheckCircle2,
-  Zap, ChevronRight, Languages
+  Zap, ChevronRight, Languages, Globe, CheckCheck, X
 } from 'lucide-react';
 import { calculateSRSWeight } from '../srsAlgorithm';
 import { VocabPopup } from '../components.tsx';
@@ -16,7 +16,7 @@ interface Answer {
   isCorrect: boolean;
 }
 
-export function TrainingPage({ lang, questions, updateProgress, progress }: TrainingPageProps) {
+export function TrainingPage({ lang, questions, updateProgress, progress, onSessionChange, autoStartMode, onAutoStartConsumed }: TrainingPageProps) {
   const [started, setStarted] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -26,9 +26,12 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
   const [sessionStats, setSessionStats] = useState({ correct: 0, incorrect: 0, total: 0 });
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
   const [customSessionSize, setCustomSessionSize] = useState<number | null>(null);
-  // Long-press translation state
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
-  const [showingAnswerTranslation, setShowingAnswerTranslation] = useState<number | null>(null);
+  // Per-answer translation toggle state (set of indices currently showing translation)
+  const [showingAnswerTranslations, setShowingAnswerTranslations] = useState<Set<number>>(new Set());
+  // Two-step answer: user selects first, then confirms
+  const [pendingAnswer, setPendingAnswer] = useState<number | null>(null);
+  // Ref to scroll the bottom action bar into view
+  const actionBarRef = useRef<HTMLDivElement>(null);
 
   // Shuffled options with original indices
   const shuffledOptions = useMemo(() => {
@@ -101,25 +104,32 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
     setAnswers([]);
     setShowTranslation(false);
     setSessionStats({ correct: 0, incorrect: 0, total: 0 });
+    onSessionChange?.(true);
   };
 
-  // Swipe gesture handling
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    const answered = answers[currentIdx] !== undefined;
-    if (!answered) return; // Only allow swipe after answering
-    
-    const swipeThreshold = 100;
-    const swipeVelocity = 500;
+  // Notify parent when session ends (component unmounts or session stops)
+  useEffect(() => {
+    return () => {
+      onSessionChange?.(false);
+    };
+  }, []);
 
-    if (info.offset.x < -swipeThreshold || info.velocity.x < -swipeVelocity) {
-      // Swipe left - next question
-      if (currentIdx < trainingQuestions.length - 1) {
-        setCurrentIdx(currentIdx + 1);
-        setShowTranslation(false);
-        setQuestionStartTime(Date.now());
-      }
+  // Auto-start training session if triggered from HomePage
+  useEffect(() => {
+    if (autoStartMode && !started) {
+      const mode = autoStartMode as 'smart' | 'weak' | 'learning' | 'new' | 'bekannt';
+      startTraining(mode);
+      onAutoStartConsumed?.();
     }
-  };
+  }, [autoStartMode]);
+
+  const exitSession = useCallback(() => {
+    setStarted(false);
+    setCurrentIdx(0);
+    setAnswers([]);
+    setSessionStats({ correct: 0, incorrect: 0, total: 0 });
+    onSessionChange?.(false);
+  }, [onSessionChange]);
 
   if (!started) {
     const weakCount = questions.filter((q: any) => progress[q.id]?.strength === 'weak' || !progress[q.id]).length;
@@ -218,10 +228,26 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
 
           {/* Practice Mode Selection */}
           <div className="space-y-2 mb-4 shrink-0">
-            <h3 className="font-bold text-gray-900 text-sm mb-2">
-              {lang === 'de' ? 'Übungsmodus wählen:' : 'Choose Practice Mode:'}
-            </h3>
             
+            {/* Smart Training - Primary option (like "Gemischtes Quiz") */}
+            <button
+              onClick={() => startTraining('smart')}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl p-3 shadow-md hover:shadow-lg active:scale-98 transition-all text-left"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/20 backdrop-blur-sm w-10 h-10 rounded-lg flex items-center justify-center font-bold">
+                    {customSessionSize || sessionSize}
+                  </div>
+                  <div>
+                    <p className="font-bold">{lang === 'de' ? 'Gemischtes Training' : 'Mixed Training'}</p>
+                    <p className="text-xs text-purple-100">{lang === 'de' ? 'SRS-optimierte Auswahl' : 'SRS-optimized selection'}</p>
+                  </div>
+                </div>
+                <Brain className="text-white" size={20} />
+              </div>
+            </button>
+
             {/* Weak Questions */}
             {weakCount > 0 && (
               <button
@@ -307,16 +333,8 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
             )}
           </div>
 
-          {/* Smart Training Button - Sticky at bottom */}
-          <div className="mt-auto shrink-0">
-            <button 
-              onClick={() => startTraining('smart')}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-2xl py-4 font-bold text-lg shadow-xl active:scale-98 transition-transform flex items-center justify-center gap-2 touch-target-lg"
-            >
-              <Brain size={24} />
-              {lang === 'de' ? 'Jetzt starten' : 'Start Now'}
-            </button>
-          </div>
+          {/* Bottom spacer to ensure content isn't hidden behind bottom nav */}
+          <div className="h-4 shrink-0" />
         </div>
       </div>
     );
@@ -355,6 +373,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
           setCurrentIdx(0);
           setAnswers([]);
           setSessionStats({ correct: 0, incorrect: 0, total: 0 });
+          onSessionChange?.(false);
         }}
       />
     );
@@ -375,6 +394,8 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
     setCurrentIdx(currentIdx + 1);
     setShowTranslation(false);
     setSelectedVocab(null);
+    setPendingAnswer(null);
+    setShowingAnswerTranslations(new Set());
     setQuestionStartTime(Date.now());
     scrollToTop();
   };
@@ -386,6 +407,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
     newAnswers[currentIdx] = { selectedIndex: originalIndex, isCorrect };
     setAnswers(newAnswers);
     updateProgress(q.id, isCorrect, answerTime);
+    setPendingAnswer(null);
     
     setSessionStats(prev => ({
       ...prev,
@@ -393,20 +415,35 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
       incorrect: prev.incorrect + (isCorrect ? 0 : 1),
       total: prev.total + 1
     }));
-    
-    // No auto-advance - user must tap to continue
+
+    // Scroll the action bar into view so user sees the Continue button
+    setTimeout(() => {
+      actionBarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+  };
+
+  const toggleAnswerTranslation = (idx: number) => {
+    setShowingAnswerTranslations(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) {
+        next.delete(idx);
+      } else {
+        next.add(idx);
+      }
+      return next;
+    });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex flex-col main-content overflow-hidden">
-      {/* Progress Bar - Fixed at top */}
-      <div className="bg-white shadow-md px-4 py-3 shrink-0">
-        <div className="flex items-center justify-between mb-2 max-w-2xl lg:max-w-4xl mx-auto">
-          <span className="text-sm font-semibold text-gray-700">
-            {currentIdx + 1} / {trainingQuestions.length}
-          </span>
-          {/* Session stats moved here */}
+    <div className="fixed inset-0 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex flex-col z-40">
+      {/* Session Header - App icon + progress + exit button */}
+      <div className="bg-white shadow-md px-4 py-1 shrink-0">
+        <div className="flex items-center justify-between max-w-2xl lg:max-w-4xl mx-auto">
+          <img src="/final-logo.svg" alt="Einbürger Coach" className="h-12 md:h-14 w-auto" />
           <div className="flex items-center gap-3 text-xs">
+            <span className="text-sm font-semibold text-gray-700">
+              {currentIdx + 1}/{trainingQuestions.length}
+            </span>
             <span className="flex items-center gap-1 text-green-600 font-medium">
               <CheckCircle2 size={14} /> {sessionStats.correct}
             </span>
@@ -414,10 +451,17 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
               <AlertCircle size={14} /> {sessionStats.incorrect}
             </span>
           </div>
+          <button
+            onClick={exitSession}
+            className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 active:scale-95 transition-all"
+            title={lang === 'de' ? 'Beenden' : 'Exit'}
+          >
+            <X size={20} />
+          </button>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden max-w-2xl lg:max-w-4xl mx-auto">
+        <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden max-w-2xl lg:max-w-4xl mx-auto mt-2">
           <motion.div 
-            className="bg-gradient-to-r from-purple-600 to-pink-500 h-2"
+            className="bg-gradient-to-r from-purple-600 to-pink-500 h-1.5"
             initial={{ width: '0%' }}
             animate={{ width: `${((currentIdx) / trainingQuestions.length) * 100}%` }}
             transition={{ duration: 0.3 }}
@@ -426,13 +470,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
       </div>
 
       {/* Question Card - Scrollable if needed, but optimized to fit */}
-      <motion.div 
-        className="flex-1 overflow-y-auto mobile-container py-4 max-w-2xl lg:max-w-4xl mx-auto w-full"
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
-        onDragEnd={handleDragEnd}
-      >
+      <div className="flex-1 overflow-y-auto mobile-container py-4 max-w-2xl lg:max-w-4xl mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIdx}
@@ -441,34 +479,6 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             className="space-y-4"
-            style={{ cursor: answered ? 'pointer' : 'default' }}
-            onClick={(e) => {
-              // Tap anywhere to continue after answering
-              if (!answered) return;
-              
-              const target = e.target as HTMLElement;
-              
-              // Don't advance if clicking vocabulary word (they have their own handlers)
-              const clickedVocab = target.closest('.vocab-highlight');
-              if (clickedVocab) {
-                e.stopPropagation();
-                return;
-              }
-              
-              // Don't advance if modal is open
-              if (selectedVocab) {
-                return;
-              }
-              
-              // Don't advance if clicking the main continue button (it has its own handler)
-              const clickedContinueButton = target.closest('.continue-button-main');
-              if (clickedContinueButton) {
-                return;
-              }
-              
-              // Otherwise, advance to next question
-              goToNextQuestion();
-            }}
           >
             {/* Question */}
             <div className="bg-white rounded-2xl p-4 shadow-lg min-h-[120px]">
@@ -485,15 +495,48 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
               
               {/* Translate button moved here */}
               <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
-                <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">
-                  {lang === 'de' ? 'Frage' : 'Question'} {currentIdx + 1}
-                </span>
+                {(() => {
+                  const qProgress = progress[q.id];
+                  if (!qProgress) {
+                    return (
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                        <Sparkles size={12} />
+                        {lang === 'de' ? 'Neu' : 'New'}
+                      </span>
+                    );
+                  } else if (qProgress.strength === 'strong') {
+                    return (
+                      <span className="text-xs font-semibold text-green-600 uppercase tracking-wide flex items-center gap-1">
+                        <CheckCircle2 size={12} />
+                        {lang === 'de' ? 'Stark' : 'Strong'}
+                      </span>
+                    );
+                  } else if (qProgress.strength === 'weak') {
+                    return (
+                      <span className="text-xs font-semibold text-red-600 uppercase tracking-wide flex items-center gap-1">
+                        <AlertCircle size={12} />
+                        {lang === 'de' ? 'Schwach' : 'Weak'}
+                      </span>
+                    );
+                  } else {
+                    return (
+                      <span className="text-xs font-semibold text-yellow-600 uppercase tracking-wide flex items-center gap-1">
+                        <Zap size={12} />
+                        {lang === 'de' ? 'Lernend' : 'Learning'}
+                      </span>
+                    );
+                  }
+                })()}
                 <button
-                  onClick={() => setShowTranslation(!showTranslation)}
-                  className="flex items-center gap-1.5 text-sm font-medium text-purple-600 hover:text-purple-700 active:scale-95 transition-all touch-target bg-purple-50 px-3 py-1.5 rounded-lg"
+                  onMouseDown={() => setShowTranslation(true)}
+                  onMouseUp={() => setShowTranslation(false)}
+                  onMouseLeave={() => setShowTranslation(false)}
+                  onTouchStart={() => setShowTranslation(true)}
+                  onTouchEnd={(e) => { e.preventDefault(); setShowTranslation(false); }}
+                  className="flex items-center gap-1.5 text-sm font-medium text-purple-600 hover:text-purple-700 active:scale-95 transition-all touch-target bg-purple-50 px-3 py-1.5 rounded-lg select-none"
                 >
                   <Languages size={16} />
-                  <span>{showTranslation ? (lang === 'de' ? 'DE' : 'EN') : (lang === 'de' ? 'EN' : 'DE')}</span>
+                  <span>{lang === 'de' ? 'EN' : 'DE'}</span>
                 </button>
               </div>
               
@@ -501,7 +544,6 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
                 <VocabHighlight 
                   text={lang === 'de' ? q.question_de : q.question_en}
                   onVocabClick={(vocabEntry) => setSelectedVocab(vocabEntry.de)}
-                  disabled={!answered}
                 />
               </p>
               {showTranslation && (
@@ -523,165 +565,166 @@ export function TrainingPage({ lang, questions, updateProgress, progress }: Trai
             {/* Answer Options */}
             <div className="space-y-2.5">
               {shuffledOptions.map((opt: any, idx: number) => {
-                const isSelected = userAnswer?.selectedIndex === opt.originalIndex;
+                const isSelected = answered
+                  ? userAnswer?.selectedIndex === opt.originalIndex
+                  : pendingAnswer === opt.originalIndex;
                 const isCorrectAnswer = opt.originalIndex === q.correct_index;
                 const showAsCorrect = answered && isCorrectAnswer;
-                const showAsWrong = answered && isSelected && !isCorrectAnswer;
-                const showTranslationForThis = showingAnswerTranslation === idx;
+                const showAsWrong = answered && userAnswer?.selectedIndex === opt.originalIndex && !isCorrectAnswer;
+                const showTranslationForThis = showingAnswerTranslations.has(idx);
 
                 // Get translated text
                 const translatedText = lang === 'de' 
-                  ? (lang === 'de' ? q.options_en : q.options_de)[opt.originalIndex]
-                  : (lang === 'de' ? q.options_de : q.options_en)[opt.originalIndex];
+                  ? q.options_en[opt.originalIndex]
+                  : q.options_de[opt.originalIndex];
 
                 return (
-                  <motion.button
+                  <motion.div
                     key={idx}
-                    onClick={(e) => {
-                      // Don't answer if showing translation (long-press just happened)
-                      if (showingAnswerTranslation === idx) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        return;
-                      }
-                      if (!answered) {
-                        handleAnswer(opt.originalIndex);
-                        e.stopPropagation(); // Prevent propagation only when answering
-                      }
-                      // If answered, don't stopPropagation - let it bubble to tap-anywhere handler
-                    }}
-                    onMouseDown={() => {
-                      if (answered) return; // Only allow long-press BEFORE answering
-                      // Start long-press timer for desktop (500ms)
-                      const timer = setTimeout(() => {
-                        setShowingAnswerTranslation(idx);
-                      }, 500);
-                      setLongPressTimer(timer);
-                    }}
-                    onMouseUp={() => {
-                      // Clear timer on release
-                      if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        setLongPressTimer(null);
-                      }
-                      // Hide translation after a delay if it was shown
-                      if (showingAnswerTranslation === idx) {
-                        setTimeout(() => {
-                          setShowingAnswerTranslation(null);
-                        }, 800);
-                      }
-                    }}
-                    onMouseLeave={() => {
-                      // Clear timer if mouse leaves
-                      if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        setLongPressTimer(null);
-                      }
-                    }}
-                    onTouchStart={() => {
-                      if (answered) return; // Only allow long-press BEFORE answering
-                      // Start long-press timer for mobile (500ms)
-                      const timer = setTimeout(() => {
-                        setShowingAnswerTranslation(idx);
-                      }, 500);
-                      setLongPressTimer(timer);
-                    }}
-                    onTouchEnd={() => {
-                      // Clear timer on release
-                      if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        setLongPressTimer(null);
-                      }
-                      // Hide translation after a delay if it was shown
-                      if (showingAnswerTranslation === idx) {
-                        setTimeout(() => {
-                          setShowingAnswerTranslation(null);
-                        }, 800);
-                      }
-                    }}
-                    onTouchCancel={() => {
-                      // Clear timer if touch is cancelled
-                      if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        setLongPressTimer(null);
-                      }
-                      setShowingAnswerTranslation(null);
-                    }}
-                    style={{ pointerEvents: 'auto' }}
-                    whileTap={{ scale: answered ? 1 : 0.98 }}
-                    className={`answer-option-button w-full p-4 rounded-2xl font-medium text-left transition-all touch-target-lg ${
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className={`relative rounded-2xl transition-all ${
                       showAsCorrect
                         ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
                         : showAsWrong
                         ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg'
-                        : isSelected
-                        ? 'bg-purple-100 border-2 border-purple-500'
+                        : isSelected && !answered
+                        ? 'bg-purple-100 border-2 border-purple-500 shadow-md ring-2 ring-purple-300'
+                        : answered
+                        ? 'bg-white border-2 border-gray-200 opacity-60'
                         : 'bg-white border-2 border-gray-200 hover:border-purple-300 active:bg-purple-50'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="flex-1">
-                        {/* Always show vocabulary highlighting, use light variant for colored answers */}
-                        <VocabHighlight 
-                          text={opt.text}
-                          onVocabClick={(vocabEntry) => setSelectedVocab(vocabEntry.de)}
-                          disabled={!answered}
-                          variant={(showAsCorrect || showAsWrong) ? 'light' : 'default'}
-                        />
-                        {/* Show translation on long press */}
-                        {showTranslationForThis && (
-                          <motion.span
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="block mt-2 pt-2 border-t border-white/30 text-sm italic opacity-90"
-                          >
-                            {translatedText}
-                          </motion.span>
-                        )}
-                      </span>
-                      {showAsCorrect && <CheckCircle2 size={20} />}
-                      {showAsWrong && <AlertCircle size={20} />}
-                    </div>
-                  </motion.button>
+                    {/* Main answer area - tap to select (before answering) */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!answered) {
+                          setPendingAnswer(opt.originalIndex);
+                        }
+                      }}
+                      disabled={answered}
+                      className="w-full p-4 pr-24 text-left font-medium touch-target-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Letter badge */}
+                        <span className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                          showAsCorrect ? 'bg-white/30 text-white' :
+                          showAsWrong ? 'bg-white/30 text-white' :
+                          isSelected && !answered ? 'bg-purple-600 text-white' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {showAsCorrect ? <CheckCircle2 size={16} /> :
+                           showAsWrong ? <AlertCircle size={16} /> :
+                           String.fromCharCode(65 + idx)}
+                        </span>
+                        <span className="flex-1 leading-snug">
+                          <VocabHighlight 
+                            text={opt.text}
+                            onVocabClick={(vocabEntry) => setSelectedVocab(vocabEntry.de)}
+                            variant={(showAsCorrect || showAsWrong) ? 'light' : 'default'}
+                          />
+                          {/* Translation shown inline when toggled */}
+                          {showTranslationForThis && (
+                            <motion.span
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className={`block mt-1.5 pt-1.5 text-sm italic ${
+                                (showAsCorrect || showAsWrong) ? 'border-t border-white/30 opacity-90' : 'border-t border-gray-200 text-gray-500'
+                              }`}
+                            >
+                              {translatedText}
+                            </motion.span>
+                          )}
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Translation toggle button - press and hold to show, release to hide */}
+                    <button
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        toggleAnswerTranslation(idx);
+                      }}
+                      onMouseUp={(e) => {
+                        e.stopPropagation();
+                        toggleAnswerTranslation(idx);
+                      }}
+                      onMouseLeave={() => {
+                        if (showTranslationForThis) toggleAnswerTranslation(idx);
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        toggleAnswerTranslation(idx);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        toggleAnswerTranslation(idx);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all ${
+                        showTranslationForThis
+                          ? 'bg-blue-500 text-white shadow-md'
+                          : (showAsCorrect || showAsWrong)
+                          ? 'bg-white/20 text-white/80 hover:bg-white/30'
+                          : 'bg-gray-100 text-gray-400 hover:bg-blue-50 hover:text-blue-500'
+                      }`}
+                      title={lang === 'de' ? 'Übersetzung' : 'Translation'}
+                    >
+                      <Globe size={16} />
+                    </button>
+                  </motion.div>
                 );
               })}
             </div>
+
+            {/* Spacer for bottom action bar */}
+            <div ref={actionBarRef} className="h-2" />
           </motion.div>
         </AnimatePresence>
-      </motion.div>
+      </div>
 
-      {/* Continue Button - Fixed at bottom */}
-      {/* Show always when answered - tap anywhere or button to continue */}
-      {answered && (
-        <div className="bg-white border-t border-gray-200 px-4 py-3 shrink-0">
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            onClick={(e) => { 
-              e.stopPropagation(); // Prevent double-trigger from tap-anywhere
-              goToNextQuestion();
-            }}
-            className="continue-button-main w-full py-4 rounded-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xl text-lg active:scale-98 transition-transform flex items-center justify-center gap-2 touch-target-lg max-w-2xl lg:max-w-4xl mx-auto"
-          >
-            {currentIdx === trainingQuestions.length - 1 
-              ? (lang === 'de' ? 'Ergebnis anzeigen' : 'Show Results') 
-              : (
-                <>
-                  {lang === 'de' ? 'Weiter' : 'Continue'}
-                  <ChevronRight size={20} />
-                </>
-              )}
-          </motion.button>
-          <div className="text-center text-xs mt-2 space-y-1">
-            <p className="text-gray-500">
-              {lang === 'de' ? 'Tippen Sie irgendwo, um fortzufahren' : 'Tap anywhere to continue'}
-            </p>
-            <p className="text-purple-600 font-medium">
-              {lang === 'de' ? 'Halten Sie markierte Wörter gedrückt, um sie zu übersetzen' : 'Long-press highlighted words to translate'}
-            </p>
-          </div>
+      {/* Bottom Action Bar - Flush to bottom, always visible */}
+      <div className="bg-white border-t border-gray-200 px-4 py-2 shrink-0" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+        <div className="max-w-2xl lg:max-w-4xl mx-auto">
+          {answered ? (
+            /* After answering: Show Continue button */
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={goToNextQuestion}
+              className="w-full py-3.5 rounded-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xl text-lg active:scale-98 transition-transform flex items-center justify-center gap-2"
+            >
+              {currentIdx === trainingQuestions.length - 1 
+                ? (lang === 'de' ? 'Ergebnis anzeigen' : 'Show Results') 
+                : (
+                  <>
+                    {lang === 'de' ? 'Weiter' : 'Continue'}
+                    <ChevronRight size={20} />
+                  </>
+                )}
+            </motion.button>
+          ) : pendingAnswer !== null ? (
+            /* Answer selected but not confirmed: Show Confirm button */
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              onClick={() => handleAnswer(pendingAnswer)}
+              className="w-full py-3.5 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xl text-lg active:scale-98 transition-transform flex items-center justify-center gap-2"
+            >
+              <CheckCheck size={20} />
+              {lang === 'de' ? 'Antwort bestätigen' : 'Confirm Answer'}
+            </motion.button>
+          ) : (
+            /* No answer selected: Show disabled-style button */
+            <div className="w-full py-3.5 rounded-2xl font-bold bg-gray-200 text-gray-400 text-lg text-center">
+              {lang === 'de' ? 'Wähle eine Antwort' : 'Select an answer'}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

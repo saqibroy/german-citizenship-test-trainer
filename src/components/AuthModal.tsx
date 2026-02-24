@@ -77,6 +77,14 @@ export function AuthModal({ onClose, initialMode = 'login' }: AuthModalProps) {
         exit={{ y: '100%', opacity: 0 }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.6 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 100 || info.velocity.y > 400) {
+            onClose();
+          }
+        }}
         className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl max-w-md w-full overflow-hidden max-h-[90vh] md:max-h-[85vh] overflow-y-auto"
       >
         {/* Mobile handle bar */}

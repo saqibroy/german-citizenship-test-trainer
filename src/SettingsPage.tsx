@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Settings, Calendar, Target, Download, Upload, Trash2, 
-  Save, Info, User, Cloud, CloudOff, LogIn, Scale, Shield, ExternalLink
+  Save, Info, User, Cloud, CloudOff, LogIn, Scale, Shield, ExternalLink, Smartphone
 } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 import { UserProfile } from './components/UserProfile';
@@ -438,19 +438,7 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
             <h3 className="text-lg font-bold text-gray-800 mb-4">
               {lang === 'de' ? 'Weitere Bereiche' : 'Quick Links'}
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <button
-                onClick={() => setPage('vocab')}
-                className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 py-3 rounded-xl font-semibold transition-all min-h-[44px] text-sm"
-              >
-                {lang === 'de' ? 'Vokabeln' : 'Vocabulary'}
-              </button>
-              <button
-                onClick={() => setPage('cards')}
-                className="bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-800 py-3 rounded-xl font-semibold transition-all min-h-[44px] text-sm"
-              >
-                {lang === 'de' ? 'Lernkarten' : 'Flashcards'}
-              </button>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <button
                 onClick={() => setPage('faq')}
                 className="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 py-3 rounded-xl font-semibold transition-all min-h-[44px] text-sm"
@@ -466,6 +454,32 @@ export function SettingsPage({ lang, setPage }: SettingsPageProps) {
             </div>
           </div>
         )}
+
+        {/* Install App Button */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg border border-indigo-200">
+          <div className="flex items-center gap-3 mb-4">
+            <Smartphone className="text-indigo-600" size={24} />
+            <h3 className="text-lg font-bold text-gray-800">
+              {lang === 'de' ? 'App installieren' : 'Install App'}
+            </h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            {lang === 'de' 
+              ? 'Installiere Einbürger Coach auf deinem Gerät für schnelleren Zugriff und Offline-Nutzung.' 
+              : 'Install Einbürger Coach on your device for faster access and offline use.'}
+          </p>
+          <button
+            onClick={() => {
+              // Trigger the PWA install prompt if available
+              const event = new CustomEvent('triggerPWAInstall');
+              window.dispatchEvent(event);
+            }}
+            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white py-3 rounded-xl font-bold shadow-md transition-all min-h-[44px] flex items-center justify-center gap-2"
+          >
+            <Download size={20} />
+            {lang === 'de' ? 'App installieren' : 'Install App'}
+          </button>
+        </div>
 
         {/* Legal & Compliance (German Law Requirements) */}
         <div className="bg-white rounded-2xl p-6 shadow-lg">
