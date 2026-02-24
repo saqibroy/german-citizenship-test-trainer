@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { 
-  Award, ChevronRight, AlertCircle, Brain, Target, BookMarked, BookOpen, Flame, LogIn, User, Clock, Zap
+  Award, ChevronRight, AlertCircle, Brain, Target, BookOpen, BookMarked, Flame, LogIn, User, Clock, Zap, Settings
 } from 'lucide-react';
 import { QUESTIONS } from '../data.js';
 import { daysSinceLastSeen, calculateTestReadiness } from '../srsAlgorithm';
@@ -10,7 +10,7 @@ import { AuthModal } from '../components/AuthModal';
 import { UserProfile } from '../components/UserProfile';
 import { getBadgeInfo } from '../utils/badgeInfo';
 
-export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomePageProps) {
+export function HomePage({ lang, badges, progress, setPage, studyStreak, onStartTraining }: HomePageProps) {
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -67,24 +67,33 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
             </p>
           </div>
           
-          {/* Auth Button */}
-          {user ? (
+          {/* Auth Button & Settings */}
+          <div className="flex items-center gap-2">
+            {user ? (
+              <button 
+                onClick={() => setShowProfile(true)}
+                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-full transition-all active:scale-95"
+              >
+                <User size={20} />
+                <span className="hidden sm:inline font-semibold">{lang === 'de' ? 'Profil' : 'Profile'}</span>
+              </button>
+            ) : (
+              <button 
+                onClick={() => setShowAuthModal(true)}
+                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-full transition-all active:scale-95"
+              >
+                <LogIn size={18} />
+                <span className="font-semibold">{lang === 'de' ? 'Anmelden' : 'Login'}</span>
+              </button>
+            )}
             <button 
-              onClick={() => setShowProfile(true)}
-              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-full transition-all active:scale-95"
+              onClick={() => setPage('settings')}
+              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm p-2.5 rounded-full transition-all active:scale-95"
+              aria-label={lang === 'de' ? 'Einstellungen' : 'Settings'}
             >
-              <User size={20} />
-              <span className="hidden sm:inline font-semibold">{lang === 'de' ? 'Profil' : 'Profile'}</span>
+              <Settings size={20} />
             </button>
-          ) : (
-          <button 
-  onClick={() => setShowAuthModal(true)}
-  className="flex items-center justify-center gap-2 bg-white hover:bg-gray-100 text-blue-600 shadow-lg px-8 py-3 rounded-full transition-all active:scale-95 font-bold border-2 border-blue-200 mx-auto max-w-xs"
->
-  <LogIn size={18} />
-  <span className="text-lg">{lang === 'de' ? 'Anmelden' : 'Login'}</span>
-</button>
-          )}
+          </div>
         </div>
         
         {/* Sync Status for logged in users */}
@@ -223,7 +232,7 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
       <div className="space-y-3">
         {dueCount > 0 && (
           <button 
-            onClick={() => setPage('training')} 
+            onClick={() => onStartTraining?.('smart')} 
             className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-2xl p-5 font-bold shadow-xl hover:shadow-2xl transition-all active:scale-98 touch-target"
           >
             <div className="flex items-center justify-between">
@@ -277,28 +286,41 @@ export function HomePage({ lang, badges, progress, setPage, studyStreak }: HomeP
           </div>
         </button>
 
-        <div className="grid grid-cols-2 gap-3">
-          <button 
-            onClick={() => setPage('vocab')} 
-            className="bg-white text-gray-800 rounded-2xl p-5 font-bold shadow-lg hover:shadow-xl border-2 border-purple-200 hover:border-purple-400 transition-all active:scale-98 touch-target"
-          >
-            <div className="bg-purple-50 w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <BookMarked className="text-purple-600" size={32} />
+        <button 
+          onClick={() => setPage('vocab')} 
+          className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl p-5 font-bold shadow-xl hover:shadow-2xl transition-all active:scale-98 touch-target"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
+                <BookOpen size={28} />
+              </div>
+              <div className="text-left">
+                <div className="text-lg font-black">{lang === 'de' ? 'Vokabeln' : 'Vocabulary'}</div>
+                <div className="text-sm opacity-90 font-medium">{lang === 'de' ? 'Wortschatz lernen' : 'Learn words'}</div>
+              </div>
             </div>
-            <div className="text-base font-bold">{lang === 'de' ? 'Vokabeln' : 'Vocabulary'}</div>
-            <div className="text-xs text-gray-600 mt-1 font-medium">{lang === 'de' ? 'Wortschatz' : 'Learn words'}</div>
-          </button>
-          <button 
-            onClick={() => setPage('cards')} 
-            className="bg-white text-gray-800 rounded-2xl p-5 font-bold shadow-lg hover:shadow-xl border-2 border-green-200 hover:border-green-400 transition-all active:scale-98 touch-target"
-          >
-            <div className="bg-green-50 w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <BookOpen className="text-green-600" size={32} />
+            <ChevronRight size={24} className="flex-shrink-0" />
+          </div>
+        </button>
+
+        <button 
+          onClick={() => setPage('cards')} 
+          className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-2xl p-5 font-bold shadow-xl hover:shadow-2xl transition-all active:scale-98 touch-target"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
+                <BookMarked size={28} />
+              </div>
+              <div className="text-left">
+                <div className="text-lg font-black">{lang === 'de' ? 'Karten' : 'Flashcards'}</div>
+                <div className="text-sm opacity-90 font-medium">{lang === 'de' ? 'Karteikarten üben' : 'Practice flashcards'}</div>
+              </div>
             </div>
-            <div className="text-base font-bold">{lang === 'de' ? 'Karten' : 'Cards'}</div>
-            <div className="text-xs text-gray-600 mt-1 font-medium">{lang === 'de' ? 'Karteikarten' : 'Flashcards'}</div>
-          </button>
-        </div>
+            <ChevronRight size={24} className="flex-shrink-0" />
+          </div>
+        </button>
       </div>
 
       {/* Badges - MODERNIZED */}

@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
-import { Home, Brain, Trophy, Settings, BookOpen } from 'lucide-react';
-import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { Home, Brain, Trophy, BookOpen, BookMarked } from 'lucide-react';
 
 interface BottomNavProps {
   currentPage: string;
@@ -31,9 +30,9 @@ export function BottomNav({ currentPage, onNavigate, lang }: BottomNavProps) {
       label: lang === 'de' ? 'Grammatik' : 'Grammar',
     },
     {
-      id: 'more',
-      icon: Settings,
-      label: lang === 'de' ? 'Mehr' : 'More',
+      id: 'vocab',
+      icon: BookMarked,
+      label: lang === 'de' ? 'Vokabeln' : 'Vocab',
     },
   ];
 
@@ -45,17 +44,13 @@ export function BottomNav({ currentPage, onNavigate, lang }: BottomNavProps) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id || 
-                            (item.id === 'more' && ['settings', 'cards', 'vocab', 'vocab-training', 'faq', 'landing'].includes(currentPage));
+                            (item.id === 'vocab' && ['cards', 'vocab', 'vocab-training'].includes(currentPage));
             
             return (
               <button
                 key={item.id}
                 onClick={() => {
-                  if (item.id === 'more') {
-                    onNavigate('settings');
-                  } else {
-                    onNavigate(item.id);
-                  }
+                  onNavigate(item.id);
                 }}
                 className={`flex flex-col items-center justify-center flex-1 h-full touch-target relative ${
                   isActive ? 'text-purple-600' : 'text-gray-500'
@@ -108,15 +103,9 @@ interface MoreMenuProps {
 
 export function MoreMenu({ isOpen, onClose, onNavigate, lang }: MoreMenuProps) {
   const moreItems = [
-    { id: 'settings', icon: Settings, label: lang === 'de' ? 'Einstellungen' : 'Settings' },
-    { id: 'cards', icon: BookOpen, label: lang === 'de' ? 'Karteikarten' : 'Flashcards' },
-    { id: 'vocab', icon: BookOpen, label: lang === 'de' ? 'Vokabeln' : 'Vocabulary' },
-    { id: 'grammar', icon: BookOpen, label: lang === 'de' ? 'Grammatik' : 'Grammar' },
+    { id: 'settings', icon: BookOpen, label: lang === 'de' ? 'Einstellungen' : 'Settings' },
     { id: 'faq', icon: BookOpen, label: 'FAQ' },
   ];
-
-  // Lock body scroll when menu is open
-  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -134,6 +123,14 @@ export function MoreMenu({ isOpen, onClose, onNavigate, lang }: MoreMenuProps) {
         exit={{ y: '100%' }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.6 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 100 || info.velocity.y > 400) {
+            onClose();
+          }
+        }}
         className="w-full bg-white rounded-t-3xl md:rounded-3xl md:max-w-md md:mb-0 p-6 pb-8 max-h-[80vh] overflow-y-auto"
       >
         {/* Handle bar (mobile) */}

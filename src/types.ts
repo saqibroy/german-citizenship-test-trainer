@@ -114,6 +114,7 @@ export interface HomePageProps {
   setPage: (page: string) => void;
   studyStreak: number;
   quizHistory?: QuizResult[];
+  onStartTraining?: (mode?: string) => void;
 }
 
 export interface QuizPageProps {
@@ -122,6 +123,7 @@ export interface QuizPageProps {
   updateProgress: (qId: number, correct: boolean, answerTime?: number) => void;
   progress: Record<number, QuestionProgress>;
   saveQuizResult: (score: number, total: number, categoryBreakdown: CategoryBreakdown) => void;
+  onSessionChange?: (active: boolean) => void;
 }
 
 export interface TrainingPageProps {
@@ -129,6 +131,9 @@ export interface TrainingPageProps {
   questions: Question[];
   updateProgress: (qId: number, correct: boolean, answerTime?: number) => void;
   progress: Record<number, QuestionProgress>;
+  onSessionChange?: (active: boolean) => void;
+  autoStartMode?: string | null;
+  onAutoStartConsumed?: () => void;
 }
 
 export interface CardsPageProps {

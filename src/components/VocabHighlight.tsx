@@ -54,7 +54,7 @@ const getGenderColorClasses = (gender: VocabGender, isLight: boolean, isActive: 
 interface VocabHighlightProps {
   text: string;
   onVocabClick: (vocabEntry: any) => void;
-  disabled?: boolean; // Disable interaction (before answering)
+  disabled?: boolean; // Kept for backward compatibility, but now defaults to false (always active)
   variant?: 'default' | 'light'; // 'light' for colored backgrounds (green/red)
 }
 
@@ -178,23 +178,28 @@ function VocabWord({ word, vocabEntry, gender, onClick, disabled = false, varian
     onClick(vocabEntry);
   };
   
-  // Disabled state (before answering)
+  // Disabled state - still clickable for vocabulary, just subtler styling
   if (disabled) {
     return (
       <span
-        className="vocab-highlight-disabled relative inline-block select-none"
+        onClick={handleClick}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className="vocab-highlight cursor-pointer relative inline-block select-none"
         style={{
           background: isLight
-            ? 'rgba(255, 255, 255, 0.1)'
+            ? 'rgba(255, 255, 255, 0.15)'
             : colors.bg,
           borderBottom: isLight
-            ? '1px solid rgba(255, 255, 255, 0.3)'
-            : `1px solid ${colors.border}40`,
+            ? '1px dashed rgba(255, 255, 255, 0.4)'
+            : `1px dashed ${colors.border}60`,
           borderRadius: '2px',
           padding: '0 2px',
-          cursor: 'default',
-          pointerEvents: 'none',
-          fontWeight: '500'
+          fontWeight: '500',
+          transition: 'all 0.2s ease'
         }}
       >
         {word}

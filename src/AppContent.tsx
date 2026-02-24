@@ -59,6 +59,8 @@ export default function AppContent() {
   const [favoriteVocab, setFavoriteVocab] = useState<string[]>([]);
   const [vocabMode, setVocabMode] = useState('learn'); // 'learn' or 'training'
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [activeSession, setActiveSession] = useState(false); // Hide header/nav during quiz/training
+  const [trainingAutoStart, setTrainingAutoStart] = useState<string | null>(null); // Auto-start training from HomePage
 
   // Get auth state
   const { user } = useAuth();
@@ -215,16 +217,16 @@ export default function AppContent() {
       )}
       
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-        {/* Header - Only show on non-landing/FAQ pages */}
-        {!['landing', 'faq'].includes(page) && (
+        {/* Header - Only show on non-landing/FAQ pages and not during active sessions */}
+        {!['landing', 'faq'].includes(page) && !activeSession && (
           <header className="bg-white shadow-md sticky top-0 z-50">
-            <div className="flex items-center justify-between py-3 px-4">
+            <div className="flex items-center justify-between px-4 py-1">
               <button 
                 onClick={() => setPage('home')}
                 className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
                 aria-label="Go to home"
               >
-                <img src="/final-logo.svg" alt="Einbürger Coach" className="h-10 md:h-12 w-auto" /> 
+                <img src="/final-logo.svg" alt="Einbürger Coach" className="h-12 md:h-14 w-auto" /> 
               </button>
               {/* Modern Language Selector */}
               <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5">
@@ -253,7 +255,7 @@ export default function AppContent() {
             
             {/* Desktop Navigation - Hidden on mobile */}
             <nav className="hidden md:flex border-t overflow-x-auto">
-              {['home', 'training', 'quiz', 'vocab', 'grammar', 'settings'].map(p => (
+              {['home', 'training', 'quiz', 'vocab', 'cards', 'grammar', 'settings'].map(p => (
                 <button key={p} onClick={() => setPage(p)} className={`flex-1 py-3 text-sm font-semibold whitespace-nowrap px-2 transition-colors ${page === p ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
                   {t[p as keyof typeof t][lang as 'de' | 'en']}
                 </button>
@@ -268,9 +270,9 @@ export default function AppContent() {
             {page === 'faq' && <FAQPage lang={lang as 'de' | 'en'} setPage={setPage} />}
             {page === 'impressum' && <LegalPage lang={lang as 'de' | 'en'} setPage={setPage} initialSection="impressum" />}
             {page === 'datenschutz' && <LegalPage lang={lang as 'de' | 'en'} setPage={setPage} initialSection="datenschutz" />}
-            {page === 'home' && <HomePage lang={lang} badges={badges} progress={progress} setPage={setPage} studyStreak={studyStreak} />}
-            {page === 'training' && <TrainingPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
-            {page === 'quiz' && <QuizPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} saveQuizResult={saveQuizResult} />}
+            {page === 'home' && <HomePage lang={lang} badges={badges} progress={progress} setPage={setPage} studyStreak={studyStreak} onStartTraining={(mode) => { setTrainingAutoStart(mode || 'smart'); setPage('training'); }} />}
+            {page === 'training' && <TrainingPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} onSessionChange={setActiveSession} autoStartMode={trainingAutoStart} onAutoStartConsumed={() => setTrainingAutoStart(null)} />}
+            {page === 'quiz' && <QuizPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} saveQuizResult={saveQuizResult} onSessionChange={setActiveSession} />}
             {page === 'cards' && <CardsPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
             {page === 'vocab' && (
               <div>
@@ -299,8 +301,8 @@ export default function AppContent() {
           </Suspense>
         </main>
 
-        {/* New Bottom Navigation - Only show on main pages */}
-        {!['landing', 'faq'].includes(page) && (
+        {/* New Bottom Navigation - Only show on main pages and not during active sessions */}
+        {!['landing', 'faq'].includes(page) && !activeSession && (
           <BottomNav 
             currentPage={page}
             onNavigate={setPage}

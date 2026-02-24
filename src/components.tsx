@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   BookMarked, Star, CheckCircle2, XCircle, Brain, Sparkles,
   Calendar, Target, AlertCircle, Flame, Clock,
@@ -255,88 +256,100 @@ export function VocabPopup({ word, onClose, lang }: VocabPopupProps) {
 
   return (
     <ScrollLockWrapper>
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="text-indigo-600" size={24} />
-            <h3 className="text-xl font-bold text-gray-800">{lang === 'de' ? 'Vokabel' : 'Vocabulary'}</h3>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
+      {/* Bottom sheet on mobile, centered modal on desktop */}
+      <motion.div 
+        className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl transform transition-all max-h-[60vh] sm:max-h-[80vh] overflow-y-auto overscroll-contain" 
+        onClick={(e) => e.stopPropagation()}
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.6 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 80 || info.velocity.y > 300) {
+            onClose();
+          }
+        }}
+      >
+        {/* Drag handle for mobile */}
+        <div className="sm:hidden flex justify-center pt-2 pb-1 sticky top-0 bg-white z-10">
+          <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
         </div>
-
-        <div className="space-y-4">
-          {/* Main word with gender badge */}
-          <div className="bg-indigo-50 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-sm text-indigo-600 font-semibold">{lang === 'de' ? 'Deutsch' : 'German'}</p>
-              <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${genderBadge.bg} ${genderBadge.text} ${genderBadge.border}`}>
-                {genderBadge.label}
-              </span>
+        
+        <div className="px-5 pb-5 pt-2 sm:pt-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="text-indigo-600" size={20} />
+              <h3 className="text-lg font-bold text-gray-800">{lang === 'de' ? 'Vokabel' : 'Vocabulary'}</h3>
             </div>
-            <p className="text-2xl font-bold text-indigo-900">{vocabItem.de}</p>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none p-1">&times;</button>
           </div>
 
-          {/* English meaning */}
-          <div className="bg-green-50 rounded-xl p-4">
-            <p className="text-sm text-green-600 font-semibold mb-1">{lang === 'de' ? 'Englisch' : 'English'}</p>
-            <p className="text-xl font-bold text-green-900">{vocabItem.meaning || vocabItem.en}</p>
-          </div>
-
-          {/* All Forms Section */}
-          {forms.length > 1 && (
-            <div className="border-t pt-4">
-              <p className="text-sm text-gray-500 font-semibold mb-2">
-                {lang === 'de' ? 'Alle Formen (Fälle & Nutzung)' : 'All Forms (Cases & Usage)'}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {forms.map((form, idx) => {
-                  const caseType = getCaseType(form);
-                  const caseColor = caseColors[caseType];
-                  return (
-                    <span
-                      key={idx}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-lg border ${caseColor.bg} ${caseColor.text} ${caseColor.border}`}
-                    >
-                      {form}
-                    </span>
-                  );
-                })}
+          <div className="space-y-3">
+            {/* Main word with gender badge - compact */}
+            <div className="bg-indigo-50 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-indigo-600 font-semibold">{lang === 'de' ? 'Deutsch' : 'German'}</p>
+                <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${genderBadge.bg} ${genderBadge.text} ${genderBadge.border}`}>
+                  {genderBadge.label}
+                </span>
               </div>
-              
-              {/* Color Legend */}
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <p className="text-xs text-gray-400 mb-2">{lang === 'de' ? 'Farblegende:' : 'Color Key:'}</p>
-                <div className="flex flex-wrap gap-1">
-                  <span className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">Nom</span>
-                  <span className="text-xs px-1.5 py-0.5 bg-teal-50 text-teal-600 rounded">Akk</span>
-                  <span className="text-xs px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded">Dat</span>
-                  <span className="text-xs px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">Gen</span>
+              <p className="text-xl font-bold text-indigo-900">{vocabItem.de}</p>
+            </div>
+
+            {/* English meaning - compact */}
+            <div className="bg-green-50 rounded-xl p-3">
+              <p className="text-xs text-green-600 font-semibold mb-1">{lang === 'de' ? 'Englisch' : 'English'}</p>
+              <p className="text-lg font-bold text-green-900">{vocabItem.meaning || vocabItem.en}</p>
+            </div>
+
+            {/* All Forms Section - collapsible for mobile */}
+            {forms.length > 1 && (
+              <div className="border-t pt-3">
+                <p className="text-xs text-gray-500 font-semibold mb-2">
+                  {lang === 'de' ? 'Formen' : 'Forms'}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {forms.map((form, idx) => {
+                    const caseType = getCaseType(form);
+                    const caseColor = caseColors[caseType];
+                    return (
+                      <span
+                        key={idx}
+                        className={`px-2 py-1 text-xs font-medium rounded-lg border ${caseColor.bg} ${caseColor.text} ${caseColor.border}`}
+                      >
+                        {form}
+                      </span>
+                    );
+                  })}
+                </div>
+                
+                {/* Color Legend - compact */}
+                <div className="mt-2 pt-2 border-t border-gray-100">
+                  <div className="flex flex-wrap gap-1">
+                    <span className="text-[10px] px-1 py-0.5 bg-blue-50 text-blue-600 rounded">Nom</span>
+                    <span className="text-[10px] px-1 py-0.5 bg-teal-50 text-teal-600 rounded">Akk</span>
+                    <span className="text-[10px] px-1 py-0.5 bg-orange-50 text-orange-600 rounded">Dat</span>
+                    <span className="text-[10px] px-1 py-0.5 bg-purple-50 text-purple-600 rounded">Gen</span>
+                  </div>
                 </div>
               </div>
+            )}
+
+            {/* Category & Example in compact grid */}
+            <div className="grid grid-cols-1 gap-2 border-t pt-3">
+              <div>
+                <p className="text-xs text-gray-500 font-semibold mb-0.5">{lang === 'de' ? 'Kategorie' : 'Category'}</p>
+                <p className="text-sm text-gray-800">{vocabItem.category}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-semibold mb-0.5">{lang === 'de' ? 'Beispiel' : 'Example'}</p>
+                <p className="text-sm text-gray-800 italic">&ldquo;{vocabItem.example_de}&rdquo;</p>
+                <p className="text-xs text-gray-600 mt-0.5">&ldquo;{vocabItem.example_en}&rdquo;</p>
+              </div>
             </div>
-          )}
-
-          {/* Category */}
-          <div className="border-t pt-4">
-            <p className="text-sm text-gray-500 font-semibold mb-2">{lang === 'de' ? 'Kategorie' : 'Category'}</p>
-            <p className="text-gray-800">{vocabItem.category}</p>
-          </div>
-
-          {/* Example */}
-          <div className="border-t pt-4">
-            <p className="text-sm text-gray-500 font-semibold mb-2">{lang === 'de' ? 'Beispiel' : 'Example'}</p>
-            <p className="text-gray-800 italic mb-2">&ldquo;{vocabItem.example_de}&rdquo;</p>
-            <p className="text-gray-600 text-sm">&ldquo;{vocabItem.example_en}&rdquo;</p>
-          </div>
-
-          {/* Tier badge */}
-          <div className="flex items-center gap-2 bg-yellow-50 rounded-lg p-3">
-            <Star className="text-yellow-500" size={16} />
-            <span className="text-sm font-semibold text-yellow-800">{vocabItem.tier_name}</span>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
     </ScrollLockWrapper>
   );
