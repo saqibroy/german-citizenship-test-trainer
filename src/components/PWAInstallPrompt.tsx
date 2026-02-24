@@ -165,7 +165,7 @@ export function PWAInstallPrompt({ lang }: PWAInstallPromptProps) {
               <div className="flex items-start gap-3">
                 {/* App icon */}
                 <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center shadow-lg">
-                  <img src="/icon-192.svg" alt="" className="w-8 h-8" />
+                  <img src="/icon.svg" alt="" className="w-8 h-8" />
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -229,7 +229,7 @@ export function PWAInstallPrompt({ lang }: PWAInstallPromptProps) {
             <div className="p-4">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center shadow-lg">
-                  <img src="/icon-192.svg" alt="" className="w-8 h-8" />
+                  <img src="/icon.svg" alt="" className="w-8 h-8" />
                 </div>
 
                 <div className="flex-1 min-w-0">

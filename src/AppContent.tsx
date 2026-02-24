@@ -224,7 +224,7 @@ export default function AppContent() {
                 className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
                 aria-label="Go to home"
               >
-                <img src="/logo.svg" alt="Einbürger Coach" className="h-10 md:h-12 w-auto" /> 
+                <img src="/final-logo.svg" alt="Einbürger Coach" className="h-10 md:h-12 w-auto" /> 
               </button>
               {/* Modern Language Selector */}
               <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5">

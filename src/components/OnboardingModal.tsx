@@ -3,6 +3,11 @@ import { X, Brain, Target, Calendar, Award, ArrowRight, ArrowLeft, CalendarDays,
 import { safeSetItem } from '../utils/storage';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
+// App icon component that matches the Lucide icon interface for use in onboarding header
+const AppIcon = ({ className }: { className?: string }) => (
+  <img src="/icon.svg" alt="Einbürger Coach" className={className} />
+);
+
 interface OnboardingModalProps {
   onComplete: () => void;
   lang: 'de' | 'en';
@@ -12,7 +17,7 @@ const ONBOARDING_STEPS = {
   en: [
     {
       title: "Welcome",
-      icon: Brain,
+      icon: AppIcon,
       content: (
         <>
           <p className="text-gray-600 mb-4">Master all <span className="font-semibold text-gray-900">310 official questions</span> for the German citizenship test with our smart learning system.</p>
@@ -227,7 +232,7 @@ const ONBOARDING_STEPS = {
   de: [
     {
       title: "Willkommen",
-      icon: Brain,
+      icon: AppIcon,
       content: (
         <>
           <p className="text-gray-600 mb-4">Meistere alle <span className="font-semibold text-gray-900">310 offiziellen Fragen</span> für deinen Einbürgerungstest mit unserem intelligenten Lernsystem.</p>
