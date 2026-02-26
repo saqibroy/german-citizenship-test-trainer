@@ -3987,7 +3987,7 @@ export const QUESTIONS = [
       "Image 4"
     ],
     "img": {
-      "url": "aufgabe_21"
+      "url": "aufgabe_209"
     },
     "correct_index": 3,
     "category": "Geschichte"

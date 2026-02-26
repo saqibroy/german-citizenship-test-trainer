@@ -259,22 +259,30 @@ export function VocabPopup({ word, onClose, lang }: VocabPopupProps) {
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
       {/* Bottom sheet on mobile, centered modal on desktop */}
       <motion.div 
-        className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl transform transition-all max-h-[60vh] sm:max-h-[80vh] overflow-y-auto overscroll-contain" 
+        className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl transform transition-all max-h-[60vh] sm:max-h-[80vh] flex flex-col" 
         onClick={(e) => e.stopPropagation()}
-        drag="y"
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={{ top: 0, bottom: 0.6 }}
-        onDragEnd={(_, info) => {
-          if (info.offset.y > 80 || info.velocity.y > 300) {
-            onClose();
-          }
-        }}
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       >
-        {/* Drag handle for mobile */}
-        <div className="sm:hidden flex justify-center pt-2 pb-1 sticky top-0 bg-white z-10">
+        {/* Drag handle for mobile — only this area is draggable */}
+        <motion.div 
+          className="sm:hidden flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing shrink-0"
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.6 }}
+          onDragEnd={(_, info) => {
+            if (info.offset.y > 80 || info.velocity.y > 300) {
+              onClose();
+            }
+          }}
+        >
           <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
-        </div>
+        </motion.div>
         
+        {/* Scrollable content area */}
+        <div className="overflow-y-auto overscroll-contain flex-1">
         <div className="px-5 pb-5 pt-2 sm:pt-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -348,6 +356,7 @@ export function VocabPopup({ word, onClose, lang }: VocabPopupProps) {
               </div>
             </div>
           </div>
+        </div>
         </div>
       </motion.div>
     </div>

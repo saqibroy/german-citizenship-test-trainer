@@ -124,6 +124,7 @@ export interface QuizPageProps {
   progress: Record<number, QuestionProgress>;
   saveQuizResult: (score: number, total: number, categoryBreakdown: CategoryBreakdown) => void;
   onSessionChange?: (active: boolean) => void;
+  onQuizComplete?: (score: number, total: number) => void;
 }
 
 export interface TrainingPageProps {
@@ -134,6 +135,7 @@ export interface TrainingPageProps {
   onSessionChange?: (active: boolean) => void;
   autoStartMode?: string | null;
   onAutoStartConsumed?: () => void;
+  onTrainingComplete?: (accuracy: number) => void;
 }
 
 export interface CardsPageProps {
