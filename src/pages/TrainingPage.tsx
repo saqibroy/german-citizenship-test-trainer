@@ -16,7 +16,7 @@ interface Answer {
   isCorrect: boolean;
 }
 
-export function TrainingPage({ lang, questions, updateProgress, progress, onSessionChange, autoStartMode, onAutoStartConsumed }: TrainingPageProps) {
+export function TrainingPage({ lang, questions, updateProgress, progress, onSessionChange, autoStartMode, onAutoStartConsumed, onTrainingComplete }: TrainingPageProps) {
   const [started, setStarted] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -32,6 +32,8 @@ export function TrainingPage({ lang, questions, updateProgress, progress, onSess
   const [pendingAnswer, setPendingAnswer] = useState<number | null>(null);
   // Ref to scroll the bottom action bar into view
   const actionBarRef = useRef<HTMLDivElement>(null);
+  // Track whether we've already fired training completion celebration
+  const completionCelebratedRef = useRef(false);
 
   // Shuffled options with original indices
   const shuffledOptions = useMemo(() => {
@@ -104,6 +106,7 @@ export function TrainingPage({ lang, questions, updateProgress, progress, onSess
     setAnswers([]);
     setShowTranslation(false);
     setSessionStats({ correct: 0, incorrect: 0, total: 0 });
+    completionCelebratedRef.current = false;
     onSessionChange?.(true);
   };
 
@@ -343,6 +346,12 @@ export function TrainingPage({ lang, questions, updateProgress, progress, onSess
   if (currentIdx >= trainingQuestions.length) {
     const score = answers.filter((ans: any) => ans?.isCorrect).length;
     const accuracy = Math.round((score / trainingQuestions.length) * 100);
+
+    // Trigger celebration for training completion (only once)
+    if (!completionCelebratedRef.current) {
+      completionCelebratedRef.current = true;
+      onTrainingComplete?.(accuracy);
+    }
     
     const categoryBreakdown: Record<string, { correct: number; total: number }> = {};
     trainingQuestions.forEach((q, idx) => {

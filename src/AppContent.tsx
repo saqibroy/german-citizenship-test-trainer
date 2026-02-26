@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
+import { useState, useEffect, lazy, Suspense, useCallback, useRef } from 'react';
 import { QUESTIONS } from './data.js';
 import { CITIZENSHIP_VOCABULARY } from './vacabulary.js';
 import { VocabPage, VocabTrainingPage } from './components.tsx';
@@ -7,8 +7,10 @@ import { OnboardingModal } from './components/OnboardingModal.tsx';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { SkeletonLoader } from './components/SkeletonLoader.tsx';
 import { BottomNav } from './components/BottomNav';
+import { CelebrationOverlay, useCelebration } from './components/CelebrationOverlay';
 import { safeGetItem, safeSetItem, validateVocabProgress } from './utils/storage';
 import { trackPageView } from './lib/analytics';
+import { getBadgeInfo } from './utils/badgeInfo';
 import type { QuestionProgress, CategoryBreakdown, VocabProgress } from './types';
 
 // Import custom hooks
@@ -69,7 +71,20 @@ export default function AppContent() {
   const { progress, updateProgress: updateProgressHook, getProgress } = useProgress(QUESTIONS);
   const { quizHistory, addQuizResult } = useQuizHistory();
   const { studyStreak, totalStudyDays, updateStreak } = useStudyStreak();
-  const { badges, checkBadges } = useBadges(progress, quizHistory, studyStreak, totalStudyDays);
+  const { badges, newBadges, checkBadges } = useBadges(progress, quizHistory, studyStreak, totalStudyDays);
+
+  // Celebration system
+  const { 
+    currentCelebration, 
+    dismissCelebration, 
+    celebrateLevelChange, 
+    celebrateBadge, 
+    celebrateTrainingComplete, 
+    celebrateQuizComplete 
+  } = useCelebration();
+  
+  // Track previous newBadges to detect fresh badge unlocks
+  const prevNewBadgesRef = useRef<string[]>([]);
   
   // Firebase sync hook (now safe because we're inside AuthProvider)
   const { syncProgress: syncToFirestore } = useFirestoreSync({
@@ -111,12 +126,34 @@ export default function AppContent() {
     trackPageView(page);
   }, [page]);
 
+  // Celebrate new badges when they are earned
+  useEffect(() => {
+    if (newBadges.length > 0) {
+      // Only celebrate badges we haven't already celebrated
+      const freshBadges = newBadges.filter(b => !prevNewBadgesRef.current.includes(b));
+      freshBadges.forEach(badgeId => {
+        const info = getBadgeInfo(badgeId, lang as 'de' | 'en');
+        celebrateBadge(info.name, info.icon, info.description, lang);
+      });
+      prevNewBadgesRef.current = newBadges;
+    }
+  }, [newBadges, lang, celebrateBadge]);
+
   // Memoize callbacks for performance
   const updateProgress = useCallback((qId: number, correct: boolean, answerTime: number = 5) => {
     const existing = getProgress(qId);
     
     // Use the proper SRS algorithm to calculate new progress
     const updated = updateSRSProgress(existing, correct, answerTime) as QuestionProgress;
+    
+    // Detect level change and celebrate
+    if (correct) {
+      celebrateLevelChange(
+        existing ? { strength: existing.strength, srsLevel: existing.srsLevel } : undefined,
+        { strength: updated.strength, srsLevel: updated.srsLevel },
+        lang
+      );
+    }
     
     // Update using the hook
     updateProgressHook(qId, updated);
@@ -129,7 +166,7 @@ export default function AppContent() {
     
     // Sync to Firestore if user is logged in
     syncToFirestore(qId, updated);
-  }, [getProgress, updateProgressHook, updateStreak, checkBadges, syncToFirestore]);
+  }, [getProgress, updateProgressHook, updateStreak, checkBadges, syncToFirestore, celebrateLevelChange, lang]);
 
   const saveQuizResult = useCallback((score: number, total: number, categoryBreakdown: CategoryBreakdown) => {
     // Use the hook to add quiz result
@@ -271,8 +308,8 @@ export default function AppContent() {
             {page === 'impressum' && <LegalPage lang={lang as 'de' | 'en'} setPage={setPage} initialSection="impressum" />}
             {page === 'datenschutz' && <LegalPage lang={lang as 'de' | 'en'} setPage={setPage} initialSection="datenschutz" />}
             {page === 'home' && <HomePage lang={lang} badges={badges} progress={progress} setPage={setPage} studyStreak={studyStreak} onStartTraining={(mode) => { setTrainingAutoStart(mode || 'smart'); setPage('training'); }} />}
-            {page === 'training' && <TrainingPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} onSessionChange={setActiveSession} autoStartMode={trainingAutoStart} onAutoStartConsumed={() => setTrainingAutoStart(null)} />}
-            {page === 'quiz' && <QuizPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} saveQuizResult={saveQuizResult} onSessionChange={setActiveSession} />}
+            {page === 'training' && <TrainingPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} onSessionChange={setActiveSession} autoStartMode={trainingAutoStart} onAutoStartConsumed={() => setTrainingAutoStart(null)} onTrainingComplete={(accuracy) => celebrateTrainingComplete(accuracy, lang)} />}
+            {page === 'quiz' && <QuizPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} saveQuizResult={saveQuizResult} onSessionChange={setActiveSession} onQuizComplete={(score, total) => celebrateQuizComplete(score, total, lang)} />}
             {page === 'cards' && <CardsPage lang={lang} questions={QUESTIONS} updateProgress={updateProgress} progress={progress} />}
             {page === 'vocab' && (
               <div>
@@ -313,6 +350,12 @@ export default function AppContent() {
         {/* PWA Install Prompt */}
         <PWAInstallPrompt lang={lang as 'de' | 'en'} />
       </div>
+
+      {/* Celebration Overlay - rendered on top of everything */}
+      <CelebrationOverlay 
+        event={currentCelebration} 
+        onComplete={dismissCelebration} 
+      />
     </>
   );
 }

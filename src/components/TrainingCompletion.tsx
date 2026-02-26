@@ -1,4 +1,5 @@
 import { Brain, TrendingUp, Target, Lightbulb, Sparkles, Award } from 'lucide-react';
+import ConfettiExplosion from 'react-confetti-explosion';
 
 interface TrainingCompletionProps {
   lang: string;
@@ -98,7 +99,19 @@ export function TrainingCompletion({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-8 shadow-2xl text-center max-w-3xl w-full">
+      <div className="bg-white rounded-2xl p-8 shadow-2xl text-center max-w-3xl w-full relative overflow-hidden">
+        {/* Confetti for great results */}
+        {accuracy >= 80 && (
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
+            <ConfettiExplosion
+              particleCount={accuracy >= 95 ? 120 : 60}
+              duration={accuracy >= 95 ? 4000 : 3000}
+              force={accuracy >= 95 ? 0.8 : 0.5}
+              width={accuracy >= 95 ? 600 : 400}
+              colors={['#a855f7', '#ec4899', '#22c55e', '#fbbf24', '#60a5fa', '#c084fc']}
+            />
+          </div>
+        )}
         {/* Emoji and Title */}
         <div className="text-8xl mb-6 animate-bounce">
           {accuracy >= 80 ? '🎉' : accuracy >= 60 ? '👍' : '📚'}

@@ -18,8 +18,8 @@ export default function SEO({
   url = 'https://einbuergerungstest-trainer.app'
 }: SEOProps) {
   const defaultTitles = {
-    de: 'Einbürgerungstest Trainer - Kostenlos & Effektiv',
-    en: 'German Citizenship Test Trainer - Free & Effective'
+    de: 'Einbürger Coach - Einbürgerungstest Vorbereitung',
+    en: 'Einbürger Coach - German Citizenship Test Trainer'
   };
 
   const defaultDescriptions = {
