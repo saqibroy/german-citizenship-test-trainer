@@ -7,7 +7,7 @@ import { calculateSRSWeight } from '../srsAlgorithm';
 import { VocabPopup } from '../components.tsx';
 import { shuffleArray } from '../utils/shuffleArray';
 import type { Question, QuizPageProps, CategoryBreakdown } from '../types';
-import ConfettiExplosion from 'react-confetti-explosion';
+import confetti from 'canvas-confetti';
 
 interface Answer {
   selectedIndex: number;
@@ -23,7 +23,6 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
   const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
   const [resultSaved, setResultSaved] = useState(false);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
-  const [showConfetti, setShowConfetti] = useState(false);
 
   const shuffledOptions = useMemo(() => {
     if (!quizQuestions[currentIdx]) return [];
@@ -60,7 +59,17 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
       saveQuizResult(quizResults.score, 33, quizResults.categoryBreakdown);
       setResultSaved(true);
       if (quizResults.score >= 28) { // 85% pass rate
-        setShowConfetti(true);
+        // Fire canvas-confetti
+        confetti({
+          particleCount: 100,
+          spread: 100,
+          startVelocity: 35,
+          origin: { x: 0.5, y: 0.3 },
+          colors: ['#22c55e', '#a855f7', '#fbbf24', '#ec4899', '#60a5fa'],
+          ticks: 180,
+          gravity: 0.7,
+          disableForReducedMotion: true,
+        });
       }
     }
   }, [quizResults, resultSaved, saveQuizResult]);
@@ -235,16 +244,6 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex flex-col main-content">
-        {showConfetti && (
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
-            <ConfettiExplosion 
-              force={0.6}
-              duration={3000}
-              particleCount={150}
-              width={1200}
-            />
-          </div>
-        )}
 
         <div className="flex-1 flex flex-col mobile-container py-6 max-w-2xl mx-auto w-full">
           {/* Result Card */}
@@ -275,7 +274,6 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
                 setCurrentIdx(0);
                 setAnswers([]);
                 setResultSaved(false);
-                setShowConfetti(false);
               }}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-2xl py-4 font-bold text-lg shadow-xl active:scale-98 transition-transform touch-target-lg"
             >

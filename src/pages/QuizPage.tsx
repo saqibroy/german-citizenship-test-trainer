@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BookOpen, BarChart3, Trophy, Target, Award, CheckCircle2, AlertCircle, Clock, ChevronRight, CheckCheck, X
 } from 'lucide-react';
-import ConfettiExplosion from 'react-confetti-explosion';
 import { calculateSRSWeight } from '../srsAlgorithm';
 import { VocabPopup } from '../components.tsx';
 import { shuffleArray } from '../utils/shuffleArray';
@@ -276,18 +275,6 @@ export function QuizPage({ lang, questions, updateProgress, progress, saveQuizRe
               ? 'bg-gradient-to-r from-green-500 to-emerald-600' 
               : 'bg-gradient-to-r from-red-500 to-rose-600'
           } rounded-2xl p-6 text-white shadow-xl mb-6 relative overflow-hidden`}>
-            {/* Confetti for passing */}
-            {passed && (
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
-                <ConfettiExplosion
-                  particleCount={score === 33 ? 150 : 80}
-                  duration={score === 33 ? 4000 : 3000}
-                  force={score === 33 ? 0.8 : 0.6}
-                  width={score === 33 ? 600 : 400}
-                  colors={['#fbbf24', '#f59e0b', '#22c55e', '#a855f7', '#ec4899', '#60a5fa']}
-                />
-              </div>
-            )}
             <div className="text-center">
               <div className="mb-4">
                 {passed ? <Trophy size={64} className="mx-auto" /> : <BookOpen size={64} className="mx-auto" />}
